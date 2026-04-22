@@ -247,26 +247,44 @@ if not (is_admin or is_compta or is_prof):
     
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    col1, col2 = st.columns([1, 2])
+    # 1. LOGIQUE DE CENTRAGE DE L'IMAGE
+    # On crée 3 colonnes, celle du milieu (index 1) prendra l'image.
+    col_spacer_l, col_image, col_spacer_r = st.columns([1, 2, 1])
     
-    with col1:
+    with col_image:
         # ON CHERCHE ICI UNE AUTRE IMAGE ('welcome.jpg')
         chemin_accueil = os.path.join(DOSSIER_COURANT, "welcome.jpg")
         if os.path.exists(chemin_accueil):
+            # use_container_width=True permet de s'adapter à la largeur de la colonne
             st.image(chemin_accueil, use_container_width=True)
         else:
-            # Fallback si l'image n'est pas encore sur GitHub
+            # Fallback centré si l'image n'est pas encore sur GitHub
             st.markdown("<div style='text-align: center; font-size: 130px; margin-top: -20px;'>🏫</div>", unsafe_allow_html=True)
             
-    with col2:
-        st.info("🔒 **Accès Restreint**\n\nCet espace est strictement réservé au personnel de l'établissement. Veuillez saisir votre **code d'accès** dans le menu latéral à gauche pour déverrouiller la plateforme.")
-        
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 2. LOGIQUE DE CENTRAGE DES TEXTES
+    # On crée 3 colonnes flanquées d'espaces pour centrer le bloc de texte
+    col_t_spacer_l, col_text, col_t_spacer_r = st.columns([1, 3, 1])
+
+    with col_text:
+        # On utilise du HTML pour centrer le texte à l'intérieur de st.info
         st.markdown("""
-        **Que retrouverez-vous sur cette plateforme ?**
-        * 👩‍🏫 **Portail Professeurs :** Accès immédiat aux identifiants des élèves (Ecole Directe, Pix, Drive...) et création de tickets d'assistance.
-        * 💼 **Pôle Administration :** Gestion à 360° des dossiers numériques, annuaires complets et éditions des fiches mots de passe.
-        * 💰 **Pôle Comptabilité :** Suivi automatisé des contrats matériels, locations iPad, facturation SAV et restitutions.
-        """)
+            <div style='background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; border-radius: 0.25rem; padding: 1rem; margin-bottom: 1rem; text-align: center;'>
+                🔒 <strong>Accès Restreint</strong><br><br>
+                Cet espace est strictement réservé au personnel de l'établissement. Veuillez saisir votre <strong>code d'accès</strong> dans le menu latéral à gauche pour déverrouiller la plateforme.
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # On utilise du HTML pour centrer la liste et le titre de la liste
+        st.markdown("""
+        <div style='text-align: center; color: #1e3a5f; padding: 0 20px;'>
+            <p><strong>Que retrouverez-vous sur cette plateforme ?</strong></p>
+            <p style='margin-bottom: 5px;'>👩‍🏫 <strong>Portail Professeurs :</strong> Accès immédiat aux identifiants des élèves (Ecole Directe, Pix, Drive...) et création de tickets d'assistance.</p>
+            <p style='margin-bottom: 5px;'>💼 <strong>Pôle Administration :</strong> Gestion à 360° des dossiers numériques, annuaires complets et éditions des fiches mots de passe.</p>
+            <p>💰 <strong>Pôle Comptabilité :</strong> Suivi automatisé des contrats matériels, locations iPad, facturation SAV et restitutions.</p>
+        </div>
+        """, unsafe_allow_html=True)
         
     st.markdown("<br><br><hr>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; font-size: 13px; color: grey;'>© 2026 - Collège Saint Charles - Pôle Numérique & Informatique</p>", unsafe_allow_html=True)
@@ -504,7 +522,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         <body style="font-family: Arial, sans-serif; color: #1e3a5f;">
                             <h2 style="color: #1e3a5f; border-bottom: 2px solid #1e3a5f; padding-bottom: 10px;">📄 Notification de Facturation SAV iPad</h2>
                             <p>Bonjour,</p>
-                            <p>Un nouvel incident a été déclaré on le parc iPad. Voici les informations pour la facturation :</p>
+                            <p>Un nouvel incident a été déclaré sur le parc iPad. Voici les informations pour la facturation :</p>
                             <table style="width: 100%; border-collapse: collapse;">
                                 <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Élève :</td><td style="padding: 8px; border: 1px solid #ddd;">{el['nom'].upper()} {el['prenom']}</td></tr>
                                 <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Classe :</td><td style="padding: 8px; border: 1px solid #ddd;">{el['classe']}</td></tr>
