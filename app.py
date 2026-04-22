@@ -238,10 +238,36 @@ is_admin = (pwd_input == PASSWORD_ADMIN)
 is_compta = (pwd_input == PASSWORD_COMPTA)
 is_prof = (pwd_input == PASSWORD_PROF)
 
-# 🛑 BLOCAGE DE SÉCURITÉ POUR LES VISITEURS NON AUTORISÉS
+# ==========================================
+# 🛑 BLOCAGE DE SÉCURITÉ (PAGE D'ACCUEIL)
+# ==========================================
 if not (is_admin or is_compta or is_prof):
-    st.title("🌱 Bienvenue sur Numérique Saint Charles")
-    st.info("🔒 L'accès à cet espace est protégé. Veuillez saisir le code d'accès dans le menu de gauche pour déverrouiller la plateforme.")
+    st.markdown("<h1 style='text-align: center; color: #1e3a5f; margin-bottom: 0;'>Bienvenue sur Numérique Saint Charles</h1>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; color: #1e3a5f; opacity: 0.7; margin-top: 0;'>Plateforme centralisée de gestion numérique</h4>", unsafe_allow_html=True)
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        if os.path.exists(chemin_logo):
+            st.image(chemin_logo, use_container_width=True)
+        else:
+            st.markdown("<div style='text-align: center; font-size: 130px; margin-top: -20px;'>🏫</div>", unsafe_allow_html=True)
+            
+    with col2:
+        st.info("🔒 **Accès Restreint**\n\nCet espace est strictement réservé au personnel de l'établissement. Veuillez saisir votre **code d'accès** dans le menu latéral à gauche pour déverrouiller la plateforme.")
+        
+        st.markdown("""
+        **Que retrouverez-vous sur cette plateforme ?**
+        * 👩‍🏫 **Portail Professeurs :** Accès immédiat aux identifiants des élèves (Ecole Directe, Pix, Drive...) et création de tickets d'assistance.
+        * 💼 **Pôle Administration :** Gestion à 360° des dossiers numériques, annuaires complets et éditions des fiches mots de passe.
+        * 💰 **Pôle Comptabilité :** Suivi automatisé des contrats matériels, locations iPad, facturation SAV et restitutions.
+        """)
+        
+    st.markdown("<br><br><hr>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 13px; color: grey;'>© 2026 - Collège Saint Charles - Pôle Numérique & Informatique</p>", unsafe_allow_html=True)
+    
     st.stop() # Empêche l'affichage de la suite du site
 
 menu = "👩‍🏫 Portail Professeurs"
