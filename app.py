@@ -71,25 +71,18 @@ DOSSIER_COURANT = os.path.dirname(os.path.abspath(__file__))
 # ==========================================
 st.markdown("""
     <style>
-        /* --- NETTOYAGE ULTRA AGRESSIF DU BRANDING STREAMLIT --- */
-        #MainMenu {visibility: hidden;}
-        header {visibility: hidden;}
-        footer {visibility: hidden;}
+        /* --- CORRECTION : CACHER LES BOUTONS MAIS GARDER LE MENU MOBILE --- */
+        /* On cache uniquement la partie droite du header (GitHub, Deploy, Menu 3 points) */
+        [data-testid="stHeaderActionElements"] {display: none !important;}
         
-        /* Cacher les boutons Deploy/Manage */
-        .stAppDeployButton {display:none !important;}
-        .stDeployButton {display:none !important;}
+        /* On cache le pied de page 'Made with Streamlit' */
+        footer {display: none !important;}
+        [data-testid="stFooter"] {display: none !important;}
         
-        /* Cacher la barre d'outils et le statut */
-        [data-testid="stToolbar"] {visibility: hidden !important;}
-        [data-testid="stStatusWidget"] {visibility: hidden !important;}
+        /* On force la disparition des badges Streamlit Cloud */
+        iframe[title="streamlit_cloud_badge"] {display: none !important;}
         
-        /* Cacher le badge "Made with Streamlit" en bas à droite */
-        div.viewerBadge_container__1QSob {display: none !important;}
-        div.viewerBadge_link__1S137 {display: none !important;}
-        a[href^="https://streamlit.io/cloud"] {display: none !important;}
-        
-        /* --- STYLE GENERAL --- */
+        /* --- STYLE GENERAL ST CHARLES --- */
         [data-testid="stSidebar"] { background-color: #1e3a5f !important; }
         [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, 
         [data-testid="stSidebar"] label, [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] {
@@ -100,10 +93,10 @@ st.markdown("""
             color: #1e3a5f !important;
             -webkit-text-fill-color: #1e3a5f !important;
         }
-        [data-testid="stSidebar"] button svg { fill: #1e3a5f !important; color: #1e3a5f !important; }
         [data-testid="stSidebar"] input::placeholder { color: #1e3a5f !important; opacity: 0.7; }
         .stApp { background-color: #f0f4f8 !important; }
-        h1, h2, h3, [data-testid="stHeader"] { color: #1e3a5f !important; }
+        h1, h2, h3 { color: #1e3a5f !important; }
+        [data-testid="stHeader"] { background: transparent !important; }
         [data-testid="stMarkdownContainer"] h1, [data-testid="stMarkdownContainer"] h2, 
         [data-testid="stMarkdownContainer"] h3 { color: #1e3a5f !important; }
         input, select, div[data-baseweb="select"] > div {
