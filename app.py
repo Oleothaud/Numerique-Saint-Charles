@@ -14,28 +14,36 @@ from email.mime.multipart import MIMEMultipart
 from supabase import create_client, Client
 
 # ==========================================
-# 🔐 CONFIGURATION EMAIL & SÉCURITÉ CLOUD
+# 📍 CONFIGURATIONS INITIALES & PAGE
 # ==========================================
-SUPABASE_URL = "https://qqblzjsvbwfrsaiwrjsd.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxYmx6anN2YndmcnNhaXdyanNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODUxMDcsImV4cCI6MjA5MjM2MTEwN30.bBHxKi8LuV0-ICjD4EU3TIzdlxnxEQb6t67-6Onsz70"
+st.set_page_config(page_title="Numérique Saint Charles", page_icon="☁️", layout="wide")
+
+DOSSIER_COURANT = os.path.dirname(os.path.abspath(__file__))
+
+# ==========================================
+# 🔐 CONFIGURATION EMAIL & SÉCURITÉ CLOUD (SECRETS)
+# ==========================================
+# On lit maintenant les données depuis le coffre-fort Streamlit
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 try:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 except Exception as e:
     st.error(f"❌ Erreur de connexion Supabase : {e}")
 
-SMTP_USER = "o.leothaud2@saintcharles71.fr"
-SMTP_PASSWORD = "rurbcippjnklmach" 
+SMTP_USER = st.secrets["SMTP_USER"]
+SMTP_PASSWORD = st.secrets["SMTP_PASSWORD"]
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
 EMAIL_ADMIN = "o.leothaud2@saintcharles71.fr" 
 EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"       
 
-PASSWORD_ADMIN = "StCh@rles71"
-PASSWORD_COMPTA = "ComptaStDo71!" 
-PASSWORD_PROF = "StDoProfs!"
-MDP_DEFAUT = "CollegeStDo71!"
+PASSWORD_ADMIN = st.secrets["PASSWORD_ADMIN"]
+PASSWORD_COMPTA = st.secrets["PASSWORD_COMPTA"]
+PASSWORD_PROF = st.secrets["PASSWORD_PROF"]
+MDP_DEFAUT = st.secrets["MDP_DEFAUT"]
 
 def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
     try:
@@ -59,27 +67,20 @@ def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
         return False
 
 # ==========================================
-# 📍 CONFIGURATIONS INITIALES & PAGE
-# ==========================================
-st.set_page_config(page_title="Numérique Saint Charles", page_icon="☁️", layout="wide")
-
-DOSSIER_COURANT = os.path.dirname(os.path.abspath(__file__))
-
-# ==========================================
 # 🎨 STYLE FINAL & NETTOYAGE INTERFACE
 # ==========================================
 st.markdown("""
     <style>
-        /* --- 1. NETTOYAGE CHIRURGICAL DU HEADER --- */
-        /* On cache SEULEMENT les boutons de droite (Fork, Menu) sans toucher à la flèche de gauche ! */
+        /* --- 1. NETTOYAGE DU HEADER (HAUT DROITE) --- */
+        /* Cache les boutons de droite sans casser la flèche de menu gauche */
         [data-testid="stHeaderActionElements"] { display: none !important; }
         
-        /* --- 2. SUPPRESSION DES LOGOS STREAMLIT EN BAS À DROITE --- */
-        /* Méthode "wildcard" qui attrape toutes les bulles de pub Streamlit Cloud */
-        div[class^="viewerBadge"] { display: none !important; }
-        
-        /* --- 3. SUPPRESSION DU PIED DE PAGE --- */
+        /* --- 2. SUPPRESSION DU FOOTER "Made with Streamlit" --- */
         footer { display: none !important; }
+        
+        /* --- 3. SUPPRESSION DES BADGES CLOUD (EN BAS À DROITE) --- */
+        .stAppDeployButton { display: none !important; }
+        div[class^="viewerBadge_"] { display: none !important; }
         
         /* --- 4. STYLE GENERAL ST CHARLES --- */
         [data-testid="stSidebar"] { background-color: #1e3a5f !important; }
@@ -292,7 +293,7 @@ if not (is_admin or is_compta or is_prof):
     st.markdown("<br><br><hr>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; font-size: 13px; color: grey;'>© 2026 - Collège Saint Charles - Pôle Numérique & Informatique</p>", unsafe_allow_html=True)
     
-    st.stop() # Empêche l'affichage de la suite du site
+    st.stop()
 
 # ==========================================
 # 🔄 ROUTAGE DES MENUS
@@ -645,7 +646,8 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
         if classe_choisie != "--":
             cacher_mdp = st.toggle("👁️ Cacher les mots de passe", value=True)
             
-            cols = "nom, prenom, date_naissance, id_ed, mdp_ed, id_mail, mdp_mail, id_pix, mdp_pix, id_ed_prov, mdp_ed_prov"
+            # ---> CORRECTION DE l'ERREUR "est_parti" ICI <---
+            cols = "nom, prenom, date_naissance, id_ed, mdp_ed, id_mail, mdp_mail, id_pix, mdp_pix, id_ed_prov, mdp_ed_prov, est_parti"
             df_c = fetch_table("eleves", eq_col="classe", eq_val=classe_choisie, order_col="nom", select_cols=cols)
             df_c = df_c[df_c['est_parti'] == 0] if not df_c.empty else df_c
             
@@ -660,6 +662,8 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
             if not df_c.empty:
                 if 'id_ed_prov' in df_c.columns:
                     df_c = df_c.drop(columns=['id_ed_prov', 'mdp_ed_prov'])
+                if 'est_parti' in df_c.columns:
+                    df_c = df_c.drop(columns=['est_parti'])
                 
                 df_c.insert(3, 'Code iPad', df_c['date_naissance'].apply(calculer_code_ipad))
                 
