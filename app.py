@@ -16,26 +16,27 @@ from supabase import create_client, Client
 # ==========================================
 # 🔐 CONFIGURATION EMAIL & SÉCURITÉ CLOUD
 # ==========================================
-SUPABASE_URL = "https://qqblzjsvbwfrsaiwrjsd.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxYmx6anN2YndmcnNhaXdyanNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODUxMDcsImV4cCI6MjA5MjM2MTEwN30.bBHxKi8LuV0-ICjD4EU3TIzdlxnxEQb6t67-6Onsz70"
+
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 try:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 except Exception as e:
     st.error(f"❌ Erreur de connexion Supabase : {e}")
 
-SMTP_USER = "o.leothaud2@saintcharles71.fr"
-SMTP_PASSWORD = "rurbcippjnklmach" 
+SMTP_USER = st.secrets["SMTP_USER"]
+SMTP_PASSWORD = st.secrets["SMTP_PASSWORD"]
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
 EMAIL_ADMIN = "o.leothaud2@saintcharles71.fr" 
 EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"       
 
-PASSWORD_ADMIN = "StCh@rles71"
-PASSWORD_COMPTA = "ComptaStDo71!" 
-PASSWORD_PROF = "StDoProfs!"
-MDP_DEFAUT = "CollegeStDo71!"
+PASSWORD_ADMIN = st.secrets["PASSWORD_ADMIN"]
+PASSWORD_COMPTA = st.secrets["PASSWORD_COMPTA"]
+PASSWORD_PROF = st.secrets["PASSWORD_PROF"]
+MDP_DEFAUT = st.secrets["MDP_DEFAUT"]
 
 def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
     try:
