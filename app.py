@@ -71,16 +71,17 @@ DOSSIER_COURANT = os.path.dirname(os.path.abspath(__file__))
 # ==========================================
 st.markdown("""
     <style>
-        /* --- CORRECTION : CACHER LES BOUTONS MAIS GARDER LE MENU MOBILE --- */
-        /* On cache uniquement la partie droite du header (GitHub, Deploy, Menu 3 points) */
-        [data-testid="stHeaderActionElements"] {display: none !important;}
+        /* --- NETTOYAGE CHIRURGICAL DU HEADER --- */
+        /* Cache toute la moitié droite (Fork, GitHub, Menu) mais GARDE la flèche de gauche */
+        header > div:last-child, 
+        header > div:nth-child(2),
+        [data-testid="stToolbar"],
+        [data-testid="stHeaderActionElements"] {
+            display: none !important;
+        }
         
-        /* On cache le pied de page 'Made with Streamlit' */
-        footer {display: none !important;}
-        [data-testid="stFooter"] {display: none !important;}
-        
-        /* On force la disparition des badges Streamlit Cloud */
-        iframe[title="streamlit_cloud_badge"] {display: none !important;}
+        /* Cache le pied de page 'Made with Streamlit' classique */
+        footer, [data-testid="stFooter"] {display: none !important;}
         
         /* --- STYLE GENERAL ST CHARLES --- */
         [data-testid="stSidebar"] { background-color: #1e3a5f !important; }
