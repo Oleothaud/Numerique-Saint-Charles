@@ -71,11 +71,23 @@ DOSSIER_COURANT = os.path.dirname(os.path.abspath(__file__))
 # ==========================================
 st.markdown("""
     <style>
-        /* --- NETTOYAGE INTERFACE (Cacher Fork, Footer, Menu) --- */
+        /* --- NETTOYAGE ULTRA AGRESSIF DU BRANDING STREAMLIT --- */
+        #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
         footer {visibility: hidden;}
-        .stAppDeployButton {display:none;}
-        #MainMenu {visibility: hidden;}
+        
+        /* Cacher les boutons Deploy/Manage */
+        .stAppDeployButton {display:none !important;}
+        .stDeployButton {display:none !important;}
+        
+        /* Cacher la barre d'outils et le statut */
+        [data-testid="stToolbar"] {visibility: hidden !important;}
+        [data-testid="stStatusWidget"] {visibility: hidden !important;}
+        
+        /* Cacher le badge "Made with Streamlit" en bas à droite */
+        div.viewerBadge_container__1QSob {display: none !important;}
+        div.viewerBadge_link__1S137 {display: none !important;}
+        a[href^="https://streamlit.io/cloud"] {display: none !important;}
         
         /* --- STYLE GENERAL --- */
         [data-testid="stSidebar"] { background-color: #1e3a5f !important; }
