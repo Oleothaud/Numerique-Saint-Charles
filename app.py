@@ -66,10 +66,17 @@ st.set_page_config(page_title="Numérique Saint Charles", page_icon="☁️", la
 DOSSIER_COURANT = os.path.dirname(os.path.abspath(__file__))
 
 # ==========================================
-# 🎨 STYLE FINAL ST DOMINIQUE
+# 🎨 STYLE FINAL & NETTOYAGE INTERFACE
 # ==========================================
 st.markdown("""
     <style>
+        /* --- NETTOYAGE INTERFACE (Cacher Fork, Footer, Menu) --- */
+        header {visibility: hidden;}
+        footer {visibility: hidden;}
+        .stAppDeployButton {display:none;}
+        #MainMenu {visibility: hidden;}
+        
+        /* --- STYLE GENERAL --- */
         [data-testid="stSidebar"] { background-color: #1e3a5f !important; }
         [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, 
         [data-testid="stSidebar"] label, [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] {
@@ -100,7 +107,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🛡️ TRADUCTEUR SQLITE -> SUPABASE ANTI-BUG
+# 🛡️ FONCTIONS DATA SUPABASE
 # ==========================================
 def fetch_table(table_name, eq_col=None, eq_val=None, order_col=None, select_cols="*"):
     query = supabase.table(table_name).select(select_cols)
@@ -124,7 +131,7 @@ def fetch_table(table_name, eq_col=None, eq_val=None, order_col=None, select_col
     return df.fillna("")
 
 # ==========================================
-# 🧠 LOGIQUE DE GÉNÉRATION & IPAD
+# 🧠 LOGIQUE CALCULS & GÉNÉRATION
 # ==========================================
 def nettoyeur_identifiant(texte):
     if pd.isna(texte) or str(texte).strip() == "": return ""
@@ -178,7 +185,7 @@ def calculer_solde_depart(classe, rend_ipad, statut):
         return f"{solde_annee_courante + annees_suivantes + 16} €"
 
 # ==========================================
-# 📄 GÉNÉRATEUR PDF (FONCTION CENTRALE)
+# 📄 GÉNÉRATEUR PDF HTML
 # ==========================================
 def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_prov=False, print_ipad=True):
     html_content = f"""
@@ -248,7 +255,6 @@ if not (is_admin or is_compta or is_prof):
     st.markdown("<br><br>", unsafe_allow_html=True)
     
     # 1. LOGIQUE DE CENTRAGE DE L'IMAGE
-    # On restreint la largeur de l'image pour qu'elle reste jolie et centrale
     col_spacer_l, col_image, col_spacer_r = st.columns([1, 2, 1])
     
     with col_image:
@@ -260,8 +266,7 @@ if not (is_admin or is_compta or is_prof):
             
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 2. LOGIQUE DE CENTRAGE DES TEXTES
-    # On élargit considérablement la zone de texte (ratio 1 - 8 - 1) pour éviter les retours à la ligne
+    # 2. LOGIQUE DE CENTRAGE DES TEXTES (Zone très large pour éviter le retour à la ligne)
     col_t_spacer_l, col_text, col_t_spacer_r = st.columns([1, 8, 1])
 
     with col_text:
@@ -286,6 +291,9 @@ if not (is_admin or is_compta or is_prof):
     
     st.stop() # Empêche l'affichage de la suite du site
 
+# ==========================================
+# 🔄 ROUTAGE DES MENUS
+# ==========================================
 menu = "👩‍🏫 Portail Professeurs"
 
 if "jump_ticket" not in st.session_state: st.session_state.jump_ticket = False
@@ -386,12 +394,9 @@ elif is_admin and menu == "🪪 Dossier 360°":
         for _, el in res.iterrows():
             status_icon = "🚩 (PARTI)" if el['est_parti'] == 1 else "🎓"
             
-            # MEMOIRE : Garde la bulle ouverte si on vient d'enregistrer
             is_expanded = (st.session_state.get("open_el_id") == el['id'])
             
             with st.expander(f"{status_icon} {el['prenom']} {el['nom']} ({el['classe']})", expanded=is_expanded):
-                
-                # Affiche un message de succès vert si on vient de sauvegarder
                 if is_expanded and f"msg_{el['id']}" in st.session_state:
                     st.success(st.session_state.pop(f"msg_{el['id']}"))
                     if "open_el_id" in st.session_state:
@@ -410,17 +415,12 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         m_pp = c5.text_input("Professeur Principal", value=el['pp'])
                         m_entree = c6.text_input("Date d'entrée", value=el['date_entree'])
                         
-                        # CLÉ DYNAMIQUE : Force la case à se mettre à jour
                         m_parti = st.checkbox("🚩 Cet élève a définitivement quitté l'établissement", value=bool(el['est_parti']), key=f"f_x_{el['id']}_{el['est_parti']}")
                         
                         if st.form_submit_button("💾 Enregistrer le profil"):
                             parti_int = 1 if m_parti else 0
-                            
-                            # Logique de synchro croisée
-                            if parti_int == 1:
-                                statut_ipad_up = 'Parti'
-                            else:
-                                statut_ipad_up = 'Achat' if el['statut_ipad'] == 'Parti' else (el['statut_ipad'] if el['statut_ipad'] != "" else "Achat")
+                            if parti_int == 1: statut_ipad_up = 'Parti'
+                            else: statut_ipad_up = 'Achat' if el['statut_ipad'] == 'Parti' else (el['statut_ipad'] if el['statut_ipad'] != "" else "Achat")
                             
                             supabase.table("eleves").update({
                                 "nom": m_nom.upper(), "prenom": m_prenom.capitalize(), "date_naissance": m_dob,
@@ -470,13 +470,11 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         c_stat, c_mens, c_tot = st.columns(3)
                         statut_actuel = el['statut_ipad'] if el['statut_ipad'] != "" else "Achat"
                         
-                        # CLÉ DYNAMIQUE : Force Streamlit à oublier le cache pour ce menu
                         idx = ["Achat", "Location", "Fratrie", "Parti"].index(statut_actuel) if statut_actuel in ["Achat", "Location", "Fratrie", "Parti"] else 0
                         nouveau_statut = c_stat.selectbox("Statut du matériel", ["Achat", "Location", "Fratrie", "Parti"], index=idx, key=f"s_st_{el['id']}_{statut_actuel}")
                         
                         mens_calc, tot_calc = calculer_mensualite_ipad(el['classe'], nouveau_statut)
                         
-                        # CLÉ DYNAMIQUE : Empêche la mensualité de rester "bloquée" après une synchro
                         c_mens.text_input("Mensualité (€)", value=f"{mens_calc} €", disabled=True, key=f"s_ms_{el['id']}_{statut_actuel}")
                         c_tot.text_input("Total Annuel", value=f"{tot_calc} €", disabled=True, key=f"s_tt_{el['id']}_{statut_actuel}")
                         
