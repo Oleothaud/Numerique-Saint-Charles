@@ -70,24 +70,22 @@ def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
 # ==========================================
 st.markdown("""
     <style>
-        /* --- 1. ÉRADICATION DU HEADER DROIT ET CARRÉS BLANCS --- */
-        /* On utilise display:none pour ne laisser AUCUN trou blanc (adieu le carré !) */
+        /* --- 1. NETTOYAGE CIBLÉ DU HEADER --- */
+        /* Cache UNIQUEMENT le bloc contenant le menu "3 points" et GitHub, sans toucher à la flèche */
         [data-testid="stHeaderActionElements"] { display: none !important; }
-        header > div:last-child { display: none !important; }
         
         /* --- 2. SUPPRESSION DES BOUTONS DEPLOY / CLOUD --- */
         .stAppDeployButton { display: none !important; }
-        [data-testid="stAppDeployButton"] { display: none !important; }
         
         /* --- 3. SUPPRESSION DES BADGES STREAMLIT (EN BAS À DROITE) --- */
-        /* Cible agressive sur les bulles flottantes et iframes injectés par Streamlit Cloud */
-        div[class^="viewerBadge_"] { display: none !important; }
-        iframe[src*="badge"] { display: none !important; }
-        iframe[title*="streamlit"] { display: none !important; }
+        /* On cible le container pour éviter le carré blanc vide */
+        .viewerBadge_container__1QSob { display: none !important; }
+        .viewerBadge_link__1S137 { display: none !important; }
+        iframe[title="streamlit_cloud_badge"] { display: none !important; }
+        #st-deck { display: none !important; }
         
         /* --- 4. SUPPRESSION DU FOOTER --- */
         footer { display: none !important; }
-        [data-testid="stFooter"] { display: none !important; }
         
         /* --- 5. STYLE GENERAL ST CHARLES --- */
         [data-testid="stSidebar"] { background-color: #1e3a5f !important; }
@@ -653,7 +651,6 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
         if classe_choisie != "--":
             cacher_mdp = st.toggle("👁️ Cacher les mots de passe", value=True)
             
-            # ---> CORRECTION DE l'ERREUR "est_parti" <---
             cols = "nom, prenom, date_naissance, id_ed, mdp_ed, id_mail, mdp_mail, id_pix, mdp_pix, id_ed_prov, mdp_ed_prov, est_parti"
             df_c = fetch_table("eleves", eq_col="classe", eq_val=classe_choisie, order_col="nom", select_cols=cols)
             df_c = df_c[df_c['est_parti'] == 0] if not df_c.empty else df_c
@@ -1162,7 +1159,7 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
             st.rerun()
 
         st.markdown("---")
-        st.error("🧨 **RESET TOTAL DE LA BASE :** Efface la totalité des élèves, des tickets et des historiques SAV.")
+        st.error("🧨 **RESET TOTAL DE LA BASE :** Efface la totalité des élèves, des tickets et historiques SAV.")
         if st.button("🧨 Vider l'intégralité de la base de données", type="primary"):
             res_all = supabase.table("eleves").select("id").execute()
             if res_all.data:
