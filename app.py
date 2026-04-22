@@ -40,7 +40,7 @@ MDP_DEFAUT = "CollegeStDo71!"
 def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
     try:
         msg = MIMEMultipart()
-        msg['From'] = f"St Do Numérique <{SMTP_USER}>"
+        msg['From'] = f"Numérique Saint Charles <{SMTP_USER}>"
         msg['To'] = destinataire
         msg['Cc'] = EMAIL_ADMIN
         msg['Subject'] = sujet
@@ -61,7 +61,7 @@ def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
 # ==========================================
 # 📍 CONFIGURATIONS INITIALES & PAGE
 # ==========================================
-st.set_page_config(page_title="St Do Numérique", page_icon="☁️", layout="wide")
+st.set_page_config(page_title="Numérique Saint Charles", page_icon="☁️", layout="wide")
 
 DOSSIER_COURANT = os.path.dirname(os.path.abspath(__file__))
 
@@ -226,7 +226,7 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
 # ==========================================
 chemin_logo = os.path.join(DOSSIER_COURANT, "logo.jpg")
 if os.path.exists(chemin_logo): st.sidebar.image(chemin_logo, use_container_width=True)
-else: st.sidebar.title("🌱 St Charles Numérique")
+else: st.sidebar.title("🌱 Numérique Saint Charles")
 
 try:
     res_demandes = supabase.table("demandes").select("id", count="exact").eq("statut", "En attente").execute()
@@ -240,7 +240,7 @@ is_prof = (pwd_input == PASSWORD_PROF)
 
 # 🛑 BLOCAGE DE SÉCURITÉ POUR LES VISITEURS NON AUTORISÉS
 if not (is_admin or is_compta or is_prof):
-    st.title("🌱 Bienvenue sur St Charles Numérique")
+    st.title("🌱 Bienvenue sur Numérique Saint Charles")
     st.info("🔒 L'accès à cet espace est protégé. Veuillez saisir le code d'accès dans le menu de gauche pour déverrouiller la plateforme.")
     st.stop() # Empêche l'affichage de la suite du site
 
