@@ -16,27 +16,26 @@ from supabase import create_client, Client
 # ==========================================
 # 🔐 CONFIGURATION EMAIL & SÉCURITÉ CLOUD
 # ==========================================
-
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+SUPABASE_URL = "https://qqblzjsvbwfrsaiwrjsd.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxYmx6anN2YndmcnNhaXdyanNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODUxMDcsImV4cCI6MjA5MjM2MTEwN30.bBHxKi8LuV0-ICjD4EU3TIzdlxnxEQb6t67-6Onsz70"
 
 try:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 except Exception as e:
     st.error(f"❌ Erreur de connexion Supabase : {e}")
 
-SMTP_USER = st.secrets["SMTP_USER"]
-SMTP_PASSWORD = st.secrets["SMTP_PASSWORD"]
+SMTP_USER = "o.leothaud2@saintcharles71.fr"
+SMTP_PASSWORD = "rurbcippjnklmach" 
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
 EMAIL_ADMIN = "o.leothaud2@saintcharles71.fr" 
 EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"       
 
-PASSWORD_ADMIN = st.secrets["PASSWORD_ADMIN"]
-PASSWORD_COMPTA = st.secrets["PASSWORD_COMPTA"]
-PASSWORD_PROF = st.secrets["PASSWORD_PROF"]
-MDP_DEFAUT = st.secrets["MDP_DEFAUT"]
+PASSWORD_ADMIN = "StCh@rles71"
+PASSWORD_COMPTA = "ComptaStDo71!" 
+PASSWORD_PROF = "StDoProfs!"
+MDP_DEFAUT = "CollegeStDo71!"
 
 def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
     try:
@@ -71,19 +70,18 @@ DOSSIER_COURANT = os.path.dirname(os.path.abspath(__file__))
 # ==========================================
 st.markdown("""
     <style>
-        /* --- NETTOYAGE CHIRURGICAL DU HEADER --- */
-        /* Cache toute la moitié droite (Fork, GitHub, Menu) mais GARDE la flèche de gauche */
-        header > div:last-child, 
-        header > div:nth-child(2),
-        [data-testid="stToolbar"],
-        [data-testid="stHeaderActionElements"] {
-            display: none !important;
-        }
+        /* --- 1. NETTOYAGE CHIRURGICAL DU HEADER --- */
+        /* On cache SEULEMENT les boutons de droite (Fork, Menu) sans toucher à la flèche de gauche ! */
+        [data-testid="stHeaderActionElements"] { display: none !important; }
         
-        /* Cache le pied de page 'Made with Streamlit' classique */
-        footer, [data-testid="stFooter"] {display: none !important;}
+        /* --- 2. SUPPRESSION DES LOGOS STREAMLIT EN BAS À DROITE --- */
+        /* Méthode "wildcard" qui attrape toutes les bulles de pub Streamlit Cloud */
+        div[class^="viewerBadge"] { display: none !important; }
         
-        /* --- STYLE GENERAL ST CHARLES --- */
+        /* --- 3. SUPPRESSION DU PIED DE PAGE --- */
+        footer { display: none !important; }
+        
+        /* --- 4. STYLE GENERAL ST CHARLES --- */
         [data-testid="stSidebar"] { background-color: #1e3a5f !important; }
         [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, 
         [data-testid="stSidebar"] label, [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] {
@@ -261,7 +259,6 @@ if not (is_admin or is_compta or is_prof):
     
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    # 1. LOGIQUE DE CENTRAGE DE L'IMAGE
     col_spacer_l, col_image, col_spacer_r = st.columns([1, 2, 1])
     
     with col_image:
@@ -273,7 +270,6 @@ if not (is_admin or is_compta or is_prof):
             
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # 2. LOGIQUE DE CENTRAGE DES TEXTES (Zone très large pour éviter le retour à la ligne)
     col_t_spacer_l, col_text, col_t_spacer_r = st.columns([1, 8, 1])
 
     with col_text:
@@ -404,6 +400,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
             is_expanded = (st.session_state.get("open_el_id") == el['id'])
             
             with st.expander(f"{status_icon} {el['prenom']} {el['nom']} ({el['classe']})", expanded=is_expanded):
+                
                 if is_expanded and f"msg_{el['id']}" in st.session_state:
                     st.success(st.session_state.pop(f"msg_{el['id']}"))
                     if "open_el_id" in st.session_state:
@@ -426,8 +423,10 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         
                         if st.form_submit_button("💾 Enregistrer le profil"):
                             parti_int = 1 if m_parti else 0
-                            if parti_int == 1: statut_ipad_up = 'Parti'
-                            else: statut_ipad_up = 'Achat' if el['statut_ipad'] == 'Parti' else (el['statut_ipad'] if el['statut_ipad'] != "" else "Achat")
+                            if parti_int == 1:
+                                statut_ipad_up = 'Parti'
+                            else:
+                                statut_ipad_up = 'Achat' if el['statut_ipad'] == 'Parti' else (el['statut_ipad'] if el['statut_ipad'] != "" else "Achat")
                             
                             supabase.table("eleves").update({
                                 "nom": m_nom.upper(), "prenom": m_prenom.capitalize(), "date_naissance": m_dob,
@@ -646,7 +645,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
         if classe_choisie != "--":
             cacher_mdp = st.toggle("👁️ Cacher les mots de passe", value=True)
             
-            cols = "nom, prenom, date_naissance, id_ed, mdp_ed, id_mail, mdp_mail, id_pix, mdp_pix, id_ed_prov, mdp_ed_prov, est_parti"
+            cols = "nom, prenom, date_naissance, id_ed, mdp_ed, id_mail, mdp_mail, id_pix, mdp_pix, id_ed_prov, mdp_ed_prov"
             df_c = fetch_table("eleves", eq_col="classe", eq_val=classe_choisie, order_col="nom", select_cols=cols)
             df_c = df_c[df_c['est_parti'] == 0] if not df_c.empty else df_c
             
