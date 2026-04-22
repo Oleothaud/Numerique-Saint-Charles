@@ -23,7 +23,6 @@ DOSSIER_COURANT = os.path.dirname(os.path.abspath(__file__))
 # ==========================================
 # 🔐 CONFIGURATION EMAIL & SÉCURITÉ CLOUD (SECRETS)
 # ==========================================
-# On lit maintenant les données depuis le coffre-fort Streamlit
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
@@ -71,18 +70,26 @@ def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
 # ==========================================
 st.markdown("""
     <style>
-        /* --- 1. NETTOYAGE DU HEADER (HAUT DROITE) --- */
-        /* Cache les boutons de droite sans casser la flèche de menu gauche */
+        /* --- 1. ÉRADICATION DU HEADER DROIT ET CARRÉS BLANCS --- */
+        /* On utilise display:none pour ne laisser AUCUN trou blanc (adieu le carré !) */
         [data-testid="stHeaderActionElements"] { display: none !important; }
+        header > div:last-child { display: none !important; }
         
-        /* --- 2. SUPPRESSION DU FOOTER "Made with Streamlit" --- */
-        footer { display: none !important; }
-        
-        /* --- 3. SUPPRESSION DES BADGES CLOUD (EN BAS À DROITE) --- */
+        /* --- 2. SUPPRESSION DES BOUTONS DEPLOY / CLOUD --- */
         .stAppDeployButton { display: none !important; }
-        div[class^="viewerBadge_"] { display: none !important; }
+        [data-testid="stAppDeployButton"] { display: none !important; }
         
-        /* --- 4. STYLE GENERAL ST CHARLES --- */
+        /* --- 3. SUPPRESSION DES BADGES STREAMLIT (EN BAS À DROITE) --- */
+        /* Cible agressive sur les bulles flottantes et iframes injectés par Streamlit Cloud */
+        div[class^="viewerBadge_"] { display: none !important; }
+        iframe[src*="badge"] { display: none !important; }
+        iframe[title*="streamlit"] { display: none !important; }
+        
+        /* --- 4. SUPPRESSION DU FOOTER --- */
+        footer { display: none !important; }
+        [data-testid="stFooter"] { display: none !important; }
+        
+        /* --- 5. STYLE GENERAL ST CHARLES --- */
         [data-testid="stSidebar"] { background-color: #1e3a5f !important; }
         [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, 
         [data-testid="stSidebar"] label, [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] {
@@ -646,7 +653,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
         if classe_choisie != "--":
             cacher_mdp = st.toggle("👁️ Cacher les mots de passe", value=True)
             
-            # ---> CORRECTION DE l'ERREUR "est_parti" ICI <---
+            # ---> CORRECTION DE l'ERREUR "est_parti" <---
             cols = "nom, prenom, date_naissance, id_ed, mdp_ed, id_mail, mdp_mail, id_pix, mdp_pix, id_ed_prov, mdp_ed_prov, est_parti"
             df_c = fetch_table("eleves", eq_col="classe", eq_val=classe_choisie, order_col="nom", select_cols=cols)
             df_c = df_c[df_c['est_parti'] == 0] if not df_c.empty else df_c
