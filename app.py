@@ -17,7 +17,7 @@ from supabase import create_client, Client
 # 🔐 CONFIGURATION EMAIL & SÉCURITÉ CLOUD
 # ==========================================
 SUPABASE_URL = "https://qqblzjsvbwfrsaiwrjsd.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxYmx6anN2YndmcnNhaXdyanNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODUxMDcsImV4cCI6MjA5MjM2MTEwN30.bBHxKi8LuV0-ICjD4EU3TIzdlxnxEQb6t67-6Onsz70" # <-- VOTRE CLÉ ICI
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxYmx6anN2YndmcnNhaXdyanNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3ODUxMDcsImV4cCI6MjA5MjM2MTEwN30.bBHxKi8LuV0-ICjD4EU3TIzdlxnxEQb6t67-6Onsz70"
 
 try:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -30,10 +30,11 @@ SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
 EMAIL_ADMIN = "o.leothaud2@saintcharles71.fr" 
-EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"      
+EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"       
 
 PASSWORD_ADMIN = "StCh@rles71"
 PASSWORD_COMPTA = "ComptaStDo71!" 
+PASSWORD_PROF = "StDoProfs!"
 MDP_DEFAUT = "CollegeStDo71!"
 
 def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
@@ -232,9 +233,16 @@ try:
     nb_demandes = res_demandes.count if res_demandes.count else 0
 except: nb_demandes = 0
 
-pwd_input = st.sidebar.text_input("🔑 Code d'accès (Admin / Compta)", type="password")
+pwd_input = st.sidebar.text_input("🔑 Code d'accès (Prof / Admin / Compta)", type="password")
 is_admin = (pwd_input == PASSWORD_ADMIN)
 is_compta = (pwd_input == PASSWORD_COMPTA)
+is_prof = (pwd_input == PASSWORD_PROF)
+
+# 🛑 BLOCAGE DE SÉCURITÉ POUR LES VISITEURS NON AUTORISÉS
+if not (is_admin or is_compta or is_prof):
+    st.title("🌱 Bienvenue sur St Charles Numérique")
+    st.info("🔒 L'accès à cet espace est protégé. Veuillez saisir le code d'accès dans le menu de gauche pour déverrouiller la plateforme.")
+    st.stop() # Empêche l'affichage de la suite du site
 
 menu = "👩‍🏫 Portail Professeurs"
 
