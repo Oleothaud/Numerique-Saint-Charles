@@ -66,28 +66,10 @@ def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
         return False
 
 # ==========================================
-# 🎨 STYLE FINAL & NETTOYAGE INTERFACE
+# 🎨 STYLE FINAL ST DOMINIQUE (SANS HACKS STREAMLIT)
 # ==========================================
 st.markdown("""
     <style>
-        /* --- 1. NETTOYAGE CIBLÉ DU HEADER --- */
-        /* Cache UNIQUEMENT le bloc contenant le menu "3 points" et GitHub, sans toucher à la flèche */
-        [data-testid="stHeaderActionElements"] { display: none !important; }
-        
-        /* --- 2. SUPPRESSION DES BOUTONS DEPLOY / CLOUD --- */
-        .stAppDeployButton { display: none !important; }
-        
-        /* --- 3. SUPPRESSION DES BADGES STREAMLIT (EN BAS À DROITE) --- */
-        /* On cible le container pour éviter le carré blanc vide */
-        .viewerBadge_container__1QSob { display: none !important; }
-        .viewerBadge_link__1S137 { display: none !important; }
-        iframe[title="streamlit_cloud_badge"] { display: none !important; }
-        #st-deck { display: none !important; }
-        
-        /* --- 4. SUPPRESSION DU FOOTER --- */
-        footer { display: none !important; }
-        
-        /* --- 5. STYLE GENERAL ST CHARLES --- */
         [data-testid="stSidebar"] { background-color: #1e3a5f !important; }
         [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, 
         [data-testid="stSidebar"] label, [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] {
@@ -98,10 +80,10 @@ st.markdown("""
             color: #1e3a5f !important;
             -webkit-text-fill-color: #1e3a5f !important;
         }
+        [data-testid="stSidebar"] button svg { fill: #1e3a5f !important; color: #1e3a5f !important; }
         [data-testid="stSidebar"] input::placeholder { color: #1e3a5f !important; opacity: 0.7; }
         .stApp { background-color: #f0f4f8 !important; }
-        h1, h2, h3 { color: #1e3a5f !important; }
-        [data-testid="stHeader"] { background: transparent !important; }
+        h1, h2, h3, [data-testid="stHeader"] { color: #1e3a5f !important; }
         [data-testid="stMarkdownContainer"] h1, [data-testid="stMarkdownContainer"] h2, 
         [data-testid="stMarkdownContainer"] h3 { color: #1e3a5f !important; }
         input, select, div[data-baseweb="select"] > div {
@@ -193,7 +175,7 @@ def calculer_solde_depart(classe, rend_ipad, statut):
         if classe_str.startswith("6"): annees_suivantes = 160 + 160 + 140
         elif classe_str.startswith("5"): annees_suivantes = 160 + 140
         elif classe_str.startswith("4"): annees_suivantes = 140
-        return f"{solde_annee_courante + annees_suivantes + 16} €"
+        return f"{solde_annee_courante + + annees_suivantes + 16} €"
 
 # ==========================================
 # 📄 GÉNÉRATEUR PDF HTML
@@ -651,6 +633,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
         if classe_choisie != "--":
             cacher_mdp = st.toggle("👁️ Cacher les mots de passe", value=True)
             
+            # ---> CORRECTION DE l'ERREUR "est_parti" ICI <---
             cols = "nom, prenom, date_naissance, id_ed, mdp_ed, id_mail, mdp_mail, id_pix, mdp_pix, id_ed_prov, mdp_ed_prov, est_parti"
             df_c = fetch_table("eleves", eq_col="classe", eq_val=classe_choisie, order_col="nom", select_cols=cols)
             df_c = df_c[df_c['est_parti'] == 0] if not df_c.empty else df_c
