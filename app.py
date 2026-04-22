@@ -250,9 +250,12 @@ if not (is_admin or is_compta or is_prof):
     col1, col2 = st.columns([1, 2])
     
     with col1:
-        if os.path.exists(chemin_logo):
-            st.image(chemin_logo, use_container_width=True)
+        # ON CHERCHE ICI UNE AUTRE IMAGE ('welcome.jpg')
+        chemin_accueil = os.path.join(DOSSIER_COURANT, "welcome.jpg")
+        if os.path.exists(chemin_accueil):
+            st.image(chemin_accueil, use_container_width=True)
         else:
+            # Fallback si l'image n'est pas encore sur GitHub
             st.markdown("<div style='text-align: center; font-size: 130px; margin-top: -20px;'>🏫</div>", unsafe_allow_html=True)
             
     with col2:
@@ -501,7 +504,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         <body style="font-family: Arial, sans-serif; color: #1e3a5f;">
                             <h2 style="color: #1e3a5f; border-bottom: 2px solid #1e3a5f; padding-bottom: 10px;">📄 Notification de Facturation SAV iPad</h2>
                             <p>Bonjour,</p>
-                            <p>Un nouvel incident a été déclaré sur le parc iPad. Voici les informations pour la facturation :</p>
+                            <p>Un nouvel incident a été déclaré on le parc iPad. Voici les informations pour la facturation :</p>
                             <table style="width: 100%; border-collapse: collapse;">
                                 <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Élève :</td><td style="padding: 8px; border: 1px solid #ddd;">{el['nom'].upper()} {el['prenom']}</td></tr>
                                 <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Classe :</td><td style="padding: 8px; border: 1px solid #ddd;">{el['classe']}</td></tr>
