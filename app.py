@@ -66,32 +66,11 @@ def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
         return False
 
 # ==========================================
-# 🎨 STYLE FINAL & NETTOYAGE INTERFACE
+# 🎨 STYLE FINAL ST DOMINIQUE (SANS HACKS STREAMLIT)
 # ==========================================
 st.markdown("""
     <style>
-        /* --- 1. NETTOYAGE CIBLÉ DU HEADER --- */
-        [data-testid="stHeaderActionElements"] { display: none !important; }
-        
-        /* --- 2. FORCER LA FLÈCHE À RESTER VISIBLE --- */
-        /* Streamlit cache la flèche (opacity: 0). On force l'opacité à 1 ! */
-        [data-testid="collapsedControl"] { opacity: 1 !important; display: flex !important; }
-        [data-testid="collapsedControl"] svg { fill: #1e3a5f !important; color: #1e3a5f !important; }
-        
-        /* --- 3. CACHER LE CARRÉ BLANC (BOUTON PLEIN ÉCRAN SUR LE LOGO) --- */
-        [data-testid="StyledFullScreenButton"] { display: none !important; }
-        button[title="View fullscreen"] { display: none !important; }
-        
-        /* --- 4. SUPPRESSION DES BOUTONS DEPLOY ET BADGES STREAMLIT --- */
-        .stAppDeployButton { display: none !important; }
-        div[class^="viewerBadge_"] { display: none !important; }
-        iframe[title="streamlit_cloud_badge"] { display: none !important; }
-        
-        /* --- 5. SUPPRESSION DU FOOTER --- */
-        footer { display: none !important; }
-        [data-testid="stFooter"] { display: none !important; }
-        
-        /* --- 6. STYLE GENERAL ST CHARLES --- */
+        /* --- STYLE GENERAL ST CHARLES --- */
         [data-testid="stSidebar"] { background-color: #1e3a5f !important; }
         [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, 
         [data-testid="stSidebar"] label, [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] {
@@ -104,8 +83,7 @@ st.markdown("""
         }
         [data-testid="stSidebar"] input::placeholder { color: #1e3a5f !important; opacity: 0.7; }
         .stApp { background-color: #f0f4f8 !important; }
-        h1, h2, h3 { color: #1e3a5f !important; }
-        [data-testid="stHeader"] { background: transparent !important; }
+        h1, h2, h3, [data-testid="stHeader"] { color: #1e3a5f !important; }
         [data-testid="stMarkdownContainer"] h1, [data-testid="stMarkdownContainer"] h2, 
         [data-testid="stMarkdownContainer"] h3 { color: #1e3a5f !important; }
         input, select, div[data-baseweb="select"] > div {
