@@ -66,76 +66,21 @@ def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
         return False
 
 # ==========================================
-# 🎨 STYLE FINAL ST DOMINIQUE (SANS HACKS STREAMLIT)
+# 🎨 STYLE FINAL ST DOMINIQUE
 # ==========================================
 st.markdown("""
     <style>
-        /* === 1. NETTOYAGE DU HEADER (boutons deploy, fork, kebab menu) === */
-        [data-testid="stHeaderActionElements"],
-        [data-testid="stHeader"] button,
-        [data-testid="stHeader"] a,
-        .stAppDeployButton,
-        header[data-testid="stHeader"] { 
-            visibility: hidden !important; 
-            pointer-events: none !important;
-        }
-        /* Garder le header présent mais vide (évite les décalages de layout) */
-        [data-testid="stHeader"] {
-            background: transparent !important;
-        }
-
-        /* === 2. FORCER LA FLÈCHE SIDEBAR À RESTER VISIBLE EN PERMANENCE === */
-        [data-testid="collapsedControl"],
-        button[data-testid="collapsedControl"],
-        [data-testid="baseButton-headerNoPadding"] {
-            opacity: 1 !important;
-            visibility: visible !important;
-            display: flex !important;
-            pointer-events: all !important;
-        }
-        [data-testid="collapsedControl"] svg,
-        button[data-testid="collapsedControl"] svg {
-            fill: #1e3a5f !important;
-            color: #1e3a5f !important;
-            opacity: 1 !important;
-        }
+        /* --- 1. CACHER LE CARRÉ BLANC (BOUTON PLEIN ECRAN) SUR LES IMAGES --- */
+        button[title="View fullscreen"] { display: none !important; }
+        [data-testid="StyledFullScreenButton"] { display: none !important; }
         
-        /* === 3. SUPPRIMER LE CARRÉ PLEIN ÉCRAN SUR LE LOGO === */
-        [data-testid="StyledFullScreenButton"],
-        button[data-testid="StyledFullScreenButton"],
-        button[title="View fullscreen"],
-        button[aria-label="View fullscreen"],
-        [data-testid="element-container"]:hover [data-testid="StyledFullScreenButton"],
-        .stImage ~ div button,
-        div[data-testid="stImage"] + div { 
-            display: none !important;
-            visibility: hidden !important;
-            opacity: 0 !important;
-            width: 0 !important;
-            height: 0 !important;
-        }
+        /* --- 2. FORCER LA FLÈCHE DU MENU À RESTER VISIBLE TOUT LE TEMPS --- */
+        [data-testid="collapsedControl"] { opacity: 1 !important; }
         
-        /* === 4. SUPPRIMER BADGE STREAMLIT EN BAS À DROITE === */
-        div[class^="viewerBadge_"],
-        div[class*="viewerBadge"],
-        iframe[title="streamlit_cloud_badge"],
-        #stDecoration,
-        [data-testid="stDecoration"] { 
-            display: none !important; 
-        }
-        
-        /* === 5. SUPPRIMER LE FOOTER STREAMLIT === */
-        footer,
-        [data-testid="stFooter"],
-        footer[data-testid="stFooter"] { 
-            display: none !important; 
-        }
-        
-        /* === 6. STYLE GÉNÉRAL SAINT CHARLES (inchangé) === */
+        /* --- STYLE GENERAL ST CHARLES --- */
         [data-testid="stSidebar"] { background-color: #1e3a5f !important; }
         [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, 
-        [data-testid="stSidebar"] label, 
-        [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] {
+        [data-testid="stSidebar"] label, [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] {
             color: #f0f4f8 !important;
         }
         [data-testid="stSidebar"] input {
@@ -145,7 +90,7 @@ st.markdown("""
         }
         [data-testid="stSidebar"] input::placeholder { color: #1e3a5f !important; opacity: 0.7; }
         .stApp { background-color: #f0f4f8 !important; }
-        h1, h2, h3 { color: #1e3a5f !important; }
+        h1, h2, h3, [data-testid="stHeader"] { color: #1e3a5f !important; }
         [data-testid="stMarkdownContainer"] h1, [data-testid="stMarkdownContainer"] h2, 
         [data-testid="stMarkdownContainer"] h3 { color: #1e3a5f !important; }
         input, select, div[data-baseweb="select"] > div {
