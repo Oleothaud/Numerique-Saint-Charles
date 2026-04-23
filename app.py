@@ -392,7 +392,9 @@ elif is_admin and menu == "🪪 Dossier 360°":
         for _, el in res.iterrows():
             status_icon = "🚩 (PARTI)" if el['est_parti'] == 1 else "🎓"
             
-            with st.expander(f"{status_icon} {el['prenom']} {el['nom']} ({el['classe']})", expanded=False):
+            is_expanded = (st.session_state.get("open_el_id") == el['id'])
+            
+            with st.expander(f"{status_icon} {el['prenom']} {el['nom']} ({el['classe']})", expanded=is_expanded):
                 
                 tab_profil, tab_mdp, tab_ipad = st.tabs(["📝 Profil & Scolarité", "🔑 Identifiants", "📱 Matériel & SAV"])
                 
@@ -421,7 +423,6 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "classe": m_classe, "pp": m_pp, "date_entree": m_entree, 
                                 "est_parti": parti_int, "statut_ipad": statut_ipad_up
                             }).eq("id", el['id']).execute()
-                            
                             st.success("✅ Profil et scolarité mis à jour avec succès !")
 
                 with tab_mdp:
@@ -451,7 +452,6 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "id_ed": m_id_ed, "mdp_ed": m_mdp_ed, "id_mail": m_id_mail, "mdp_mail": m_mdp_mail,
                                 "id_pix": m_id_pix, "mdp_pix": m_mdp_pix, "id_ed_prov": m_id_prov, "mdp_ed_prov": m_mdp_prov
                             }).eq("id", el['id']).execute()
-                            
                             st.success("✅ Identifiants mis à jour avec succès !")
                             
                 with tab_ipad:
@@ -475,8 +475,49 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         if st.form_submit_button("💾 Mettre à jour le contrat"):
                             parti_int = 1 if nouveau_statut == 'Parti' else (0 if el['est_parti'] == 1 else el['est_parti'])
                             supabase.table("eleves").update({"statut_ipad": nouveau_statut, "est_parti": parti_int}).eq("id", el['id']).execute()
-                            
                             st.success("✅ Contrat matériel mis à jour avec succès !")
+
+                    # --- AJOUT: Bouton Valider placé AU-DESSUS de l'historique pour affichage instantané ---
+                    st.markdown("#### ➕ Déclarer un nouvel incident")
+                    type_inc = st.selectbox("Nature du sinistre", ["Écran de protection (15€)", "Chargeur (25€)", "Câble (25€)", "Coque (25€)", "iPad cassé (50€/100€)", "Écran HS SAV", "Batterie HS SAV"], key=f"type_inc_{el['id']}")
+                    prix_facture = 15 if "protection" in type_inc else 25 if any(x in type_inc for x in ["Chargeur", "Câble", "Coque"]) else 50 if (str(el['classe']).startswith("3") or str(el['classe']).startswith("4")) else 100
+                    st.warning(f"🧾 Facturation : **{prix_facture} €**")
+                    
+                    if st.button("🚀 Valider & Envoyer EMAIL", key=f"btn_sav_{el['id']}"):
+                        corps_sav = f"""
+                        <html>
+                        <body style="font-family: Arial, sans-serif; color: #1e3a5f;">
+                            <h2 style="color: #1e3a5f; border-bottom: 2px solid #1e3a5f; padding-bottom: 10px;">📄 Notification de Facturation SAV iPad</h2>
+                            <p>Bonjour,</p>
+                            <p>Un nouvel incident a été déclaré sur le parc iPad. Voici les informations pour la facturation :</p>
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Élève :</td><td style="padding: 8px; border: 1px solid #ddd;">{el['nom'].upper()} {el['prenom']}</td></tr>
+                                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Classe :</td><td style="padding: 8px; border: 1px solid #ddd;">{el['classe']}</td></tr>
+                                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Motif :</td><td style="padding: 8px; border: 1px solid #ddd;">{type_inc}</td></tr>
+                                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; color: #d9534f;">Montant à facturer :</td><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; color: #d9534f;">{prix_facture} €</td></tr>
+                            </table>
+                            <p style="margin-top: 20px;">Cet incident a été enregistré le {datetime.datetime.now().strftime("%d/%m/%Y à %H:%M")}.</p>
+                            <br>
+                            <p>Cordialement,<br><b>L'équipe Numérique - Saint Charles</b></p>
+                        </body>
+                        </html>
+                        """
+                        if envoyer_email_reel(f"SAV iPad - {el['nom'].upper()} ({el['classe']})", corps_sav, EMAIL_TEST_CIBLE):
+                            supabase.table("incidents_ipad").insert({
+                                "eleve_id": el['id'], "date_incident": datetime.datetime.now().strftime("%d/%m/%Y"), 
+                                "type_incident": type_inc, "montant": prix_facture, "envoye_compta": 1
+                            }).execute()
+                            
+                            # Astuce : on ajoute la ligne en mémoire pour qu'elle s'affiche immédiatement
+                            nouvel_incident = pd.DataFrame([{
+                                "eleve_id": el['id'], 
+                                "date_incident": datetime.datetime.now().strftime("%d/%m/%Y"), 
+                                "type_incident": type_inc, 
+                                "montant": prix_facture, 
+                                "envoye_compta": 1
+                            }])
+                            df_incidents = pd.concat([df_incidents, nouvel_incident], ignore_index=True)
+                            st.success(f"✅ Incident déclaré (Facturation : {prix_facture} €) et email envoyé !")
 
                     st.markdown("#### 🛠️ Historique SAV")
                     if not df_incidents.empty:
@@ -484,46 +525,11 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         if not eleve_incidents.empty:
                             eleve_incidents['Email Compta'] = eleve_incidents['envoye_compta'].apply(lambda x: '✅ Oui' if x == 1 else '❌ Non')
                             st.dataframe(eleve_incidents[['date_incident', 'type_incident', 'montant', 'Email Compta']], hide_index=True)
-                            
-                            with st.form(f"del_sav_form_{el['id']}"):
-                                st.warning("Supprimer tout l'historique SAV de cet élève ?")
-                                if st.form_submit_button("🗑️ Confirmer la suppression"):
-                                    supabase.table("incidents_ipad").delete().eq("eleve_id", el['id']).execute()
-                                    st.success("✅ Historique SAV effacé avec succès.")
+                            if st.button("🗑️ Effacer tout l'historique SAV de cet élève", key=f"del_sav_btn_{el['id']}", type="primary"):
+                                supabase.table("incidents_ipad").delete().eq("eleve_id", el['id']).execute()
+                                st.success("✅ Historique SAV effacé avec succès. Le tableau se mettra à jour à la prochaine recherche.")
                         else: st.success("Aucun incident.")
                     else: st.success("Aucun incident.")
-                    
-                    st.markdown("**➕ Déclarer un nouvel incident**")
-                    with st.form(f"form_new_sav_{el['id']}"):
-                        type_inc = st.selectbox("Nature du sinistre", ["Écran de protection (15€)", "Chargeur (25€)", "Câble (25€)", "Coque (25€)", "iPad cassé (50€/100€)", "Écran HS SAV", "Batterie HS SAV"], key=f"type_inc_{el['id']}")
-                        
-                        if st.form_submit_button("🚀 Valider & Envoyer EMAIL"):
-                            prix_facture = 15 if "protection" in type_inc else 25 if any(x in type_inc for x in ["Chargeur", "Câble", "Coque"]) else 50 if (str(el['classe']).startswith("3") or str(el['classe']).startswith("4")) else 100
-                            
-                            corps_sav = f"""
-                            <html>
-                            <body style="font-family: Arial, sans-serif; color: #1e3a5f;">
-                                <h2 style="color: #1e3a5f; border-bottom: 2px solid #1e3a5f; padding-bottom: 10px;">📄 Notification de Facturation SAV iPad</h2>
-                                <p>Bonjour,</p>
-                                <p>Un nouvel incident a été déclaré sur le parc iPad. Voici les informations pour la facturation :</p>
-                                <table style="width: 100%; border-collapse: collapse;">
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Élève :</td><td style="padding: 8px; border: 1px solid #ddd;">{el['nom'].upper()} {el['prenom']}</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Classe :</td><td style="padding: 8px; border: 1px solid #ddd;">{el['classe']}</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Motif :</td><td style="padding: 8px; border: 1px solid #ddd;">{type_inc}</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; color: #d9534f;">Montant à facturer :</td><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; color: #d9534f;">{prix_facture} €</td></tr>
-                                </table>
-                                <p style="margin-top: 20px;">Cet incident a été enregistré le {datetime.datetime.now().strftime("%d/%m/%Y à %H:%M")}.</p>
-                                <br>
-                                <p>Cordialement,<br><b>L'équipe Numérique - Saint Charles</b></p>
-                            </body>
-                            </html>
-                            """
-                            if envoyer_email_reel(f"SAV iPad - {el['nom'].upper()} ({el['classe']})", corps_sav, EMAIL_TEST_CIBLE):
-                                supabase.table("incidents_ipad").insert({
-                                    "eleve_id": el['id'], "date_incident": datetime.datetime.now().strftime("%d/%m/%Y"), 
-                                    "type_incident": type_inc, "montant": prix_facture, "envoye_compta": 1
-                                }).execute()
-                                st.success(f"✅ Incident déclaré (Facturation : {prix_facture} €) et email envoyé !")
 
 # ==========================================
 # ➕ NOUVEL ARRIVANT
@@ -990,22 +996,27 @@ elif is_admin and menu == "🛠️ Historique SAV iPad":
     for _, i in df_sav.iterrows():
         row = {"sav_id": i["id"], "date_incident": i["date_incident"], "type_incident": i["type_incident"], "montant": i["montant"]}
         if isinstance(i.get("eleves"), dict):
-            row["nom"] = i["eleves"]["nom"]
-            row["prenom"] = i["eleves"]["prenom"]
+            row["Nom"] = i["eleves"]["nom"]
+            row["Prénom"] = i["eleves"]["prenom"]
         flat_list.append(row)
             
     df_sav_flat = pd.DataFrame(flat_list).fillna("")
     
     if not df_sav_flat.empty:
         df_sav_flat.insert(0, "🗑️ Sélection", False)
+        
+        # Réorganisation des colonnes
+        cols_ordre = ["🗑️ Sélection", "Nom", "Prénom", "date_incident", "type_incident", "montant"]
+        df_display = df_sav_flat[cols_ordre]
+        
         edited_sav = st.data_editor(
-            df_sav_flat, 
+            df_display, 
             hide_index=True, 
             use_container_width=True,
-            disabled=["sav_id", "date_incident", "nom", "prenom", "type_incident", "montant"]
+            disabled=["Nom", "Prénom", "date_incident", "type_incident", "montant"]
         )
         
-        sav_a_supprimer = edited_sav[edited_sav["🗑️ Sélection"] == True]["sav_id"].tolist()
+        sav_a_supprimer = edited_sav[edited_sav["🗑️ Sélection"] == True].index.tolist()
         
         # --- EXPORT SAV ---
         st.markdown("---")
@@ -1021,8 +1032,9 @@ elif is_admin and menu == "🛠️ Historique SAV iPad":
         if sav_a_supprimer:
             st.warning(f"⚠️ Vous êtes sur le point de supprimer {len(sav_a_supprimer)} incident(s) de l'historique.")
             if st.button("🗑️ Confirmer la suppression", type="primary"):
-                for sid in sav_a_supprimer:
-                    supabase.table("incidents_ipad").delete().eq("id", sid).execute()
+                for idx in sav_a_supprimer:
+                    sid_to_del = df_sav_flat.iloc[idx]["sav_id"]
+                    supabase.table("incidents_ipad").delete().eq("id", sid_to_del).execute()
                 st.success("✅ Les incidents sélectionnés ont été supprimés.")
                 time.sleep(1.5)
                 st.rerun()
@@ -1063,6 +1075,7 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
         up = st.file_uploader("Fichier CSV", type="csv")
         
         if up and st.button("🚀 Lancer l'Import vers Supabase"):
+            # Sécurité ajoutée: sep=None engine='python'
             df_new = pd.read_csv(io.StringIO(up.getvalue().decode('utf-8')), sep=None, engine='python')
             
             eleves_presents_csv = []
@@ -1141,6 +1154,7 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
         up_sav = st.file_uploader("Fichier CSV (SAV)", type="csv", key="up_sav")
         
         if up_sav and st.button("🚀 Lancer l'Import SAV vers Supabase"):
+            # Sécurité format CSV ajoutée ici aussi
             df_sav_new = pd.read_csv(io.StringIO(up_sav.getvalue().decode('utf-8')), sep=None, engine='python')
             
             res_el = supabase.table("eleves").select("id, nom, prenom").execute()
