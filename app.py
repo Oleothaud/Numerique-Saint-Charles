@@ -66,7 +66,7 @@ def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
         return False
 
 # ==========================================
-# 🎨 STYLE FINAL ST DOMINIQUE
+# 🎨 STYLE FINAL ST DOMINIQUE (NATUREL)
 # ==========================================
 st.markdown("""
     <style>
@@ -336,19 +336,23 @@ if menu == "📊 Tableau de Bord":
         st.warning("La base de données est vide.")
     else:
         st.markdown("### 📌 Indicateurs Clés")
-        c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, c4, c5 = st.columns(5)
         c1.metric("Effectif Total", len(df_eleves))
         df_eleves['statut_ipad'] = df_eleves['statut_ipad'].replace("", "Achat")
         c2.metric("iPads en Location", len(df_eleves[df_eleves['statut_ipad'] == 'Location']))
-        c3.metric("Incidents Déclarés", len(df_incidents))
+        c3.metric("iPads en Fratrie", len(df_eleves[df_eleves['statut_ipad'] == 'Fratrie']))
+        c4.metric("Incidents Déclarés", len(df_incidents))
         montant_total = pd.to_numeric(df_incidents['montant'], errors='coerce').sum() if not df_incidents.empty else 0
-        c4.metric("Facturation SAV", f"{montant_total} €")
+        c5.metric("Facturation SAV", f"{montant_total} €")
         
-        col_list1, col_list2 = st.columns(2)
+        col_list1, col_list2, col_list3 = st.columns(3)
         with col_list1:
             with st.expander("📄 Voir la liste des iPads en Location"):
                 st.dataframe(df_eleves[df_eleves['statut_ipad'] == 'Location'][['nom', 'prenom', 'classe']], hide_index=True)
         with col_list2:
+            with st.expander("👨‍👩‍👧‍👦 Voir la liste des iPads Fratrie"):
+                st.dataframe(df_eleves[df_eleves['statut_ipad'] == 'Fratrie'][['nom', 'prenom', 'classe']], hide_index=True)
+        with col_list3:
             with st.expander("🛠️ Voir le détail des incidents SAV"):
                 if not df_incidents.empty:
                     st.dataframe(df_incidents[['date_incident', 'type_incident', 'montant']], hide_index=True)
@@ -392,13 +396,12 @@ elif is_admin and menu == "🪪 Dossier 360°":
         for _, el in res.iterrows():
             status_icon = "🚩 (PARTI)" if el['est_parti'] == 1 else "🎓"
             
-            is_expanded = (st.session_state.get("open_el_id") == str(el['id']))
+            is_expanded = (st.session_state.get("open_el_id") == el['id'])
             
             with st.expander(f"{status_icon} {el['prenom']} {el['nom']} ({el['classe']})", expanded=is_expanded):
                 
                 if is_expanded and f"msg_{el['id']}" in st.session_state:
                     st.success(st.session_state.pop(f"msg_{el['id']}"))
-                    # --- CORRECTION BUGS ONGLETS : On a supprimé la ligne 'del st.session_state["open_el_id"]' ici. ---
                         
                 tab_profil, tab_mdp, tab_ipad = st.tabs(["📝 Profil & Scolarité", "🔑 Identifiants", "📱 Matériel & SAV"])
                 
@@ -428,9 +431,9 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "est_parti": parti_int, "statut_ipad": statut_ipad_up
                             }).eq("id", el['id']).execute()
                             
-                            st.session_state["open_el_id"] = str(el['id'])
+                            st.session_state["open_el_id"] = el['id']
                             st.session_state[f"msg_{el['id']}"] = "✅ Profil et scolarité mis à jour avec succès !"
-                            st.rerun()
+                            # --- Pas de st.rerun() ici pour garder l'onglet ouvert ---
 
                 with tab_mdp:
                     with st.form(f"form_mdp_{el['id']}"):
@@ -460,9 +463,9 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "id_pix": m_id_pix, "mdp_pix": m_mdp_pix, "id_ed_prov": m_id_prov, "mdp_ed_prov": m_mdp_prov
                             }).eq("id", el['id']).execute()
                             
-                            st.session_state["open_el_id"] = str(el['id'])
+                            st.session_state["open_el_id"] = el['id']
                             st.session_state[f"msg_{el['id']}"] = "✅ Identifiants mis à jour avec succès !"
-                            st.rerun()
+                            # --- Pas de st.rerun() ---
                             
                 with tab_ipad:
                     with st.form(f"form_ipad_{el['id']}"):
@@ -486,30 +489,20 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             parti_int = 1 if nouveau_statut == 'Parti' else (0 if el['est_parti'] == 1 else el['est_parti'])
                             supabase.table("eleves").update({"statut_ipad": nouveau_statut, "est_parti": parti_int}).eq("id", el['id']).execute()
                             
-                            st.session_state["open_el_id"] = str(el['id'])
-                            st.session_state[f"msg_{el['id']}"] = "✅ Contrat matériel mis à jour avec succès !"
-                            st.rerun()
+                            st.session_state["open_el_id"] = el['id']
+                            st.session_state[f"msg_{el['id']}"] = "✅ Contrat matériel mis à jour (Le statut global de l'élève a bien été synchronisé en base) !"
+                            # --- Pas de st.rerun() ---
 
-                    st.markdown("#### 🛠️ Historique SAV")
-                    if not df_incidents.empty:
-                        eleve_incidents = df_incidents[df_incidents['eleve_id'] == el['id']].copy()
-                        if not eleve_incidents.empty:
-                            eleve_incidents['Email Compta'] = eleve_incidents['envoye_compta'].apply(lambda x: '✅ Oui' if x == 1 else '❌ Non')
-                            st.dataframe(eleve_incidents[['date_incident', 'type_incident', 'montant', 'Email Compta']], hide_index=True)
-                            if st.button("🗑️ Effacer tout l'historique SAV de cet élève", key=f"del_sav_btn_{el['id']}", type="primary"):
-                                supabase.table("incidents_ipad").delete().eq("eleve_id", el['id']).execute()
-                                st.session_state["open_el_id"] = str(el['id'])
-                                st.session_state[f"msg_{el['id']}"] = "✅ Historique SAV effacé avec succès."
-                                st.rerun()
-                        else: st.success("Aucun incident.")
-                    else: st.success("Aucun incident.")
+                    # --- AJOUT: Déclaration AVANT l'historique pour éviter le refresh forcé ---
+                    st.markdown("#### ➕ Déclarer un nouvel incident")
+                    with st.form(f"form_new_sav_{el['id']}"):
+                        type_inc = st.selectbox("Nature du sinistre", ["Écran de protection (15€)", "Chargeur (25€)", "Câble (25€)", "Coque (25€)", "iPad cassé (50€/100€)", "Écran HS SAV", "Batterie HS SAV"], key=f"type_inc_{el['id']}")
+                        prix_facture = 15 if "protection" in type_inc else 25 if any(x in type_inc for x in ["Chargeur", "Câble", "Coque"]) else 50 if (str(el['classe']).startswith("3") or str(el['classe']).startswith("4")) else 100
+                        st.warning(f"🧾 Facturation : **{prix_facture} €**")
+                        
+                        submit_sav = st.form_submit_button("🚀 Valider & Envoyer EMAIL")
                     
-                    st.markdown("**➕ Déclarer un nouvel incident**")
-                    type_inc = st.selectbox("Nature du sinistre", ["Écran de protection (15€)", "Chargeur (25€)", "Câble (25€)", "Coque (25€)", "iPad cassé (50€/100€)", "Écran HS SAV", "Batterie HS SAV"], key=f"type_inc_{el['id']}")
-                    prix_facture = 15 if "protection" in type_inc else 25 if any(x in type_inc for x in ["Chargeur", "Câble", "Coque"]) else 50 if (str(el['classe']).startswith("3") or str(el['classe']).startswith("4")) else 100
-                    st.warning(f"🧾 Facturation : **{prix_facture} €**")
-                    
-                    if st.button("🚀 Valider & Envoyer TEST EMAIL", key=f"btn_sav_{el['id']}"):
+                    if submit_sav:
                         corps_sav = f"""
                         <html>
                         <body style="font-family: Arial, sans-serif; color: #1e3a5f;">
@@ -533,9 +526,30 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "eleve_id": el['id'], "date_incident": datetime.datetime.now().strftime("%d/%m/%Y"), 
                                 "type_incident": type_inc, "montant": prix_facture, "envoye_compta": 1
                             }).execute()
-                            st.session_state["open_el_id"] = str(el['id'])
-                            st.session_state[f"msg_{el['id']}"] = "✅ Incident déclaré et email envoyé !"
-                            st.rerun()
+                            
+                            # Astuce d'injection directe en mémoire
+                            new_sav_line = pd.DataFrame([{"eleve_id": el['id'], "date_incident": datetime.datetime.now().strftime("%d/%m/%Y"), "type_incident": type_inc, "montant": prix_facture, "envoye_compta": 1}])
+                            df_incidents = pd.concat([df_incidents, new_sav_line], ignore_index=True)
+                            st.success(f"✅ Incident déclaré ({prix_facture}€) et ajouté à l'historique ci-dessous !")
+
+                    st.markdown("#### 🛠️ Historique SAV")
+                    if not df_incidents.empty:
+                        eleve_incidents = df_incidents[df_incidents['eleve_id'] == el['id']].copy()
+                        if not eleve_incidents.empty:
+                            eleve_incidents['Email Compta'] = eleve_incidents['envoye_compta'].apply(lambda x: '✅ Oui' if x == 1 else '❌ Non')
+                            
+                            el_disp = eleve_incidents[['date_incident', 'type_incident', 'montant', 'Email Compta']]
+                            el_disp.index = [""] * len(el_disp)
+                            st.table(el_disp)
+                            
+                            with st.form(f"del_sav_form_{el['id']}"):
+                                if st.form_submit_button("🗑️ Effacer tout l'historique SAV de cet élève"):
+                                    supabase.table("incidents_ipad").delete().eq("eleve_id", el['id']).execute()
+                                    st.session_state["open_el_id"] = el['id']
+                                    st.session_state[f"msg_{el['id']}"] = "✅ Historique SAV effacé avec succès. (Disparaîtra à la prochaine recherche)."
+                                    st.rerun() # Ici on garde le rerun car c'est une suppression destructive
+                        else: st.success("Aucun incident.")
+                    else: st.success("Aucun incident.")
 
 # ==========================================
 # ➕ NOUVEL ARRIVANT
@@ -677,7 +691,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                     'mdp_pix': '🟣 MDP Pix'
                 })
                 
-                # --- ST.TABLE POUR ÉVITER LE TEXTE FLOU SUR LES PROJECTEURS ---
+                # --- ST.TABLE POUR ÉVITER LE FLOU ---
                 df_c.index = [""] * len(df_c)
                 st.table(df_c)
             
