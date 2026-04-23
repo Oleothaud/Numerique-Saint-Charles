@@ -66,10 +66,18 @@ def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
         return False
 
 # ==========================================
-# 🎨 STYLE FINAL ST DOMINIQUE (NATUREL)
+# 🎨 STYLE FINAL ST DOMINIQUE
 # ==========================================
 st.markdown("""
     <style>
+        /* --- 1. CACHER LE CARRÉ BLANC (BOUTON PLEIN ECRAN) SUR LES IMAGES --- */
+        button[title="View fullscreen"] { display: none !important; }
+        [data-testid="StyledFullScreenButton"] { display: none !important; }
+        
+        /* --- 2. FORCER LA FLÈCHE DU MENU À RESTER VISIBLE TOUT LE TEMPS --- */
+        [data-testid="collapsedControl"] { opacity: 1 !important; }
+        
+        /* --- STYLE GENERAL ST CHARLES --- */
         [data-testid="stSidebar"] { background-color: #1e3a5f !important; }
         [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, 
         [data-testid="stSidebar"] label, [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] {
@@ -92,6 +100,9 @@ st.markdown("""
         }
         div[role="listbox"] { background-color: #ffffff !important; color: #1e3a5f !important; }
         label p { color: #1e3a5f !important; }
+        div[data-baseweb="tooltip"], div[data-testid="stTooltipContent"] {
+            display: none !important; opacity: 0 !important; visibility: hidden !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -980,54 +991,54 @@ elif (is_admin or is_compta) and menu == "📦 Restitutions (Fin d'année)":
         st.download_button("📥 Exporter la liste de fin d'année", df_rest[cols_to_show].to_csv(index=False).encode('utf-8'), "actions_ipads_3eme.csv")
 
 # ==========================================
-# 🛠️ HISTORIQUE SAV GLOBAL
+# 🛠️ HISTORIQUE SAV GLOBAL (AVEC SUPPRESSION)
 # ==========================================
 elif is_admin and menu == "🛠️ Historique SAV iPad":
     st.title("🛠️ Historique SAV")
     st.info("Cochez la case 'Sélection' pour supprimer un ancien incident de l'historique.")
     
-    # On récupère les données avec jointure pour avoir les noms
     df_sav = fetch_table("incidents_ipad", select_cols="*, eleves(nom, prenom)")
     
     flat_list = []
     for _, i in df_sav.iterrows():
         row = {"sav_id": i["id"], "date_incident": i["date_incident"], "type_incident": i["type_incident"], "montant": i["montant"]}
         if isinstance(i.get("eleves"), dict):
-            row["Nom"] = i["eleves"]["nom"]
-            row["Prénom"] = i["eleves"]["prenom"]
+            row["nom"] = i["eleves"]["nom"]
+            row["prenom"] = i["eleves"]["prenom"]
         flat_list.append(row)
             
     df_sav_flat = pd.DataFrame(flat_list).fillna("")
     
     if not df_sav_flat.empty:
         df_sav_flat.insert(0, "🗑️ Sélection", False)
-        # Réorganisation des colonnes pour l'affichage
-        cols_ordre = ["🗑️ Sélection", "Nom", "Prénom", "date_incident", "type_incident", "montant"]
-        df_display = df_sav_flat[cols_ordre]
-        
         edited_sav = st.data_editor(
-            df_display, 
+            df_sav_flat, 
             hide_index=True, 
             use_container_width=True,
-            disabled=["Nom", "Prénom", "date_incident", "type_incident", "montant"]
+            disabled=["sav_id", "date_incident", "nom", "prenom", "type_incident", "montant"]
         )
         
-        # --- EXPORT SAV AVEC NOMS ---
+        sav_a_supprimer = edited_sav[edited_sav["🗑️ Sélection"] == True]["sav_id"].tolist()
+        
+        # --- EXPORT SAV ---
         st.markdown("---")
-        df_export = df_sav_flat[["Nom", "Prénom", "date_incident", "type_incident", "montant"]]
-        csv_sav = df_export.to_csv(index=False).encode('utf-8')
+        df_export_sav = df_sav_flat.copy()
+        if "🗑️ Sélection" in df_export_sav.columns:
+            df_export_sav = df_export_sav.drop(columns=["🗑️ Sélection", "sav_id"], errors='ignore')
+        df_export_sav = df_export_sav.rename(columns={"nom": "Nom", "prenom": "Prénom", "date_incident": "Date", "type_incident": "Type d'incident", "montant": "Montant"})
+        csv_sav = df_export_sav.to_csv(index=False, sep=';').encode('utf-8')
         st.download_button("📥 Exporter l'historique SAV complet (CSV)", csv_sav, "historique_sav_complet.csv")
+        st.markdown("---")
+        # ------------------
         
-        # Logique suppression
-        idx_to_del = edited_sav[edited_sav["🗑️ Sélection"] == True].index
-        sav_ids_to_suppr = [df_sav_flat.loc[i, "sav_id"] for i in idx_to_del]
-        
-        if sav_ids_to_suppr:
-            st.warning(f"⚠️ Vous allez supprimer {len(sav_ids_to_suppr)} incident(s).")
+        if sav_a_supprimer:
+            st.warning(f"⚠️ Vous êtes sur le point de supprimer {len(sav_a_supprimer)} incident(s) de l'historique.")
             if st.button("🗑️ Confirmer la suppression", type="primary"):
-                for sid in sav_ids_to_suppr:
+                for sid in sav_a_supprimer:
                     supabase.table("incidents_ipad").delete().eq("id", sid).execute()
-                st.success("✅ Supprimé !"); time.sleep(1); st.rerun()
+                st.success("✅ Les incidents sélectionnés ont été supprimés.")
+                time.sleep(1.5)
+                st.rerun()
     else:
         st.success("L'historique est vide.")
 
@@ -1037,72 +1048,167 @@ elif is_admin and menu == "🛠️ Historique SAV iPad":
 elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
     st.title("⚙️ Maintenance de la Base Cloud")
     
-    tab_import, tab_import_sav, tab_nettoyage = st.tabs(["📥 Importation Élèves", "📥 Importation SAV", "🧹 Nettoyage de la Base"])
+    tab_import, tab_import_sav, tab_nettoyage = st.tabs(["📥 Importation CSV", "📥 Import SAV", "🧹 Nettoyage de la Base"])
     
     with tab_import:
         st.markdown("""
-        ### 📝 Instructions d'importation Élèves
-        Votre fichier doit contenir ces **8 colonnes** dans l'ordre exact :
-        1. **Classe** | 2. **Nom** | 3. **Prénom** | 4. **Date Naissance** | 5. **PP** | 6. **Date Entrée** | 7. **ID ED Prov.** | 8. **MDP ED Prov.**
+        ### 📝 Instructions d'importation
+        **Format du fichier attendu (.csv avec séparateur point-virgule `;`) :**
+        Votre fichier doit contenir ces **8 colonnes** dans l'ordre exact (la première ligne de titre sera ignorée) :
+        1. **Classe** (ex: 3G1)
+        2. **Nom** (ex: DUPONT)
+        3. **Prénom** (ex: Jean)
+        4. **Date de Naissance** (ex: 15/04/2010)
+        5. **Professeur Principal** (ex: M. MARTIN)
+        6. **Date d'entrée** (ex: 01/09/2023)
+        7. **Identifiant ED (Provisoire)** (ex: J.DUPONT)
+        8. **Mot de passe ED (Provisoire)** (ex: Abcd123!)
+
+        *(Si vous n'avez pas de codes provisoires à insérer, laissez les colonnes 7 et 8 vides)*
+
+        **🎓 Différence avec le Mode Rentrée :**
+        - **Décoché (Import classique) :** Ajoute uniquement les nouveaux élèves absents de la base.
+        - **Coché (Mode Rentrée) :** Ajoute les nouveaux, met à jour les classes/PP des anciens, ET **archive en 'Parti'** tous les élèves qui ne sont pas dans votre fichier.
         """)
-        mode_rentree = st.checkbox("🎓 Activer le Mode Rentrée")
-        up = st.file_uploader("Fichier CSV Élèves", type="csv", key="up_eleves")
+        st.markdown("---")
         
-        if up and st.button("🚀 Lancer l'Import Élèves"):
+        mode_rentree = st.checkbox("🎓 Activer le Mode Rentrée")
+        up = st.file_uploader("Fichier CSV", type="csv")
+        
+        if up and st.button("🚀 Lancer l'Import vers Supabase"):
             df_new = pd.read_csv(io.StringIO(up.getvalue().decode('utf-8')), sep=';', header=0)
-            res_all = supabase.table("eleves").select("id, nom, prenom").execute()
-            existing = {(r['nom'], r['prenom']): r['id'] for r in res_all.data} if res_all.data else {}
             
-            for _, row in df_new.iterrows():
-                cl, n, p = str(row.iloc[0]), str(row.iloc[1]).upper(), str(row.iloc[2]).capitalize()
-                dob, pp_val, ent, idp, mdpp = str(row.iloc[3]), str(row.iloc[4]), str(row.iloc[5]), str(row.iloc[6]), str(row.iloc[7])
-                if (n, p) not in existing:
-                    id_ed, id_mail, id_pix = generer_identifiants(p, n, dob, cl)
-                    supabase.table("eleves").insert({"nom": n, "prenom": p, "classe": cl, "date_naissance": dob, "pp": pp_val, "date_entree": ent, "id_ed": id_ed, "mdp_ed": MDP_DEFAUT, "id_mail": id_mail, "mdp_mail": MDP_DEFAUT, "id_pix": id_pix, "mdp_pix": MDP_DEFAUT, "id_ed_prov": idp, "mdp_ed_prov": mdpp, "statut_ipad": 'Achat', "est_parti": 0}).execute()
-                else:
-                    supabase.table("eleves").update({"classe": cl, "pp": pp_val, "id_ed_prov": idp, "mdp_ed_prov": mdpp}).eq("id", existing[(n, p)]).execute()
-            st.success("✅ Import Élèves terminé.")
+            eleves_presents_csv = []
+            nb_total = len(df_new)
+            nb_nouveaux = 0
+            repartition = {}
+            
+            res_all = supabase.table("eleves").select("id, nom, prenom").execute()
+            existing_eleves = {(r['nom'], r['prenom']): r['id'] for r in res_all.data} if res_all.data else {}
+            
+            if mode_rentree:
+                if res_all.data:
+                    for r in res_all.data:
+                        supabase.table("eleves").update({"est_nouveau": 0}).eq("id", r['id']).execute()
+            
+            with st.spinner("Importation en cours, veuillez patienter..."):
+                for _, row in df_new.iterrows():
+                    cl = str(row.iloc[0]).strip() if pd.notna(row.iloc[0]) else ""
+                    n = str(row.iloc[1]).strip().upper() if pd.notna(row.iloc[1]) else ""
+                    p = str(row.iloc[2]).strip().capitalize() if pd.notna(row.iloc[2]) else ""
+                    dob = str(row.iloc[3]).strip() if len(row) > 3 and pd.notna(row.iloc[3]) else ""
+                    pp_val = str(row.iloc[4]).strip() if len(row) > 4 and pd.notna(row.iloc[4]) else ""
+                    entree_val = str(row.iloc[5]).strip() if len(row) > 5 and pd.notna(row.iloc[5]) else ""
+                    id_prov = str(row.iloc[6]).strip() if len(row) > 6 and pd.notna(row.iloc[6]) else ""
+                    mdp_prov = str(row.iloc[7]).strip() if len(row) > 7 and pd.notna(row.iloc[7]) else ""
+                    
+                    repartition[cl] = repartition.get(cl, 0) + 1
+                    
+                    if (n, p) not in existing_eleves:
+                        id_ed, id_mail, id_pix = generer_identifiants(p, n, dob, cl)
+                        res_ins = supabase.table("eleves").insert({
+                            "nom": n, "prenom": p, "classe": cl, "date_naissance": dob, "pp": pp_val, "date_entree": entree_val,
+                            "id_ed": id_ed, "mdp_ed": MDP_DEFAUT, "id_mail": id_mail, "mdp_mail": MDP_DEFAUT, "id_pix": id_pix, "mdp_pix": MDP_DEFAUT,
+                            "id_ed_prov": id_prov, "mdp_ed_prov": mdp_prov, "statut_ipad": 'Achat', "est_parti": 0, "est_nouveau": 1
+                        }).execute()
+                        if res_ins.data:
+                            eleves_presents_csv.append(res_ins.data[0]['id'])
+                        nb_nouveaux += 1
+                    else:
+                        eleve_id = existing_eleves[(n, p)]
+                        eleves_presents_csv.append(eleve_id)
+                        supabase.table("eleves").update({"id_ed_prov": id_prov, "mdp_ed_prov": mdp_prov}).eq("id", eleve_id).execute()
+                        if mode_rentree:
+                            supabase.table("eleves").update({"classe": cl, "pp": pp_val, "date_entree": entree_val}).eq("id", eleve_id).execute()
+                            
+                if mode_rentree and eleves_presents_csv:
+                    res_active = supabase.table("eleves").select("id").eq("est_parti", 0).execute()
+                    if res_active.data:
+                        active_ids = [r['id'] for r in res_active.data]
+                        ids_to_mark = [aid for aid in active_ids if aid not in eleves_presents_csv]
+                        for aid in ids_to_mark:
+                            supabase.table("eleves").update({"est_parti": 1, "statut_ipad": 'Parti'}).eq("id", aid).execute()
+                            
+            st.success("✅ Importation terminée avec succès !")
+            st.markdown("### 📊 Bilan de l'importation")
+            c_tot, c_new = st.columns(2)
+            c_tot.metric("Total des élèves lus", nb_total)
+            c_new.metric("Vrais nouveaux élèves détectés", nb_nouveaux)
+            
+            st.markdown("**Répartition par classe :**")
+            df_repartition = pd.DataFrame(list(repartition.items()), columns=['Classe', "Nombre d'élèves"]).sort_values('Classe')
+            st.dataframe(df_repartition, hide_index=True, use_container_width=True)
 
     with tab_import_sav:
         st.markdown("""
         ### 📥 Importation Historique SAV
-        **Format du fichier CSV (séparateur `;`) :**
+        **Format du fichier attendu (.csv avec séparateur point-virgule `;`) :**
+        Votre fichier doit contenir ces **5 colonnes** dans l'ordre exact (la première ligne de titre sera ignorée) :
         1. **Nom** (ex: DUPONT)
         2. **Prénom** (ex: Jean)
         3. **Date** (ex: 12/05/2024)
         4. **Type d'incident** (ex: Casse écran)
         5. **Montant** (ex: 50)
         """)
+        st.markdown("---")
         up_sav = st.file_uploader("Fichier CSV SAV", type="csv", key="up_sav")
-        if up_sav and st.button("🚀 Lancer l'Import SAV"):
+        if up_sav and st.button("🚀 Lancer l'Import SAV vers Supabase"):
             df_sav_new = pd.read_csv(io.StringIO(up_sav.getvalue().decode('utf-8')), sep=';', header=0)
-            # On récupère les IDs pour faire la correspondance
+            
             res_el = supabase.table("eleves").select("id, nom, prenom").execute()
-            map_el = {(r['nom'], r['prenom']): r['id'] for r in res_el.data} if res_el.data else {}
+            map_el = {(str(r['nom']).strip().upper(), str(r['prenom']).strip().capitalize()): r['id'] for r in res_el.data} if res_el.data else {}
             
             count = 0
-            for _, row in df_sav_new.iterrows():
-                n, p = str(row.iloc[0]).upper().strip(), str(row.iloc[1]).capitalize().strip()
-                if (n, p) in map_el:
-                    try:
-                        supabase.table("incidents_ipad").insert({
-                            "eleve_id": map_el[(n, p)],
-                            "date_incident": str(row.iloc[2]),
-                            "type_incident": str(row.iloc[3]),
-                            "montant": int(row.iloc[4]),
-                            "envoye_compta": 1
-                        }).execute()
-                        count += 1
-                    except: pass
-            st.success(f"✅ Importation réussie : {count} incidents ajoutés.")
+            with st.spinner("Importation SAV en cours..."):
+                for _, row in df_sav_new.iterrows():
+                    n = str(row.iloc[0]).strip().upper()
+                    p = str(row.iloc[1]).strip().capitalize()
+                    
+                    if (n, p) in map_el:
+                        try:
+                            supabase.table("incidents_ipad").insert({
+                                "eleve_id": map_el[(n, p)],
+                                "date_incident": str(row.iloc[2]).strip(),
+                                "type_incident": str(row.iloc[3]).strip(),
+                                "montant": int(row.iloc[4]),
+                                "envoye_compta": 1
+                            }).execute()
+                            count += 1
+                        except Exception as e:
+                            pass
+            st.success(f"✅ Importation terminée : {count} incidents SAV ajoutés avec succès !")
 
     with tab_nettoyage:
-        st.warning("⚠️ **ZONE DE DANGER :** Nettoyage de la base de données.")
-        if st.button("🗑️ Supprimer définitivement TOUS les élèves partis"):
+        st.warning("⚠️ **ZONE DE DANGER :** Cette action supprimera définitivement tous les élèves actuellement marqués comme 'Partis' de la base de données. Leurs tickets et historiques SAV seront également effacés.")
+        if st.button("🗑️ Supprimer définitivement TOUS les élèves partis", type="primary"):
             res_partis = supabase.table("eleves").select("id").eq("est_parti", 1).execute()
-            if res_partis.data:
-                for r in res_partis.data:
-                    supabase.table("incidents_ipad").delete().eq("eleve_id", r['id']).execute()
-                    supabase.table("eleves").delete().eq("id", r['id']).execute()
-                st.success("✅ Base nettoyée.")
-            else: st.info("Aucun élève à supprimer.")
+            nb_suppr = len(res_partis.data) if res_partis.data else 0
+            
+            if nb_suppr > 0:
+                ids = [r['id'] for r in res_partis.data]
+                for pid in ids:
+                    supabase.table("incidents_ipad").delete().eq("eleve_id", pid).execute()
+                    supabase.table("demandes").delete().eq("eleve_id", pid).execute()
+                    supabase.table("eleves").delete().eq("id", pid).execute()
+                st.success(f"✅ Opération réussie : {nb_suppr} élève(s) ont été définitivement rayés de la base !")
+            else:
+                st.info("💡 Aucun élève n'est actuellement marqué comme 'Parti'. La base est déjà propre.")
+                
+            time.sleep(2.5)
+            st.rerun()
+
+        st.markdown("---")
+        st.error("🧨 **RESET TOTAL DE LA BASE :** Efface la totalité des élèves, des tickets et historiques SAV.")
+        if st.button("🧨 Vider l'intégralité de la base de données", type="primary"):
+            res_all = supabase.table("eleves").select("id").execute()
+            if res_all.data:
+                ids = [r['id'] for r in res_all.data]
+                for pid in ids:
+                    supabase.table("incidents_ipad").delete().eq("eleve_id", pid).execute()
+                    supabase.table("demandes").delete().eq("eleve_id", pid).execute()
+                    supabase.table("eleves").delete().eq("id", pid).execute()
+                st.success(f"✅ Base intégralement vidée : {len(res_all.data)} élèves supprimés !")
+            else:
+                st.info("La base est déjà vide.")
+            time.sleep(2.5)
+            st.rerun()
