@@ -671,17 +671,9 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                     'mdp_pix': '🟣 MDP Pix'
                 })
                 
-                st.dataframe(
-                    df_c, 
-                    use_container_width=True, 
-                    hide_index=True,
-                    column_config={
-                        "📱 Code iPad": st.column_config.TextColumn(width="medium"),
-                        "🔵 MDP ED": st.column_config.TextColumn(width="medium"),
-                        "🟡 MDP Drive": st.column_config.TextColumn(width="medium"),
-                        "🟣 MDP Pix": st.column_config.TextColumn(width="medium")
-                    }
-                )
+                # Affichage HTML pur pour une netteté absolue (et on masque les numéros de lignes)
+                df_c.index = [""] * len(df_c)
+                st.table(df_c)
             
             st.markdown("---")
             st.markdown("### 🖨️ Impression des identifiants de la classe")
