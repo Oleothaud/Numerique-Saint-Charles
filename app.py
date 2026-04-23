@@ -66,7 +66,7 @@ def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
         return False
 
 # ==========================================
-# 🎨 STYLE FINAL ST DOMINIQUE (NATUREL)
+# 🎨 STYLE FINAL ST DOMINIQUE
 # ==========================================
 st.markdown("""
     <style>
@@ -135,6 +135,7 @@ def fetch_table(table_name, eq_col=None, eq_val=None, order_col=None, select_col
 # ==========================================
 def nettoyeur_identifiant(texte):
     if pd.isna(texte) or str(texte).strip() == "": return ""
+    # Enlève les accents, les espaces et les tirets, et met en minuscules
     s = ''.join(c for c in unicodedata.normalize('NFD', str(texte)) if unicodedata.category(c) != 'Mn')
     return s.lower().replace(' ', '').replace('-', '')
 
@@ -398,7 +399,6 @@ elif is_admin and menu == "🪪 Dossier 360°":
                 
                 if is_expanded and f"msg_{el['id']}" in st.session_state:
                     st.success(st.session_state.pop(f"msg_{el['id']}"))
-                    # On ne supprime plus l'ID pour que le dossier reste bien ouvert
                         
                 tab_profil, tab_mdp, tab_ipad = st.tabs(["📝 Profil & Scolarité", "🔑 Identifiants", "📱 Matériel & SAV"])
                 
@@ -487,7 +487,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             supabase.table("eleves").update({"statut_ipad": nouveau_statut, "est_parti": parti_int}).eq("id", el['id']).execute()
                             
                             st.session_state["open_el_id"] = el['id']
-                            st.session_state[f"msg_{el['id']}"] = "✅ Contrat mis à jour (Le statut global de l'élève a été synchronisé) !"
+                            st.session_state[f"msg_{el['id']}"] = "✅ Contrat matériel mis à jour (Le statut global de l'élève a bien été synchronisé en base) !"
                             st.rerun()
 
                     st.markdown("#### ➕ Déclarer un nouvel incident")
@@ -523,7 +523,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "type_incident": type_inc, "montant": prix_facture, "envoye_compta": 1
                             }).execute()
                             
-                            # Ajout direct en mémoire pour l'affichage sans refresh
+                            # Ajout direct en mémoire pour l'affichage sans refresh, sans refermer le dossier
                             new_sav_line = pd.DataFrame([{"eleve_id": el['id'], "date_incident": datetime.datetime.now().strftime("%d/%m/%Y"), "type_incident": type_inc, "montant": prix_facture, "envoye_compta": 1}])
                             df_incidents = pd.concat([df_incidents, new_sav_line], ignore_index=True)
                             st.success(f"✅ Incident déclaré ({prix_facture}€) et ajouté à l'historique ci-dessous !")
@@ -534,7 +534,6 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         if not eleve_incidents.empty:
                             eleve_incidents['Email Compta'] = eleve_incidents['envoye_compta'].apply(lambda x: '✅ Oui' if x == 1 else '❌ Non')
                             
-                            # Affichage du tableau (Net avec st.table)
                             el_disp = eleve_incidents[['date_incident', 'type_incident', 'montant', 'Email Compta']]
                             el_disp.index = [""] * len(el_disp)
                             st.table(el_disp)
@@ -1080,7 +1079,7 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
         st.markdown("---")
         
         mode_rentree = st.checkbox("🎓 Activer le Mode Rentrée")
-        up = st.file_uploader("Fichier CSV", type="csv")
+        up = st.file_uploader("Fichier CSV", type="csv", key="up_import_eleve")
         
         if up and st.button("🚀 Lancer l'Import vers Supabase"):
             df_new = pd.read_csv(io.StringIO(up.getvalue().decode('utf-8')), sep=None, engine='python')
@@ -1091,7 +1090,7 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
             repartition = {}
             
             res_all = supabase.table("eleves").select("id, nom, prenom").execute()
-            existing_eleves = {(r['nom'], r['prenom']): r['id'] for r in res_all.data} if res_all.data else {}
+            existing_eleves = {(nettoyeur_identifiant(r['nom']), nettoyeur_identifiant(r['prenom'])): r['id'] for r in res_all.data} if res_all.data else {}
             
             if mode_rentree:
                 if res_all.data:
@@ -1112,7 +1111,10 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                     
                     repartition[cl] = repartition.get(cl, 0) + 1
                     
-                    if (n, p) not in existing_eleves:
+                    n_clean = nettoyeur_identifiant(n)
+                    p_clean = nettoyeur_identifiant(p)
+                    
+                    if (n_clean, p_clean) not in existing_eleves:
                         id_ed, id_mail, id_pix = generer_identifiants(p, n, dob, cl)
                         res_ins = supabase.table("eleves").insert({
                             "nom": n, "prenom": p, "classe": cl, "date_naissance": dob, "pp": pp_val, "date_entree": entree_val,
@@ -1123,7 +1125,7 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                             eleves_presents_csv.append(res_ins.data[0]['id'])
                         nb_nouveaux += 1
                     else:
-                        eleve_id = existing_eleves[(n, p)]
+                        eleve_id = existing_eleves[(n_clean, p_clean)]
                         eleves_presents_csv.append(eleve_id)
                         supabase.table("eleves").update({"id_ed_prov": id_prov, "mdp_ed_prov": mdp_prov}).eq("id", eleve_id).execute()
                         if mode_rentree:
@@ -1165,20 +1167,20 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
             df_sav_new = pd.read_csv(io.StringIO(up_sav.getvalue().decode('utf-8')), sep=None, engine='python')
             
             res_el = supabase.table("eleves").select("id, nom, prenom").execute()
-            map_el = {(str(r['nom']).strip().upper(), str(r['prenom']).strip().capitalize()): r['id'] for r in res_el.data} if res_el.data else {}
+            map_el = {(nettoyeur_identifiant(r['nom']), nettoyeur_identifiant(r['prenom'])): r['id'] for r in res_el.data} if res_el.data else {}
             
             count = 0
             with st.spinner("Importation SAV en cours..."):
                 for _, row in df_sav_new.iterrows():
                     if len(row) < 5: continue 
                     
-                    n = str(row.iloc[0]).strip().upper()
-                    p = str(row.iloc[1]).strip().capitalize()
+                    n_clean = nettoyeur_identifiant(row.iloc[0])
+                    p_clean = nettoyeur_identifiant(row.iloc[1])
                     
-                    if (n, p) in map_el:
+                    if (n_clean, p_clean) in map_el:
                         try:
                             supabase.table("incidents_ipad").insert({
-                                "eleve_id": map_el[(n, p)],
+                                "eleve_id": map_el[(n_clean, p_clean)],
                                 "date_incident": str(row.iloc[2]).strip(),
                                 "type_incident": str(row.iloc[3]).strip(),
                                 "montant": int(row.iloc[4]),
@@ -1205,15 +1207,15 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
             df_ipad_new = pd.read_csv(io.StringIO(up_ipad.getvalue().decode('utf-8')), sep=None, engine='python')
 
             res_el = supabase.table("eleves").select("id, nom, prenom").execute()
-            map_el = {(str(r['nom']).strip().upper(), str(r['prenom']).strip().capitalize()): r['id'] for r in res_el.data} if res_el.data else {}
+            map_el = {(nettoyeur_identifiant(r['nom']), nettoyeur_identifiant(r['prenom'])): r['id'] for r in res_el.data} if res_el.data else {}
 
             count = 0
             with st.spinner("Mise à jour des statuts en cours..."):
                 for _, row in df_ipad_new.iterrows():
                     if len(row) < 3: continue 
 
-                    n = str(row.iloc[0]).strip().upper()
-                    p = str(row.iloc[1]).strip().capitalize()
+                    n_clean = nettoyeur_identifiant(row.iloc[0])
+                    p_clean = nettoyeur_identifiant(row.iloc[1])
                     statut_brut = str(row.iloc[2]).strip().capitalize()
                     
                     # Normalisation du statut
@@ -1222,14 +1224,14 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                     elif "Fratrie" in statut_brut: statut = "Fratrie"
                     elif "Parti" in statut_brut: statut = "Parti"
 
-                    if (n, p) in map_el:
+                    if (n_clean, p_clean) in map_el:
                         try:
                             # Si le contrat est mis sur "Parti", l'élève passe aussi en Parti globalement
                             parti_int = 1 if statut == 'Parti' else 0
                             supabase.table("eleves").update({
                                 "statut_ipad": statut,
                                 "est_parti": parti_int
-                            }).eq("id", map_el[(n, p)]).execute()
+                            }).eq("id", map_el[(n_clean, p_clean)]).execute()
                             count += 1
                         except Exception as e:
                             pass
