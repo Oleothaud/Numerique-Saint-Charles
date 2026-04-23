@@ -337,19 +337,23 @@ if menu == "📊 Tableau de Bord":
         st.warning("La base de données est vide.")
     else:
         st.markdown("### 📌 Indicateurs Clés")
-        c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, c4, c5 = st.columns(5)
         c1.metric("Effectif Total", len(df_eleves))
         df_eleves['statut_ipad'] = df_eleves['statut_ipad'].replace("", "Achat")
         c2.metric("iPads en Location", len(df_eleves[df_eleves['statut_ipad'] == 'Location']))
-        c3.metric("Incidents Déclarés", len(df_incidents))
+        c3.metric("iPads en Fratrie", len(df_eleves[df_eleves['statut_ipad'] == 'Fratrie']))
+        c4.metric("Incidents Déclarés", len(df_incidents))
         montant_total = pd.to_numeric(df_incidents['montant'], errors='coerce').sum() if not df_incidents.empty else 0
-        c4.metric("Facturation SAV", f"{montant_total} €")
+        c5.metric("Facturation SAV", f"{montant_total} €")
         
-        col_list1, col_list2 = st.columns(2)
+        col_list1, col_list2, col_list3 = st.columns(3)
         with col_list1:
             with st.expander("📄 Voir la liste des iPads en Location"):
                 st.dataframe(df_eleves[df_eleves['statut_ipad'] == 'Location'][['nom', 'prenom', 'classe']], hide_index=True)
         with col_list2:
+            with st.expander("👨‍👩‍👧‍👦 Voir la liste des iPads Fratrie"):
+                st.dataframe(df_eleves[df_eleves['statut_ipad'] == 'Fratrie'][['nom', 'prenom', 'classe']], hide_index=True)
+        with col_list3:
             with st.expander("🛠️ Voir le détail des incidents SAV"):
                 if not df_incidents.empty:
                     st.dataframe(df_incidents[['date_incident', 'type_incident', 'montant']], hide_index=True)
@@ -399,6 +403,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                 
                 if is_expanded and f"msg_{el['id']}" in st.session_state:
                     st.success(st.session_state.pop(f"msg_{el['id']}"))
+                    # L'identifiant 'open_el_id' est conservé ici (pas de delete) si le dossier s'est rechargé précédemment.
                         
                 tab_profil, tab_mdp, tab_ipad = st.tabs(["📝 Profil & Scolarité", "🔑 Identifiants", "📱 Matériel & SAV"])
                 
@@ -428,9 +433,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "est_parti": parti_int, "statut_ipad": statut_ipad_up
                             }).eq("id", el['id']).execute()
                             
-                            st.session_state["open_el_id"] = el['id']
-                            st.session_state[f"msg_{el['id']}"] = "✅ Profil et scolarité mis à jour avec succès !"
-                            st.rerun()
+                            st.success("✅ Profil et scolarité mis à jour avec succès !")
 
                 with tab_mdp:
                     with st.form(f"form_mdp_{el['id']}"):
@@ -460,9 +463,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "id_pix": m_id_pix, "mdp_pix": m_mdp_pix, "id_ed_prov": m_id_prov, "mdp_ed_prov": m_mdp_prov
                             }).eq("id", el['id']).execute()
                             
-                            st.session_state["open_el_id"] = el['id']
-                            st.session_state[f"msg_{el['id']}"] = "✅ Identifiants mis à jour avec succès !"
-                            st.rerun()
+                            st.success("✅ Identifiants mis à jour avec succès !")
                             
                 with tab_ipad:
                     with st.form(f"form_ipad_{el['id']}"):
@@ -486,9 +487,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             parti_int = 1 if nouveau_statut == 'Parti' else (0 if el['est_parti'] == 1 else el['est_parti'])
                             supabase.table("eleves").update({"statut_ipad": nouveau_statut, "est_parti": parti_int}).eq("id", el['id']).execute()
                             
-                            st.session_state["open_el_id"] = el['id']
-                            st.session_state[f"msg_{el['id']}"] = "✅ Contrat matériel mis à jour (Le statut global de l'élève a bien été synchronisé en base) !"
-                            st.rerun()
+                            st.success("✅ Contrat mis à jour (Le statut global de l'élève a bien été synchronisé en base) !")
 
                     st.markdown("#### ➕ Déclarer un nouvel incident")
                     with st.form(f"form_new_sav_{el['id']}"):
@@ -523,7 +522,6 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "type_incident": type_inc, "montant": prix_facture, "envoye_compta": 1
                             }).execute()
                             
-                            # Ajout direct en mémoire pour l'affichage sans refresh, sans refermer le dossier
                             new_sav_line = pd.DataFrame([{"eleve_id": el['id'], "date_incident": datetime.datetime.now().strftime("%d/%m/%Y"), "type_incident": type_inc, "montant": prix_facture, "envoye_compta": 1}])
                             df_incidents = pd.concat([df_incidents, new_sav_line], ignore_index=True)
                             st.success(f"✅ Incident déclaré ({prix_facture}€) et ajouté à l'historique ci-dessous !")
@@ -541,9 +539,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             with st.form(f"del_sav_form_{el['id']}"):
                                 if st.form_submit_button("🗑️ Effacer tout l'historique SAV de cet élève"):
                                     supabase.table("incidents_ipad").delete().eq("eleve_id", el['id']).execute()
-                                    st.session_state["open_el_id"] = el['id']
-                                    st.session_state[f"msg_{el['id']}"] = "✅ Historique SAV effacé avec succès."
-                                    st.rerun()
+                                    st.success("✅ Historique SAV effacé avec succès. Il disparaîtra à la prochaine recherche.")
                         else: st.success("Aucun incident.")
                     else: st.success("Aucun incident.")
 
