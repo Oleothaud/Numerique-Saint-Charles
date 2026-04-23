@@ -66,10 +66,18 @@ def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
         return False
 
 # ==========================================
-# 🎨 STYLE FINAL ST DOMINIQUE (NATUREL)
+# 🎨 STYLE FINAL ST DOMINIQUE
 # ==========================================
 st.markdown("""
     <style>
+        /* --- 1. CACHER LE CARRÉ BLANC (BOUTON PLEIN ECRAN) SUR LES IMAGES --- */
+        button[title="View fullscreen"] { display: none !important; }
+        [data-testid="StyledFullScreenButton"] { display: none !important; }
+        
+        /* --- 2. FORCER LA FLÈCHE DU MENU À RESTER VISIBLE TOUT LE TEMPS --- */
+        [data-testid="collapsedControl"] { opacity: 1 !important; }
+        
+        /* --- STYLE GENERAL ST CHARLES --- */
         [data-testid="stSidebar"] { background-color: #1e3a5f !important; }
         [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, 
         [data-testid="stSidebar"] label, [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] {
@@ -92,6 +100,9 @@ st.markdown("""
         }
         div[role="listbox"] { background-color: #ffffff !important; color: #1e3a5f !important; }
         label p { color: #1e3a5f !important; }
+        div[data-baseweb="tooltip"], div[data-testid="stTooltipContent"] {
+            display: none !important; opacity: 0 !important; visibility: hidden !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -390,9 +401,16 @@ elif is_admin and menu == "🪪 Dossier 360°":
                     if "open_el_id" in st.session_state:
                         del st.session_state["open_el_id"]
                         
-                tab_profil, tab_mdp, tab_ipad = st.tabs(["📝 Profil & Scolarité", "🔑 Identifiants", "📱 Matériel & SAV"])
+                # ---> AJOUT: Utilisation d'un st.radio à la place de st.tabs pour mémoriser l'onglet <---
+                onglet_actif = st.radio(
+                    "Options :", 
+                    ["📝 Profil & Scolarité", "🔑 Identifiants", "📱 Matériel & SAV"], 
+                    horizontal=True, 
+                    label_visibility="collapsed",
+                    key=f"tab_dossier_{el['id']}"
+                )
                 
-                with tab_profil:
+                if onglet_actif == "📝 Profil & Scolarité":
                     with st.form(f"form_profil_{el['id']}"):
                         c1, c2, c3 = st.columns(3)
                         m_nom = c1.text_input("Nom", value=el['nom'])
@@ -422,7 +440,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             st.session_state[f"msg_{el['id']}"] = "✅ Profil et scolarité mis à jour avec succès !"
                             st.rerun()
 
-                with tab_mdp:
+                elif onglet_actif == "🔑 Identifiants":
                     with st.form(f"form_mdp_{el['id']}"):
                         st.markdown("**Identifiants Actifs**")
                         c1, c2 = st.columns(2)
@@ -454,7 +472,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             st.session_state[f"msg_{el['id']}"] = "✅ Identifiants mis à jour avec succès !"
                             st.rerun()
                             
-                with tab_ipad:
+                elif onglet_actif == "📱 Matériel & SAV":
                     with st.form(f"form_ipad_{el['id']}"):
                         st.markdown("#### 📄 Contrat & Solde")
                         c_stat, c_mens, c_tot = st.columns(3)
@@ -992,44 +1010,38 @@ elif is_admin and menu == "🛠️ Historique SAV iPad":
     for _, i in df_sav.iterrows():
         row = {"sav_id": i["id"], "date_incident": i["date_incident"], "type_incident": i["type_incident"], "montant": i["montant"]}
         if isinstance(i.get("eleves"), dict):
-            row["Nom"] = i["eleves"]["nom"]
-            row["Prénom"] = i["eleves"]["prenom"]
+            row["nom"] = i["eleves"]["nom"]
+            row["prenom"] = i["eleves"]["prenom"]
         flat_list.append(row)
             
     df_sav_flat = pd.DataFrame(flat_list).fillna("")
     
     if not df_sav_flat.empty:
         df_sav_flat.insert(0, "🗑️ Sélection", False)
-        
-        # Réorganisation des colonnes
-        cols_ordre = ["🗑️ Sélection", "Nom", "Prénom", "date_incident", "type_incident", "montant"]
-        df_display = df_sav_flat[cols_ordre]
-        
         edited_sav = st.data_editor(
-            df_display, 
+            df_sav_flat, 
             hide_index=True, 
             use_container_width=True,
-            disabled=["Nom", "Prénom", "date_incident", "type_incident", "montant"]
+            disabled=["sav_id", "date_incident", "nom", "prenom", "type_incident", "montant"]
         )
         
-        sav_a_supprimer = edited_sav[edited_sav["🗑️ Sélection"] == True].index.tolist()
+        sav_a_supprimer = edited_sav[edited_sav["🗑️ Sélection"] == True]["sav_id"].tolist()
         
-        # --- BOUTON D'EXPORT SAV ---
+        # --- AJOUT: BOUTON EXPORT SAV ---
         st.markdown("---")
         df_export_sav = df_sav_flat.drop(columns=["🗑️ Sélection", "sav_id"], errors='ignore')
-        df_export_sav = df_export_sav.rename(columns={"date_incident": "Date", "type_incident": "Type d'incident", "montant": "Montant"})
-        # On remet l'ordre pour le fichier exporté
-        df_export_sav = df_export_sav[["Nom", "Prénom", "Date", "Type d'incident", "Montant"]]
+        df_export_sav = df_export_sav.rename(columns={"nom": "Nom", "prenom": "Prénom", "date_incident": "Date", "type_incident": "Type d'incident", "montant": "Montant"})
+        cols_export = [c for c in ["Nom", "Prénom", "Date", "Type d'incident", "Montant"] if c in df_export_sav.columns]
+        df_export_sav = df_export_sav[cols_export]
         csv_sav = df_export_sav.to_csv(index=False, sep=';').encode('utf-8')
         st.download_button("📥 Exporter l'historique SAV complet (CSV)", csv_sav, "historique_sav_complet.csv")
-        # ---------------------------
+        st.markdown("---")
         
         if sav_a_supprimer:
             st.warning(f"⚠️ Vous êtes sur le point de supprimer {len(sav_a_supprimer)} incident(s) de l'historique.")
             if st.button("🗑️ Confirmer la suppression", type="primary"):
-                for idx in sav_a_supprimer:
-                    sid_to_del = df_sav_flat.iloc[idx]["sav_id"]
-                    supabase.table("incidents_ipad").delete().eq("id", sid_to_del).execute()
+                for sid in sav_a_supprimer:
+                    supabase.table("incidents_ipad").delete().eq("id", sid).execute()
                 st.success("✅ Les incidents sélectionnés ont été supprimés.")
                 time.sleep(1.5)
                 st.rerun()
@@ -1042,11 +1054,11 @@ elif is_admin and menu == "🛠️ Historique SAV iPad":
 elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
     st.title("⚙️ Maintenance de la Base Cloud")
     
-    tab_import, tab_import_sav, tab_nettoyage = st.tabs(["📥 Importation CSV (Élèves)", "📥 Importation CSV (SAV)", "🧹 Nettoyage de la Base"])
+    tab_import, tab_nettoyage = st.tabs(["📥 Importation CSV", "🧹 Nettoyage de la Base"])
     
     with tab_import:
         st.markdown("""
-        ### 📝 Instructions d'importation Élèves
+        ### 📝 Instructions d'importation
         **Format du fichier attendu (.csv avec séparateur point-virgule `;`) :**
         Votre fichier doit contenir ces **8 colonnes** dans l'ordre exact (la première ligne de titre sera ignorée) :
         1. **Classe** (ex: 3G1)
@@ -1067,11 +1079,10 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
         st.markdown("---")
         
         mode_rentree = st.checkbox("🎓 Activer le Mode Rentrée")
-        up = st.file_uploader("Fichier CSV (Élèves)", type="csv")
+        up = st.file_uploader("Fichier CSV", type="csv")
         
-        if up and st.button("🚀 Lancer l'Import Élèves vers Supabase"):
-            # L'engine 'python' avec sep=None devine automatiquement s'il s'agit de virgules ou points-virgules !
-            df_new = pd.read_csv(io.StringIO(up.getvalue().decode('utf-8')), sep=None, engine='python')
+        if up and st.button("🚀 Lancer l'Import vers Supabase"):
+            df_new = pd.read_csv(io.StringIO(up.getvalue().decode('utf-8')), sep=';', header=0)
             
             eleves_presents_csv = []
             nb_total = len(df_new)
@@ -1088,8 +1099,6 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
             
             with st.spinner("Importation en cours, veuillez patienter..."):
                 for _, row in df_new.iterrows():
-                    if len(row) < 3: continue # Ignore les lignes mal formées ou vides
-                    
                     cl = str(row.iloc[0]).strip() if pd.notna(row.iloc[0]) else ""
                     n = str(row.iloc[1]).strip().upper() if pd.notna(row.iloc[1]) else ""
                     p = str(row.iloc[2]).strip().capitalize() if pd.notna(row.iloc[2]) else ""
@@ -1135,49 +1144,6 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
             st.markdown("**Répartition par classe :**")
             df_repartition = pd.DataFrame(list(repartition.items()), columns=['Classe', "Nombre d'élèves"]).sort_values('Classe')
             st.dataframe(df_repartition, hide_index=True, use_container_width=True)
-
-    with tab_import_sav:
-        st.markdown("""
-        ### 📥 Importation Historique SAV
-        **Format du fichier attendu (.csv avec séparateur point-virgule `;`) :**
-        Votre fichier doit contenir ces **5 colonnes** dans l'ordre exact (la première ligne de titre sera ignorée) :
-        1. **Nom** (ex: DUPONT)
-        2. **Prénom** (ex: Jean)
-        3. **Date** (ex: 12/05/2024)
-        4. **Type d'incident** (ex: Casse écran)
-        5. **Montant** (ex: 50)
-        """)
-        st.markdown("---")
-        up_sav = st.file_uploader("Fichier CSV (SAV)", type="csv", key="up_sav")
-        
-        if up_sav and st.button("🚀 Lancer l'Import SAV vers Supabase"):
-            # L'engine 'python' avec sep=None devine automatiquement s'il s'agit de virgules ou points-virgules !
-            df_sav_new = pd.read_csv(io.StringIO(up_sav.getvalue().decode('utf-8')), sep=None, engine='python')
-            
-            res_el = supabase.table("eleves").select("id, nom, prenom").execute()
-            map_el = {(str(r['nom']).strip().upper(), str(r['prenom']).strip().capitalize()): r['id'] for r in res_el.data} if res_el.data else {}
-            
-            count = 0
-            with st.spinner("Importation SAV en cours..."):
-                for _, row in df_sav_new.iterrows():
-                    if len(row) < 5: continue # Ignore les lignes mal formées ou vides
-                    
-                    n = str(row.iloc[0]).strip().upper()
-                    p = str(row.iloc[1]).strip().capitalize()
-                    
-                    if (n, p) in map_el:
-                        try:
-                            supabase.table("incidents_ipad").insert({
-                                "eleve_id": map_el[(n, p)],
-                                "date_incident": str(row.iloc[2]).strip(),
-                                "type_incident": str(row.iloc[3]).strip(),
-                                "montant": int(row.iloc[4]),
-                                "envoye_compta": 1
-                            }).execute()
-                            count += 1
-                        except Exception as e:
-                            pass
-            st.success(f"✅ Importation terminée : {count} incidents SAV ajoutés avec succès !")
 
     with tab_nettoyage:
         st.warning("⚠️ **ZONE DE DANGER :** Cette action supprimera définitivement tous les élèves actuellement marqués comme 'Partis' de la base de données. Leurs tickets et historiques SAV seront également effacés.")
