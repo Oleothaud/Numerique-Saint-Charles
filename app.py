@@ -396,14 +396,12 @@ elif is_admin and menu == "🪪 Dossier 360°":
         for _, el in res.iterrows():
             status_icon = "🚩 (PARTI)" if el['est_parti'] == 1 else "🎓"
             
-            is_expanded = (st.session_state.get("open_el_id") == el['id'])
+            is_expanded = (st.session_state.get("open_el_id") == str(el['id']))
             
             with st.expander(f"{status_icon} {el['prenom']} {el['nom']} ({el['classe']})", expanded=is_expanded):
                 
                 if is_expanded and f"msg_{el['id']}" in st.session_state:
                     st.success(st.session_state.pop(f"msg_{el['id']}"))
-                    if "open_el_id" in st.session_state:
-                        del st.session_state["open_el_id"]
                         
                 tab_profil, tab_mdp, tab_ipad = st.tabs(["📝 Profil & Scolarité", "🔑 Identifiants", "📱 Matériel & SAV"])
                 
@@ -433,10 +431,10 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "est_parti": parti_int, "statut_ipad": statut_ipad_up
                             }).eq("id", el['id']).execute()
                             
-                            st.session_state["open_el_id"] = el['id']
+                            st.session_state["open_el_id"] = str(el['id'])
                             st.session_state[f"msg_{el['id']}"] = "✅ Profil et scolarité mis à jour avec succès !"
-                            st.rerun()
-
+                            # --- Suppression du rerun() pour empêcher l'onglet de se refermer
+                            
                 with tab_mdp:
                     with st.form(f"form_mdp_{el['id']}"):
                         st.markdown("**Identifiants Actifs**")
@@ -465,9 +463,8 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "id_pix": m_id_pix, "mdp_pix": m_mdp_pix, "id_ed_prov": m_id_prov, "mdp_ed_prov": m_mdp_prov
                             }).eq("id", el['id']).execute()
                             
-                            st.session_state["open_el_id"] = el['id']
+                            st.session_state["open_el_id"] = str(el['id'])
                             st.session_state[f"msg_{el['id']}"] = "✅ Identifiants mis à jour avec succès !"
-                            st.rerun()
                             
                 with tab_ipad:
                     with st.form(f"form_ipad_{el['id']}"):
@@ -491,9 +488,8 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             parti_int = 1 if nouveau_statut == 'Parti' else (0 if el['est_parti'] == 1 else el['est_parti'])
                             supabase.table("eleves").update({"statut_ipad": nouveau_statut, "est_parti": parti_int}).eq("id", el['id']).execute()
                             
-                            st.session_state["open_el_id"] = el['id']
-                            st.session_state[f"msg_{el['id']}"] = "✅ Contrat matériel mis à jour avec succès !"
-                            st.rerun()
+                            st.session_state["open_el_id"] = str(el['id'])
+                            st.session_state[f"msg_{el['id']}"] = "✅ Contrat mis à jour (Le statut global de l'élève a bien été synchronisé en base) !"
 
                     st.markdown("#### ➕ Déclarer un nouvel incident")
                     with st.form(f"form_new_sav_{el['id']}"):
@@ -501,7 +497,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         prix_facture = 15 if "protection" in type_inc else 25 if any(x in type_inc for x in ["Chargeur", "Câble", "Coque"]) else 50 if (str(el['classe']).startswith("3") or str(el['classe']).startswith("4")) else 100
                         st.warning(f"🧾 Facturation : **{prix_facture} €**")
                         
-                        submit_sav = st.form_submit_button("🚀 Valider & Envoyer TEST EMAIL")
+                        submit_sav = st.form_submit_button("🚀 Valider & Envoyer EMAIL")
                     
                     if submit_sav:
                         corps_sav = f"""
@@ -527,23 +523,27 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "eleve_id": el['id'], "date_incident": datetime.datetime.now().strftime("%d/%m/%Y"), 
                                 "type_incident": type_inc, "montant": prix_facture, "envoye_compta": 1
                             }).execute()
-                            st.session_state["open_el_id"] = el['id']
-                            st.session_state[f"msg_{el['id']}"] = "✅ Incident déclaré et email envoyé !"
-                            st.rerun()
+                            
+                            # Ajout direct en mémoire pour l'affichage sans refresh, sans refermer le dossier
+                            new_sav_line = pd.DataFrame([{"eleve_id": el['id'], "date_incident": datetime.datetime.now().strftime("%d/%m/%Y"), "type_incident": type_inc, "montant": prix_facture, "envoye_compta": 1}])
+                            df_incidents = pd.concat([df_incidents, new_sav_line], ignore_index=True)
+                            st.success(f"✅ Incident déclaré ({prix_facture}€) et ajouté à l'historique ci-dessous !")
 
                     st.markdown("#### 🛠️ Historique SAV")
                     if not df_incidents.empty:
                         eleve_incidents = df_incidents[df_incidents['eleve_id'] == el['id']].copy()
                         if not eleve_incidents.empty:
                             eleve_incidents['Email Compta'] = eleve_incidents['envoye_compta'].apply(lambda x: '✅ Oui' if x == 1 else '❌ Non')
-                            st.dataframe(eleve_incidents[['date_incident', 'type_incident', 'montant', 'Email Compta']], hide_index=True)
+                            
+                            el_disp = eleve_incidents[['date_incident', 'type_incident', 'montant', 'Email Compta']]
+                            el_disp.index = [""] * len(el_disp)
+                            st.table(el_disp)
                             
                             with st.form(f"del_sav_form_{el['id']}"):
                                 if st.form_submit_button("🗑️ Effacer tout l'historique SAV de cet élève"):
                                     supabase.table("incidents_ipad").delete().eq("eleve_id", el['id']).execute()
-                                    st.session_state["open_el_id"] = el['id']
-                                    st.session_state[f"msg_{el['id']}"] = "✅ Historique SAV effacé avec succès."
-                                    st.rerun()
+                                    st.session_state["open_el_id"] = str(el['id'])
+                                    st.session_state[f"msg_{el['id']}"] = "✅ Historique SAV effacé avec succès. (Disparaîtra à la prochaine recherche)."
                         else: st.success("Aucun incident.")
                     else: st.success("Aucun incident.")
 
@@ -687,6 +687,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                     'mdp_pix': '🟣 MDP Pix'
                 })
                 
+                # --- ST.TABLE POUR EVITER LE TEXTE FLOU ---
                 df_c.index = [""] * len(df_c)
                 st.table(df_c)
             
@@ -934,7 +935,9 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                         orig_rest = str(orig_row['restitution']).strip() if pd.notna(orig_row['restitution']) else ""
                         
                         if new_statut != orig_statut or new_rest != orig_rest:
-                            parti_int = 1 if new_statut == 'Parti' else est_p_val
+                            # CORRECTION: Si le statut n'est plus Parti, il redevient obligatoirement Actif (0)
+                            parti_int = 1 if new_statut == 'Parti' else 0
+                            
                             supabase.table("eleves").update({
                                 "nom": str(row['nom']).upper(), 
                                 "prenom": str(row['prenom']).capitalize(), 
@@ -946,7 +949,7 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                             modifs_count += 1
                 
                 if modifs_count > 0:
-                    st.success(f"✅ {modifs_count} élève(s) mis à jour avec succès !")
+                    st.success(f"✅ {modifs_count} dossier(s) mis à jour avec succès !")
                     time.sleep(1.5)
                     st.rerun()
                 else:
