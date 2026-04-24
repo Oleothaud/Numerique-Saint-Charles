@@ -1306,4 +1306,4 @@ with tab_nettoyage:
             st.info("La base est déjà vide.")
         time.sleep(2.5)
         st.rerun()
-```
+``
