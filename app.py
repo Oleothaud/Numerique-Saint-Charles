@@ -926,18 +926,36 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
             )
             
             if st.button("💾 Sauvegarder"):
-                edited_df = edited_df.fillna("") # Sécurité pour les cases vides
-                for _, row in edited_df.iterrows():
-                    parti_int = 1 if row['statut_ipad'] == 'Parti' else est_p_val
-                    supabase.table("eleves").update({
-                        "nom": str(row['nom']).upper(), 
-                        "prenom": str(row['prenom']).capitalize(), 
-                        "classe": str(row['classe']), 
-                        "statut_ipad": str(row['statut_ipad']), 
-                        "restitution": str(row['restitution']), 
-                        "est_parti": parti_int
-                    }).eq("id", row['id']).execute()
-                st.success("✅ Modifications enregistrées avec succès !"); st.rerun()
+                modifs_count = 0
+                with st.spinner("Enregistrement rapide..."):
+                    for i, row in edited_df.iterrows():
+                        orig_row = df_mass.iloc[i]
+                        
+                        # Nettoyage pour comparer correctement
+                        new_statut = str(row['statut_ipad']).strip() if pd.notna(row['statut_ipad']) else ""
+                        orig_statut = str(orig_row['statut_ipad']).strip()
+                        new_rest = str(row['restitution']).strip() if pd.notna(row['restitution']) else ""
+                        orig_rest = str(orig_row['restitution']).strip()
+                        
+                        # On ne contacte la base QUE si on a changé le statut ou le motif !
+                        if new_statut != orig_statut or new_rest != orig_rest:
+                            parti_int = 1 if new_statut == 'Parti' else est_p_val
+                            supabase.table("eleves").update({
+                                "nom": str(row['nom']).upper(), 
+                                "prenom": str(row['prenom']).capitalize(), 
+                                "classe": str(row['classe']), 
+                                "statut_ipad": new_statut, 
+                                "restitution": new_rest, 
+                                "est_parti": parti_int
+                            }).eq("id", row['id']).execute()
+                            modifs_count += 1
+                
+                if modifs_count > 0:
+                    st.success(f"✅ {modifs_count} dossier(s) mis à jour instantanément !")
+                    time.sleep(1.5)
+                    st.rerun()
+                else:
+                    st.info("Aucune modification n'a été détectée.")
 
 # ==========================================
 # 💰 COMTA
