@@ -107,7 +107,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🛡️ FONCTIONS DATA SUPABASE & AIDES
+# 🛡️ FONCTIONS DATA SUPABASE
 # ==========================================
 def fetch_table(table_name, eq_col=None, eq_val=None, order_col=None, select_cols="*"):
     query = supabase.table(table_name).select(select_cols)
@@ -129,10 +129,6 @@ def fetch_table(table_name, eq_col=None, eq_val=None, order_col=None, select_col
             df = pd.DataFrame(columns=["id", "eleve_id", "prof", "plateforme", "statut", "date_demande"])
             
     return df.fillna("")
-
-# Fonction pour mémoriser que l'onglet doit rester ouvert
-def keep_expander_open(el_id):
-    st.session_state["open_el_id"] = str(el_id)
 
 # ==========================================
 # 🧠 LOGIQUE CALCULS & GÉNÉRATION
@@ -400,12 +396,14 @@ elif is_admin and menu == "🪪 Dossier 360°":
         for _, el in res.iterrows():
             status_icon = "🚩 (PARTI)" if el['est_parti'] == 1 else "🎓"
             
-            is_expanded = (st.session_state.get("open_el_id") == str(el['id']))
+            is_expanded = (st.session_state.get("open_el_id") == el['id'])
             
             with st.expander(f"{status_icon} {el['prenom']} {el['nom']} ({el['classe']})", expanded=is_expanded):
                 
                 if is_expanded and f"msg_{el['id']}" in st.session_state:
                     st.success(st.session_state.pop(f"msg_{el['id']}"))
+                    if "open_el_id" in st.session_state:
+                        del st.session_state["open_el_id"]
                         
                 tab_profil, tab_mdp, tab_ipad = st.tabs(["📝 Profil & Scolarité", "🔑 Identifiants", "📱 Matériel & SAV"])
                 
@@ -435,7 +433,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "est_parti": parti_int, "statut_ipad": statut_ipad_up
                             }).eq("id", el['id']).execute()
                             
-                            st.session_state["open_el_id"] = str(el['id'])
+                            st.session_state["open_el_id"] = el['id']
                             st.session_state[f"msg_{el['id']}"] = "✅ Profil et scolarité mis à jour avec succès !"
                             st.rerun()
 
@@ -467,7 +465,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "id_pix": m_id_pix, "mdp_pix": m_mdp_pix, "id_ed_prov": m_id_prov, "mdp_ed_prov": m_mdp_prov
                             }).eq("id", el['id']).execute()
                             
-                            st.session_state["open_el_id"] = str(el['id'])
+                            st.session_state["open_el_id"] = el['id']
                             st.session_state[f"msg_{el['id']}"] = "✅ Identifiants mis à jour avec succès !"
                             st.rerun()
                             
@@ -493,17 +491,19 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             parti_int = 1 if nouveau_statut == 'Parti' else (0 if el['est_parti'] == 1 else el['est_parti'])
                             supabase.table("eleves").update({"statut_ipad": nouveau_statut, "est_parti": parti_int}).eq("id", el['id']).execute()
                             
-                            st.session_state["open_el_id"] = str(el['id'])
-                            st.session_state[f"msg_{el['id']}"] = "✅ Contrat mis à jour (Le statut de l'élève a bien été synchronisé en base) !"
+                            st.session_state["open_el_id"] = el['id']
+                            st.session_state[f"msg_{el['id']}"] = "✅ Contrat matériel mis à jour avec succès !"
                             st.rerun()
 
                     st.markdown("#### ➕ Déclarer un nouvel incident")
-                    type_inc_key = f"type_inc_{el['id']}"
-                    type_inc = st.selectbox("Nature du sinistre", ["Écran de protection (15€)", "Chargeur (25€)", "Câble (25€)", "Coque (25€)", "iPad cassé (50€/100€)", "Écran HS SAV", "Batterie HS SAV"], key=type_inc_key, on_change=keep_expander_open, args=(el['id'],))
-                    prix_facture = 15 if "protection" in type_inc else 25 if any(x in type_inc for x in ["Chargeur", "Câble", "Coque"]) else 50 if (str(el['classe']).startswith("3") or str(el['classe']).startswith("4")) else 100
-                    st.warning(f"🧾 Facturation : **{prix_facture} €**")
+                    with st.form(f"form_new_sav_{el['id']}"):
+                        type_inc = st.selectbox("Nature du sinistre", ["Écran de protection (15€)", "Chargeur (25€)", "Câble (25€)", "Coque (25€)", "iPad cassé (50€/100€)", "Écran HS SAV", "Batterie HS SAV"], key=f"type_inc_{el['id']}")
+                        prix_facture = 15 if "protection" in type_inc else 25 if any(x in type_inc for x in ["Chargeur", "Câble", "Coque"]) else 50 if (str(el['classe']).startswith("3") or str(el['classe']).startswith("4")) else 100
+                        st.warning(f"🧾 Facturation : **{prix_facture} €**")
+                        
+                        submit_sav = st.form_submit_button("🚀 Valider & Envoyer TEST EMAIL")
                     
-                    if st.button("🚀 Valider & Envoyer TEST EMAIL", key=f"btn_sav_{el['id']}"):
+                    if submit_sav:
                         corps_sav = f"""
                         <html>
                         <body style="font-family: Arial, sans-serif; color: #1e3a5f;">
@@ -527,8 +527,8 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "eleve_id": el['id'], "date_incident": datetime.datetime.now().strftime("%d/%m/%Y"), 
                                 "type_incident": type_inc, "montant": prix_facture, "envoye_compta": 1
                             }).execute()
-                            st.session_state["open_el_id"] = str(el['id'])
-                            st.session_state[f"msg_{el['id']}"] = f"✅ Incident déclaré ({prix_facture}€) et ajouté au tableau !"
+                            st.session_state["open_el_id"] = el['id']
+                            st.session_state[f"msg_{el['id']}"] = "✅ Incident déclaré et email envoyé !"
                             st.rerun()
 
                     st.markdown("#### 🛠️ Historique SAV")
@@ -536,15 +536,12 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         eleve_incidents = df_incidents[df_incidents['eleve_id'] == el['id']].copy()
                         if not eleve_incidents.empty:
                             eleve_incidents['Email Compta'] = eleve_incidents['envoye_compta'].apply(lambda x: '✅ Oui' if x == 1 else '❌ Non')
-                            
-                            el_disp = eleve_incidents[['date_incident', 'type_incident', 'montant', 'Email Compta']]
-                            el_disp.index = [""] * len(el_disp)
-                            st.table(el_disp)
+                            st.dataframe(eleve_incidents[['date_incident', 'type_incident', 'montant', 'Email Compta']], hide_index=True)
                             
                             with st.form(f"del_sav_form_{el['id']}"):
                                 if st.form_submit_button("🗑️ Effacer tout l'historique SAV de cet élève"):
                                     supabase.table("incidents_ipad").delete().eq("eleve_id", el['id']).execute()
-                                    st.session_state["open_el_id"] = str(el['id'])
+                                    st.session_state["open_el_id"] = el['id']
                                     st.session_state[f"msg_{el['id']}"] = "✅ Historique SAV effacé avec succès."
                                     st.rerun()
                         else: st.success("Aucun incident.")
@@ -931,13 +928,11 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                     for i, row in edited_df.iterrows():
                         orig_row = df_mass.iloc[i]
                         
-                        # Nettoyage pour comparer correctement
                         new_statut = str(row['statut_ipad']).strip() if pd.notna(row['statut_ipad']) else ""
-                        orig_statut = str(orig_row['statut_ipad']).strip()
+                        orig_statut = str(orig_row['statut_ipad']).strip() if pd.notna(orig_row['statut_ipad']) else ""
                         new_rest = str(row['restitution']).strip() if pd.notna(row['restitution']) else ""
-                        orig_rest = str(orig_row['restitution']).strip()
+                        orig_rest = str(orig_row['restitution']).strip() if pd.notna(orig_row['restitution']) else ""
                         
-                        # On ne contacte la base QUE si on a changé le statut ou le motif !
                         if new_statut != orig_statut or new_rest != orig_rest:
                             parti_int = 1 if new_statut == 'Parti' else est_p_val
                             supabase.table("eleves").update({
@@ -951,7 +946,7 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                             modifs_count += 1
                 
                 if modifs_count > 0:
-                    st.success(f"✅ {modifs_count} dossier(s) mis à jour instantanément !")
+                    st.success(f"✅ {modifs_count} élève(s) mis à jour avec succès !")
                     time.sleep(1.5)
                     st.rerun()
                 else:
