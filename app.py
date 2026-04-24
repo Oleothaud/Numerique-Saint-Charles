@@ -107,7 +107,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🛡️ FONCTIONS DATA SUPABASE
+# 🛡️ FONCTIONS DATA SUPABASE & AIDES
 # ==========================================
 def fetch_table(table_name, eq_col=None, eq_val=None, order_col=None, select_cols="*"):
     query = supabase.table(table_name).select(select_cols)
@@ -129,6 +129,10 @@ def fetch_table(table_name, eq_col=None, eq_val=None, order_col=None, select_col
             df = pd.DataFrame(columns=["id", "eleve_id", "prof", "plateforme", "statut", "date_demande"])
             
     return df.fillna("")
+
+# Fonction pour mémoriser que l'onglet doit rester ouvert
+def keep_expander_open(el_id):
+    st.session_state["open_el_id"] = str(el_id)
 
 # ==========================================
 # 🧠 LOGIQUE CALCULS & GÉNÉRATION
@@ -396,14 +400,12 @@ elif is_admin and menu == "🪪 Dossier 360°":
         for _, el in res.iterrows():
             status_icon = "🚩 (PARTI)" if el['est_parti'] == 1 else "🎓"
             
-            is_expanded = (st.session_state.get("open_el_id") == el['id'])
+            is_expanded = (st.session_state.get("open_el_id") == str(el['id']))
             
             with st.expander(f"{status_icon} {el['prenom']} {el['nom']} ({el['classe']})", expanded=is_expanded):
                 
                 if is_expanded and f"msg_{el['id']}" in st.session_state:
                     st.success(st.session_state.pop(f"msg_{el['id']}"))
-                    if "open_el_id" in st.session_state:
-                        del st.session_state["open_el_id"]
                         
                 tab_profil, tab_mdp, tab_ipad = st.tabs(["📝 Profil & Scolarité", "🔑 Identifiants", "📱 Matériel & SAV"])
                 
@@ -433,7 +435,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "est_parti": parti_int, "statut_ipad": statut_ipad_up
                             }).eq("id", el['id']).execute()
                             
-                            st.session_state["open_el_id"] = el['id']
+                            st.session_state["open_el_id"] = str(el['id'])
                             st.session_state[f"msg_{el['id']}"] = "✅ Profil et scolarité mis à jour avec succès !"
                             st.rerun()
 
@@ -465,7 +467,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "id_pix": m_id_pix, "mdp_pix": m_mdp_pix, "id_ed_prov": m_id_prov, "mdp_ed_prov": m_mdp_prov
                             }).eq("id", el['id']).execute()
                             
-                            st.session_state["open_el_id"] = el['id']
+                            st.session_state["open_el_id"] = str(el['id'])
                             st.session_state[f"msg_{el['id']}"] = "✅ Identifiants mis à jour avec succès !"
                             st.rerun()
                             
@@ -491,26 +493,13 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             parti_int = 1 if nouveau_statut == 'Parti' else (0 if el['est_parti'] == 1 else el['est_parti'])
                             supabase.table("eleves").update({"statut_ipad": nouveau_statut, "est_parti": parti_int}).eq("id", el['id']).execute()
                             
-                            st.session_state["open_el_id"] = el['id']
-                            st.session_state[f"msg_{el['id']}"] = "✅ Contrat matériel mis à jour avec succès !"
+                            st.session_state["open_el_id"] = str(el['id'])
+                            st.session_state[f"msg_{el['id']}"] = "✅ Contrat mis à jour (Le statut de l'élève a bien été synchronisé en base) !"
                             st.rerun()
 
-                    st.markdown("#### 🛠️ Historique SAV")
-                    if not df_incidents.empty:
-                        eleve_incidents = df_incidents[df_incidents['eleve_id'] == el['id']].copy()
-                        if not eleve_incidents.empty:
-                            eleve_incidents['Email Compta'] = eleve_incidents['envoye_compta'].apply(lambda x: '✅ Oui' if x == 1 else '❌ Non')
-                            st.dataframe(eleve_incidents[['date_incident', 'type_incident', 'montant', 'Email Compta']], hide_index=True)
-                            if st.button("🗑️ Effacer tout l'historique SAV de cet élève", key=f"del_sav_btn_{el['id']}", type="primary"):
-                                supabase.table("incidents_ipad").delete().eq("eleve_id", el['id']).execute()
-                                st.session_state["open_el_id"] = el['id']
-                                st.session_state[f"msg_{el['id']}"] = "✅ Historique SAV effacé avec succès."
-                                st.rerun()
-                        else: st.success("Aucun incident.")
-                    else: st.success("Aucun incident.")
-                    
-                    st.markdown("**➕ Déclarer un nouvel incident**")
-                    type_inc = st.selectbox("Nature du sinistre", ["Écran de protection (15€)", "Chargeur (25€)", "Câble (25€)", "Coque (25€)", "iPad cassé (50€/100€)", "Écran HS SAV", "Batterie HS SAV"], key=f"type_inc_{el['id']}")
+                    st.markdown("#### ➕ Déclarer un nouvel incident")
+                    type_inc_key = f"type_inc_{el['id']}"
+                    type_inc = st.selectbox("Nature du sinistre", ["Écran de protection (15€)", "Chargeur (25€)", "Câble (25€)", "Coque (25€)", "iPad cassé (50€/100€)", "Écran HS SAV", "Batterie HS SAV"], key=type_inc_key, on_change=keep_expander_open, args=(el['id'],))
                     prix_facture = 15 if "protection" in type_inc else 25 if any(x in type_inc for x in ["Chargeur", "Câble", "Coque"]) else 50 if (str(el['classe']).startswith("3") or str(el['classe']).startswith("4")) else 100
                     st.warning(f"🧾 Facturation : **{prix_facture} €**")
                     
@@ -538,9 +527,28 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 "eleve_id": el['id'], "date_incident": datetime.datetime.now().strftime("%d/%m/%Y"), 
                                 "type_incident": type_inc, "montant": prix_facture, "envoye_compta": 1
                             }).execute()
-                            st.session_state["open_el_id"] = el['id']
-                            st.session_state[f"msg_{el['id']}"] = "✅ Incident déclaré et email envoyé !"
+                            st.session_state["open_el_id"] = str(el['id'])
+                            st.session_state[f"msg_{el['id']}"] = f"✅ Incident déclaré ({prix_facture}€) et ajouté au tableau !"
                             st.rerun()
+
+                    st.markdown("#### 🛠️ Historique SAV")
+                    if not df_incidents.empty:
+                        eleve_incidents = df_incidents[df_incidents['eleve_id'] == el['id']].copy()
+                        if not eleve_incidents.empty:
+                            eleve_incidents['Email Compta'] = eleve_incidents['envoye_compta'].apply(lambda x: '✅ Oui' if x == 1 else '❌ Non')
+                            
+                            el_disp = eleve_incidents[['date_incident', 'type_incident', 'montant', 'Email Compta']]
+                            el_disp.index = [""] * len(el_disp)
+                            st.table(el_disp)
+                            
+                            with st.form(f"del_sav_form_{el['id']}"):
+                                if st.form_submit_button("🗑️ Effacer tout l'historique SAV de cet élève"):
+                                    supabase.table("incidents_ipad").delete().eq("eleve_id", el['id']).execute()
+                                    st.session_state["open_el_id"] = str(el['id'])
+                                    st.session_state[f"msg_{el['id']}"] = "✅ Historique SAV effacé avec succès."
+                                    st.rerun()
+                        else: st.success("Aucun incident.")
+                    else: st.success("Aucun incident.")
 
 # ==========================================
 # ➕ NOUVEL ARRIVANT
@@ -682,17 +690,8 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                     'mdp_pix': '🟣 MDP Pix'
                 })
                 
-                st.dataframe(
-                    df_c, 
-                    use_container_width=True, 
-                    hide_index=True,
-                    column_config={
-                        "📱 Code iPad": st.column_config.TextColumn(width="medium"),
-                        "🔵 MDP ED": st.column_config.TextColumn(width="medium"),
-                        "🟡 MDP Drive": st.column_config.TextColumn(width="medium"),
-                        "🟣 MDP Pix": st.column_config.TextColumn(width="medium")
-                    }
-                )
+                df_c.index = [""] * len(df_c)
+                st.table(df_c)
             
             st.markdown("---")
             st.markdown("### 🖨️ Impression des identifiants de la classe")
@@ -927,14 +926,18 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
             )
             
             if st.button("💾 Sauvegarder"):
+                edited_df = edited_df.fillna("") # Sécurité pour les cases vides
                 for _, row in edited_df.iterrows():
                     parti_int = 1 if row['statut_ipad'] == 'Parti' else est_p_val
                     supabase.table("eleves").update({
-                        "nom": row['nom'].upper(), "prenom": row['prenom'].capitalize(), 
-                        "classe": row['classe'], "statut_ipad": row['statut_ipad'], 
-                        "restitution": row['restitution'], "est_parti": parti_int
+                        "nom": str(row['nom']).upper(), 
+                        "prenom": str(row['prenom']).capitalize(), 
+                        "classe": str(row['classe']), 
+                        "statut_ipad": str(row['statut_ipad']), 
+                        "restitution": str(row['restitution']), 
+                        "est_parti": parti_int
                     }).eq("id", row['id']).execute()
-                st.success("OK !"); st.rerun()
+                st.success("✅ Modifications enregistrées avec succès !"); st.rerun()
 
 # ==========================================
 # 💰 COMTA
