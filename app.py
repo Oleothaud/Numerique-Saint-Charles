@@ -911,6 +911,11 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
 
     with tab_masse:
         st.markdown("### 📝 Édition Masse (Statut Matériel & Restitution)")
+        
+        # --- NOUVEAU : Affichage persistant du message après le rerun ---
+        if "msg_masse" in st.session_state:
+            st.success(st.session_state.pop("msg_masse"))
+            
         voir_partis = st.checkbox("👁️ Afficher UNIQUEMENT les élèves partis")
         est_p_val = 1 if voir_partis else 0
         df_mass = fetch_table("eleves", eq_col="est_parti", eq_val=est_p_val)
@@ -946,9 +951,9 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                             modifs_count += 1
                 if modifs_count > 0:
                     invalidate_cache()
-                    st.success(f"✅ {modifs_count} dossier(s) mis à jour !")
-                    time.sleep(1.5)
-                    st.rerun()
+                    # --- NOUVEAU : On stocke le message avant de recharger ---
+                    st.session_state["msg_masse"] = f"✅ {modifs_count} compte(s) mis à jour avec succès !"
+                    st.rerun()  # Plus besoin de time.sleep, le rerun est immédiat
                 else:
                     st.info("Aucune modification détectée.")
 
