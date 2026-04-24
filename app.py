@@ -477,6 +477,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             invalidate_cache()
                             st.session_state["open_el_id"] = str(el['id'])
                             st.session_state[f"msg_{el['id']}"] = "✅ Profil et scolarité mis à jour avec succès !"
+                            st.rerun()
 
                 with tab_mdp:
                     with st.form(f"form_mdp_{el['id']}"):
@@ -507,6 +508,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             invalidate_cache()
                             st.session_state["open_el_id"] = str(el['id'])
                             st.session_state[f"msg_{el['id']}"] = "✅ Identifiants mis à jour avec succès !"
+                            st.rerun()
 
                 with tab_ipad:
                     with st.form(f"form_ipad_{el['id']}"):
@@ -529,6 +531,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             invalidate_cache()
                             st.session_state["open_el_id"] = str(el['id'])
                             st.session_state[f"msg_{el['id']}"] = "✅ Contrat mis à jour !"
+                            st.rerun()
 
                     st.markdown("#### ➕ Déclarer un nouvel incident")
                     with st.form(f"form_new_sav_{el['id']}"):
@@ -579,6 +582,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                     invalidate_cache()
                                     st.session_state["open_el_id"] = str(el['id'])
                                     st.session_state[f"msg_{el['id']}"] = "✅ Historique SAV effacé."
+                                    st.rerun()
                         else:
                             st.success("Aucun incident.")
                     else:
@@ -1125,13 +1129,13 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                         if mode_rentree:
                             supabase.table("eleves").update({"classe": cl, "pp": pp_val, "date_entree": entree_val}).eq("id", eleve_id).execute()
 
-                if mode_rentree and eleves_presents_csv:
-                    res_active = supabase.table("eleves").select("id").eq("est_parti", 0).execute()
-                    if res_active.data:
-                        active_ids = [r['id'] for r in res_active.data]
-                        ids_to_mark = [aid for aid in active_ids if aid not in eleves_presents_csv]
-                        for aid in ids_to_mark:
-                            supabase.table("eleves").update({"est_parti": 1, "statut_ipad": 'Parti'}).eq("id", aid).execute()
+            if mode_rentree and eleves_presents_csv:
+                res_active = supabase.table("eleves").select("id").eq("est_parti", 0).execute()
+                if res_active.data:
+                    active_ids = [r['id'] for r in res_active.data]
+                    ids_to_mark = [aid for aid in active_ids if aid not in eleves_presents_csv]
+                    for aid in ids_to_mark:
+                        supabase.table("eleves").update({"est_parti": 1, "statut_ipad": 'Parti'}).eq("id", aid).execute()
 
             invalidate_cache()
             st.success("✅ Importation terminée avec succès !")
