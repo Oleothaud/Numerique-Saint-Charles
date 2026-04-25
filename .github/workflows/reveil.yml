@@ -1,0 +1,14 @@
+name: Reveil Automatique Streamlit
+
+on:
+  schedule:
+    # S'exécute toutes les heures
+    - cron: '0 * * * *'
+  workflow_dispatch: 
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Toquer à la porte de l'app
+        run: curl -I https://numerique-saint-charles.streamlit.app/?embed=true
