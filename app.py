@@ -607,7 +607,7 @@ elif is_admin and menu == "➕ Nouvel Arrivant":
                 "nom": f_nom, "prenom": f_prenom, "classe": f_classe, "date_naissance": f_dob,
                 "pp": f_pp, "date_entree": f_entree, "id_ed": id_ed, "mdp_ed": MDP_DEFAUT,
                 "id_mail": id_mail, "mdp_mail": MDP_DEFAUT, "id_pix": id_pix, "mdp_pix": MDP_DEFAUT,
-                "statut_ipad": 'Achat', "est_parti": 0
+                "statut_ipad": 'Achat', "est_parti": 0, "est_nouveau": 1 # 👈 Ajoute bien le 1 ici
             }).execute()
             invalidate_cache()
             st.success("Ajouté !")
