@@ -11,4 +11,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Toquer à la porte de l'app
-        run: curl -L https://numerique-saint-charles.streamlit.app
+        run: curl -sS -m 60 https://numerique-saint-charles.streamlit.app
