@@ -909,6 +909,24 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                 href = f'<a href="data:text/html;base64,{b64}" download="Identifiants_{cible.replace(" ", "_")}.html" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #2ecc71; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; margin-top: 10px;">👉 Ouvrir la fiche pour l\'impression PDF</a>'
                 st.markdown(href, unsafe_allow_html=True)
 
+        # --- AJOUT : Bouton de validation (Uniquement pour le mode Nouveaux) ---
+        if type_impression == "✨ Tous les NOUVEAUX élèves (Rentrée)" and not df_print.empty:
+            st.markdown("---")
+            st.warning("⚠️ **Action de fin de traitement :**")
+            st.write("Si vous avez terminé d'imprimer vos fiches, cliquez sur le bouton ci-dessous. Cela enlèvera le marqueur 'Nouveau' de ces élèves pour qu'ils ne polluent plus vos prochains exports.")
+            
+            if st.button("✅ Valider l'intégration des nouveaux (Remise à zéro)"):
+                with st.spinner("Mise à jour des dossiers en cours..."):
+                    # Récupère la liste des IDs affichés
+                    ids_a_valider = df_print['id'].tolist()
+                    # Met à jour est_nouveau à 0 pour chacun
+                    for eid in ids_a_valider:
+                        supabase.table("eleves").update({"est_nouveau": 0}).eq("id", eid).execute()
+                
+                invalidate_cache()
+                st.session_state["msg_integration"] = f"✨ Terminé ! {len(ids_a_valider)} élèves sont maintenant intégrés officiellement."
+                st.rerun()
+
     with tab_masse:
         st.markdown("### 📝 Édition Masse (Statut Matériel & Restitution)")
         
