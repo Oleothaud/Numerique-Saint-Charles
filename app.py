@@ -252,17 +252,26 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
     <title>Documents - """ + cible_titre + """</title>
     <style>
         @media print { .page-break { page-break-after: always; } .no-print { display: none; } }
-        body { font-family: "Arial", sans-serif; color: #000; margin: 0; padding: 20px; line-height: 1.15; font-size: 10px; }
-        .convention-page { padding: 20px; position: relative; }
+        body { font-family: "Arial", sans-serif; color: #000; margin: 0; padding: 20px; line-height: 1.2; font-size: 9px; }
+        .convention-page { padding: 15px; position: relative; }
         .header { text-align: center; margin-bottom: 10px; }
-        .title { font-weight: bold; font-size: 12px; margin-bottom: 2px; }
+        .title { font-weight: bold; font-size: 13px; text-transform: uppercase; margin-bottom: 2px; }
         .subtitle { font-weight: bold; font-size: 11px; margin-bottom: 8px; }
-        h3 { font-size: 11px; margin-top: 8px; margin-bottom: 2px; text-decoration: underline; }
-        p, li { text-align: justify; margin: 2px 0; }
-        ul { margin: 2px 0; padding-left: 20px; }
-        .info-block { margin-bottom: 10px; }
+        
+        .info-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px; }
+        .info-table td { border: 1px solid #000; padding: 4px; vertical-align: top; }
+        
+        h3 { font-size: 10px; margin-top: 6px; margin-bottom: 2px; background-color: #f0f0f0; padding: 2px; font-weight: bold;}
+        p, li { text-align: justify; margin: 1px 0; }
+        ul { margin: 1px 0; padding-left: 15px; }
+        
+        .grid-table { width: 100%; border-collapse: collapse; margin: 4px 0; font-size: 9px; }
+        .grid-table th, .grid-table td { border: 1px solid #000; padding: 3px; text-align: center; }
+        
+        .warning-text { font-weight: bold; margin-top: 4px; display: block; }
+        
         .footer-sigs { margin-top: 10px; width: 100%; border-collapse: collapse; }
-        .footer-sigs td { border: 1px solid #000; width: 50%; height: 50px; vertical-align: top; padding: 5px; font-size: 10px; }
+        .footer-sigs td { border: 1px solid #000; width: 33%; height: 50px; vertical-align: top; padding: 4px; font-size: 9px; }
         
         /* Styles de la fiche identifiants séparée */
         .card { border: 2px solid #1e3a5f; border-radius: 8px; padding: 15px; margin-bottom: 15px; page-break-inside: avoid; background-color: #f9fbfd; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px;}
@@ -273,7 +282,6 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
         .cred-prov { border-color: #e67e22; background-color: #fff3e0; }
         .label { font-weight: bold; display: inline-block; width: 220px; }
         .code { font-family: monospace; font-size: 15px; background: #eee; padding: 2px 6px; border-radius: 4px; }
-        .warning { font-size: 13px; color: #c0392b; margin-bottom: 10px; font-weight: bold; text-decoration: underline; }
     </style>
     </head><body>
     <div class="no-print" style="background: #e74c3c; color: white; padding: 10px; text-align: center; margin-bottom: 20px; border-radius: 5px;">
@@ -286,153 +294,186 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
         prenom = str(row['prenom'])
         date_entree = str(row.get('date_entree', ''))
         if not date_entree: 
-            date_entree = "........................"
+            date_entree = "Septembre 2025" # Adapté selon l'année en cours [cite: 375, 473, 571, 663]
         code_ipad = calculer_code_ipad(row['date_naissance'])
 
         # ==========================================
         # PAGE 1 : CONVENTION DE PRÊT (Si demandée)
         # ==========================================
         if print_convention:
+            # Paramètres spécifiques à la classe
             if classe.startswith("6"):
-                niveau = "6ÈME"
+                niveau = "6ème"
                 duree = "4 ans"
-                art8_texte = """La tablette numérique est financée sur la durée de la scolarité selon le cycle.<br>
-                <b>Nombre de mensualités : 40 | Montant mensuel : 16 € | Coût total : 640 €</b><br>
-                Un dernier loyer de 16 € sera appliqué pour lever l’option d’achat.<br>
-                Ces loyers couvrent l’achat de la tablette, ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement.<br>
-                Lors du départ définitif de l’élève, que ce soit de manière anticipée (réorientation, déménagement…) ou à l’issue du cycle scolaire :<br>
-                Soit la famille décide d’acquérir la tablette, sous réserve de son paiement intégral et de la signature d’une attestation de cession de propriété. Toutes les restrictions d’utilisation seront alors levées.<br>
-                Soit la famille ne souhaite pas l’acquérir. Dans ce cas, toute année commencée est due. La tablette et ses accessoires doivent être restitués à l’établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée."""
+                art8_texte = f"""
+                <p>La tablette est financée sur la durée de la scolarité selon le tableau ci-dessous. Ces loyers couvrent l'achat de la tablette, les accessoires, les applications installées et l'assurance souscrite par l'établissement.</p>
+                <table class="grid-table">
+                    <tr><th>Nombre de mensualités</th><th>Montant mensuel</th><th>Levée d'option d'achat (dernier loyer)</th></tr>
+                    <tr><td>40 mois</td><td>16 €</td><td>16 €</td></tr>
+                </table>
+                <p><b>En cas de départ définitif de l'élève</b><br>
+                Que ce soit de manière anticipée (réorientation, déménagement...) ou à l'issue du cycle scolaire :<br>
+                • <b>Acquisition de la tablette :</b> la famille règle le solde restant et signe une attestation de cession de propriété. Toutes les restrictions d'utilisation sont alors levées.<br>
+                • <b>Restitution :</b> toute année commencée est due. La tablette, ses accessoires et sa boîte d'origine doivent être restitués à l'établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée.</p>
+                """
             elif classe.startswith("5"):
-                niveau = "5ÈME"
+                niveau = "5ème"
                 duree = "3 ans"
-                art8_texte = """La tablette numérique est financée sur la durée de la scolarité selon le cycle.<br>
-                Un élève arrivant en cours de cycle se verra attribuer une tablette d’occasion.<br>
-                <b>Nombre de mensualités : 30 | Montant mensuel : 16 € | Coût total : 480 €</b><br>
-                Un dernier loyer de 16 € sera appliqué pour lever l’option d’achat.<br>
-                Ces loyers couvrent l’achat de la tablette, ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement.<br>
-                Lors du départ définitif de l’élève, que ce soit de manière anticipée (réorientation, déménagement…) ou à l’issue du cycle scolaire :<br>
-                Soit la famille décide d’acquérir la tablette, sous réserve de son paiement intégral et de la signature d’une attestation de cession de propriété. Toutes les restrictions d’utilisation seront alors levées.<br>
-                Soit la famille ne souhaite pas l’acquérir. Dans ce cas, toute année commencée est due. La tablette et ses accessoires doivent être restitués à l’établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée."""
+                art8_texte = f"""
+                <p>La tablette est financée sur la durée de la scolarité selon le tableau ci-dessous. Ces loyers couvrent l'achat de la tablette, les accessoires, les applications installées et l'assurance souscrite par l'établissement.</p>
+                <table class="grid-table">
+                    <tr><th>Nombre de mensualités</th><th>Montant mensuel</th><th>Levée d'option d'achat (dernier loyer)</th></tr>
+                    <tr><td>30 mois</td><td>16 €</td><td>16 €</td></tr>
+                </table>
+                <p><b>En cas de départ définitif de l'élève</b><br>
+                Que ce soit de manière anticipée (réorientation, déménagement...) ou à l'issue du cycle scolaire :<br>
+                • <b>Acquisition de la tablette :</b> la famille règle le solde restant et signe une attestation de cession de propriété. Toutes les restrictions d'utilisation sont alors levées.<br>
+                • <b>Restitution :</b> toute année commencée est due. La tablette, ses accessoires et sa boîte d'origine doivent être restitués à l'établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée.</p>
+                """
             elif classe.startswith("4"):
-                niveau = "4ÈME"
+                niveau = "4ème"
                 duree = "2 ans"
-                art8_texte = """La tablette numérique est en location sur la durée des deux années scolaires.<br>
-                L’élève arrivant en classe de 4ème se verra attribuer une tablette d’occasion.<br>
-                Le montant du loyer de 16€ sera prélevé chaque mois de l’année scolaire (de septembre à juin).<br>
-                Ces loyers couvrent la location globale de la tablette (y compris ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement).<br>
-                En cas de départ anticipé (réorientation, déménagement…), toute année commencée est due.<br>
-                La tablette et ses accessoires doivent être restitués en parfait état de marche.<br>
-                À l’issue du cycle scolaire la tablette sera récupérée par l’établissement avec une attestation de restitution."""
+                art8_texte = f"""
+                <p>La tablette numérique est en location sur la durée des deux années scolaires. L'élève arrivant en classe de 4ème se verra attribuer une tablette d'occasion.<br>
+                Le montant du loyer de 16 € sera prélevé chaque mois de l'année scolaire (de septembre à juin). Ces loyers couvrent la location globale de la tablette, y compris ses accessoires, les applications installées par l'établissement, ainsi que l'assurance souscrite par l'établissement.</p>
+                <table class="grid-table">
+                    <tr><th>Loyer mensuel (septembre à juin)</th><th>Nombre de mensualités (sur 2 ans)</th></tr>
+                    <tr><td>16 €</td><td>20 mois</td></tr>
+                </table>
+                <span class="warning-text">⚠️ La tablette est en location uniquement : aucune option d'achat n'est prévue pour les élèves arrivant en 4ème. La tablette reste la propriété exclusive de l'établissement.</span>
+                <p><b>Fin de convention et départ anticipé</b><br>
+                • <b>Départ anticipé (réorientation, déménagement...) :</b> toute année commencée est due. La tablette et ses accessoires doivent être restitués à l'établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée.<br>
+                • <b>Fin du cycle scolaire :</b> la tablette est restituée à l'établissement, qui remettra une attestation de restitution aux représentants légaux.</p>
+                """
             else:
-                niveau = "3ÈME"
+                niveau = "3ème"
                 duree = "1 an"
-                art8_texte = """La tablette numérique est en location sur la durée de l'année scolaire.<br>
-                L’élève arrivant en classe de 3ème se verra attribuer une tablette d’occasion.<br>
-                Le montant du loyer de 14€ sera prélevé chaque mois de l’année scolaire (de septembre à juin).<br>
-                Ces loyers couvrent la location globale de la tablette (y compris ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement).<br>
-                En cas de départ anticipé (réorientation, déménagement…), toute année commencée est due.<br>
-                La tablette et ses accessoires doivent être restitués en parfait état de marche.<br>
-                À l’issue du cycle scolaire la tablette sera récupérée par l’établissement avec une attestation de restitution."""
+                art8_texte = f"""
+                <p>La tablette numérique est en location sur la durée d'une année scolaire. L'élève arrivant en classe de 3ème se verra attribuer une tablette d'occasion.<br>
+                Le montant du loyer de 14 € sera prélevé chaque mois de l'année scolaire (de septembre à juin). Ces loyers couvrent la location globale de la tablette, y compris ses accessoires, les applications installées par l'établissement, ainsi que l'assurance souscrite par l'établissement.</p>
+                <table class="grid-table">
+                    <tr><th>Loyer mensuel (septembre à juin)</th><th>Nombre de mensualités</th></tr>
+                    <tr><td>14 €</td><td>10 mois</td></tr>
+                </table>
+                <span class="warning-text">⚠️ La tablette est en location uniquement : aucune option d'achat n'est prévue pour les élèves arrivant en 3ème. La tablette reste la propriété exclusive de l'établissement.</span>
+                <p><b>Fin de convention et départ anticipé</b><br>
+                • <b>Départ anticipé (réorientation, déménagement...) :</b> toute année commencée est due. La tablette et ses accessoires doivent être restitués à l'établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée.<br>
+                • <b>Fin du cycle scolaire :</b> la tablette est restituée à l'établissement, qui remettra une attestation de restitution aux représentants légaux.</p>
+                """
 
             html_content += f"""
             <div class="convention-page page-break">
                 <div class="header">
-                    <div class="title">CONVENTION DE MISE A DISPOSITION D’UN IPAD / TABLETTE NUMERIQUE EDUCATIVE A DESTINATION DES ELEVES</div>
-                    <div class="subtitle">ANNEE SCOLAIRE 2025-26 - ÉLÈVES DE {niveau}</div>
+                    <div class="title">ANNEE SCOLAIRE 2025-2026</div>
+                    <div class="subtitle">Convention financière de mise à disposition d'une tablette numérique éducative de type iPad<br>Élèves entrant en {niveau}</div>
                 </div>
 
-                <div class="info-block">
-                    <b>Etablissement :</b> Collège Saint Charles<br>
-                    <b>Classe :</b> {classe}<br>
-                    <b>Nom élève :</b> {nom}<br>
-                    <b>Prénom :</b> {prenom}<br>
-                    <b>Date entrée dans l’établissement :</b> {date_entree}<br><br>
-                    Entre le groupe scolaire St Charles représenté par Mr Bruno AUBRIET, chef d’établissement coordinateur,<br>
-                    Et (noms et prénoms des parents) ....................................................................................................<br>
-                    Représentants légaux de l’élève {prenom} {nom} en classe de {classe}<br>
-                    Il est convenu ce qui suit :
-                </div>
+                <table class="info-table">
+                    <tr>
+                        <td style="width:50%;"><b>ÉTABLISSEMENT</b><br>☐ Site Le Devoir<br>☑ Site Saint-Dominique</td>
+                        <td style="width:50%;"><b>DATE D'ENTRÉE</b><br>{date_entree}</td>
+                    </tr>
+                    <tr>
+                        <td><b>NOM DE L'ELEVE</b><br>{nom}</td>
+                        <td><b>PRENOM</b><br>{prenom}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"><b>CLASSE :</b> {classe}</td>
+                    </tr>
+                </table>
 
-                <h3>Article 1 : Objet de la convention</h3>
-                <p>La présente convention régit les conditions de mise à disposition d’une tablette numérique par l’établissement à l’élève, pour la durée de sa scolarité dans l’établissement cité ci-dessus.</p>
+                <p>Entre le Groupe Scolaire Saint-Charles, représenté par M. Bruno AUBRIET, chef d'établissement coordinateur, ci-après dénommé l'Établissement, et les représentants légaux de l'élève susmentionné :<br>
+                NOMS ET PRÉNOMS DES REPRÉSENTANTS LÉGAUX : ........................................................................................<br>
+                il est convenu ce qui suit :</p>
 
-                <h3>Article 2 : Le matériel mis à disposition</h3>
+                <h3>1 OBJET DE LA CONVENTION</h3>
+                <p>La présente convention régit les conditions de mise à disposition d'une tablette numérique par l'établissement à l'élève, pour la durée de sa scolarité dans l'établissement cité ci-dessus.</p>
+
+                <h3>2 LE MATÉRIEL MIS À DISPOSITION</h3>
                 <ul>
-                    <li>Une tablette tactile Ipad de la marque Apple</li>
+                    <li>Une tablette tactile iPad de la marque Apple</li>
                     <li>Une housse de protection</li>
-                    <li>Un adaptateur secteur et un câble d'alimentation marque IPAD pour la tablette</li>
-                    <li>Des applications préinstallées et préconfigurées</li>
+                    <li>Un adaptateur secteur et un câble d'alimentation marque Apple pour la tablette</li>
+                    <li>Des applications préinstallées et préconfigurées par l'établissement</li>
                 </ul>
 
-                <h3>Article 3 : Propriété</h3>
-                <p>La tablette et les accessoires mis à disposition font partie des outils pédagogiques, et restent la propriété de l’établissement Saint Charles{' jusqu’à ce que ces derniers soient cédés aux élèves en fin de cycle scolaire' if classe.startswith('6') or classe.startswith('5') else ''}.<br>
-                La revente, la cession, même à titre gratuit, l'échange, le prêt, la location, de la tablette et de ses accessoires sont donc strictement interdits.<br>
-                Au moment du départ, le référent indiquera la procédure de sauvegarde des fichiers sur un outil de stockage personnel.</p>
+                <h3>3 PROPRIÉTÉ</h3>
+                <p>La tablette et ses accessoires restent la propriété de l'établissement Saint-Charles jusqu'à leur cession éventuelle en fin de cycle. La revente, la cession, l'échange, le prêt ou la location sont strictement interdits.</p>
 
-                <h3>Article 4 : Conditions de mise à disposition et durée</h3>
-                <p>L’Etablissement procède à la remise de la tablette à l'élève à la rentrée scolaire ou à la date d’arrivée dans l’établissement.<br>
-                La durée de mise à disposition est de {duree}.<br>
-                La mise à disposition reste conditionnée aux étapes suivantes :</p>
+                <h3>4 CONDITIONS DE MISE À DISPOSITION ET DURÉE</h3>
+                <p>La tablette est remise à l'élève à la rentrée scolaire ou à la date d'arrivée dans l'établissement. La durée de mise à disposition est de {duree}. Elle est conditionnée à :</p>
                 <ul>
-                    <li>Acceptation sans réserve de la présente convention de prêt et d'utilisation de la tablette tactile numérique datée, signée, et paraphée avec la mention manuscrite « lu et accepté » par le ou les représentants légaux et l'élève.</li>
-                    <li>Versement d'une caution de 500 € par chèque uniquement et non daté (non encaissé, à l'ordre de « OGEC Saint Charles »).</li>
+                    <li>Acceptation sans réserve de la présente convention, datée, signée et paraphée avec la mention manuscrite lu et accepté par le ou les représentants légaux et l'élève.</li>
+                    <li>Versement d'une caution de 500 € par chèque uniquement, non daté, à l'ordre de OGEC Saint Charles. Cette caution sera détruite lors de la remise de la tablette en fin de cycle.</li>
                 </ul>
-                <p>Cette caution sera détruite par l’établissement lors de la remise de la tablette en fin de cycle.{' Pour toute tablette non restituée, la caution sera immédiatement encaissée.' if classe.startswith('3') or classe.startswith('4') else ''}</p>
 
-                <h3>Article 5 : Les engagements des élèves et des responsables</h3>
-                <p>La tablette est mise à disposition de l'élève à titre individuel et nominatif. L'usage du matériel est réservé à l'élève dont l'identité figure sur la présente convention.<br>
-                Les usages hors enceinte de l’Etablissement relèvent de l'autorité et de la responsabilité du ou des représentants légaux.<br>
-                La signature de la présente convention par l'un des représentants légaux et de l'élève constitue l'acceptation de la remise de la tablette et de la détention de la tablette et des accessoires par l'élève.<br>
-                <b>L’élève et ses représentant légaux s’engagent à :</b></p>
+                <h3>5 ENGAGEMENTS DES ÉLÈVES ET DES RESPONSABLES LÉGAUX</h3>
+                <p>La tablette est mise à disposition à titre individuel et nominatif. Les usages hors de l'établissement relèvent de la responsabilité des représentants légaux.</p>
                 <ul>
-                    <li>Conserver et à prendre le plus grand soin de la tablette et des accessoires confiés</li>
-                    <li>Garder la tablette dans la housse de protection et à l’abri des regards notamment dans les transports scolaires</li>
-                    <li>Ne pas dégrader le matériel (pas d’inscription, pas d’autocollant)</li>
-                    <li>Charger la tablette à 100% tous les soirs</li>
-                    <li>Ne pas modifier la configuration initiale, respecter les réglages installés</li>
-                    <li>Ne pas modifier ou détruire des fichiers sans autorisation</li>
-                    <li>Ne pas prêter la tablette ou la mettre à la disposition d’autres personnes</li>
+                    <li>Conserver et prendre le plus grand soin de la tablette et de ses accessoires</li>
+                    <li>Garder la tablette dans sa housse/coque d'origine et à l'abri des regards (notamment dans les transports)</li>
+                    <li>Ne pas dégrader le matériel (inscriptions, autocollants interdits)</li>
+                    <li>Charger la tablette à 100% chaque soir</li>
+                    <li>Ne pas modifier la configuration initiale ni les réglages installés</li>
+                    <li>Ne pas prêter la tablette ni la mettre à disposition d'autres personnes</li>
                 </ul>
                 <p><b>En classe :</b></p>
                 <ul>
-                    <li>Rester sur l’application demandée par le professeur et bien classer ses cours</li>
-                    <li>Ne pas naviguer sur internet sans autorisation : ni jeux, ni réseaux sociaux, ne rien publier</li>
-                    <li>Ne pas prendre de photos, ni vidéo sans autorisation</li>
-                    <li>Ne pas utiliser l’Apple TV ni l’air Drop sans autorisation</li>
+                    <li>Rester sur l'application demandée par le professeur et bien classer ses cours</li>
+                    <li>Ne pas naviguer sur internet sans autorisation (ni jeux, ni réseaux sociaux)</li>
+                    <li>Ne pas prendre de photos ni de vidéos sans autorisation</li>
+                    <li>Ne pas utiliser Apple TV ni AirDrop sans autorisation</li>
                 </ul>
-                <p>L'intégrité du système d'exploitation est contrôlée par l’établissement afin d'empêcher des fonctionnements non autorisés de la tablette.<br>
-                Pour garantir l'utilisation de la tablette, l’Établissement met en œuvre un système de supervision de chaque tablette permettant son contrôle grâce à un logiciel de gestion de terminaux mobiles. Ce système de supervision permet d'appliquer des actions à distance telles que la réinitialisation du code de verrouillage, les réglages sur la tablette et de mettre à disposition des applications sélectionnées par l’Etablissement. Il permet aussi de géo localiser la tablette en cas de perte ou de vol.<br>
-                Les enseignants ou le personnel de direction peuvent accéder aux dossiers de l'élève pour vérifier le travail accompli ou en cours.</p>
+                <p>⚠️ L'établissement met en œuvre un système de supervision (MDM) permettant le contrôle à distance des tablettes : réinitialisation du code de verrouillage, gestion des applications, géolocalisation en cas de perte ou de vol. Les enseignants et la direction peuvent accéder aux dossiers pour vérifier le travail accompli.</p>
 
-                <h3>Article 6 : Protection des données</h3>
-                <p>À toutes fins utiles, il est rappelé que les données collectées auprès des élèves sont obligatoires aux fins de bonne gestion, d'organisation et de sécurisation des systèmes d'information et de communication. Les données stockées sont supprimées à la fin de la scolarité et le compte désactivé.</p>
+                <h3>6 PROTECTION DES DONNÉES</h3>
+                <p>Les données collectées auprès des élèves sont nécessaires à la bonne gestion et à la sécurisation des systèmes d'information. Elles sont supprimées en fin de scolarité et le compte désactivé.</p>
 
-                <h3>Article 7 : Pannes, bris, perte ou vol</h3>
-                <p><b>En cas de panne ou de bris</b><br>
-                La maintenance de la tablette, des accessoires et des logiciels et applications associés est de la compétence de l’Etablissement et de son prestataire. Aucune intervention externe n'est autorisée sur la tablette et ses accessoires. L'élève et son ou ses représentants légaux ne devront en aucun cas faire réparer ou remplacer un élément de la tablette.<br>
-                Tout problème, incident, panne ou casse relatifs à la tablette, aux accessoires, aux applications installées doit être immédiatement signalé au référent numérique. Le remplacement éventuel du matériel se fera par l’établissement.<br>
-                En cas de bris, une franchise sera appliquée de la manière suivante : 100€ pour un premier envoi, 200€ pour un deuxième, 300€ pour un troisième…</p>
-                <p><b>En cas de perte ou de vol</b><br>
-                En cas de vol ou de perte, une plainte ou une main courante (uniquement en cas de perte) devra obligatoirement être déposée immédiatement auprès des services de Police ou de Gendarmerie compétents territorialement par le ou les représentants légaux. Le récépissé devra être envoyé soit par courrier postal, soit par voie électronique à l’Etablissement, et ce, dans un délai de 48 heures à compter de la date indiquée sur le récépissé.<br>
-                Le dispositif de géolocalisation à distance pourra être activé de manière exceptionnelle et ponctuelle afin de la retrouver. Les données relatives à la géolocalisation, susceptibles d'être enregistrées ne le seront donc, qu'à partir de la déclaration de perte, de vol ou d'abus de confiance.<br>
-                En cas de perte ou vol, une franchise sera appliquée de la manière suivante : 100€ pour un premier envoi, 200€ pour un deuxième, 300€ pour un troisième…</p>
+                <h3>7 PANNES, BRIS, PERTE OU VOL</h3>
+                <p>Aucune intervention externe n'est autorisée. Tout problème, incident, panne ou casse relatifs à la tablette, aux accessoires ou aux applications installées doit être signalé immédiatement via la déclaration de dysfonctionnement et/ou de dommages (document disponible auprès de la vie scolaire). Le remplacement du matériel est assuré par l'établissement.</p>
+                <table class="grid-table">
+                    <tr>
+                        <th style="width:50%;">BRIS OU PANNE</th>
+                        <th style="width:50%;">PERTE OU VOL</th>
+                    </tr>
+                    <tr>
+                        <td style="text-align:justify; padding:4px;">Aucune réparation externe n'est autorisée. L'établissement prend en charge le remplacement du matériel défectueux.</td>
+                        <td style="text-align:justify; padding:4px;">Une plainte (vol) ou une main courante (perte) devra obligatoirement être déposée immédiatement auprès des services de Police ou de Gendarmerie compétents. Le récépissé devra être transmis à l'établissement par courrier postal ou voie électronique dans un délai de 48 heures.</td>
+                    </tr>
+                </table>
+                <table class="grid-table" style="margin-top:2px;">
+                    <tr><th colspan="4">FRANCHISE APPLICABLE (BRIS, PANNE, PERTE OU VOL)</th></tr>
+                    <tr>
+                        <td>1ER INCIDENT<br><b>100 €</b></td>
+                        <td>2E INCIDENT<br><b>200 €</b></td>
+                        <td>3E INCIDENT<br><b>300 €</b></td>
+                        <td>4E INCIDENT ET +<br><b>+100 € / incident</b></td>
+                    </tr>
+                </table>
+                <p style="font-size:8px; text-align:center;">Au-delà du 3e incident, chaque incident supplémentaire est facturé 100 € de plus que le précédent (4e = 400 €, 5e = 500 € etc.).</p>
 
-                <h3>Article 8 : Conditions financières</h3>
-                <p>{art8_texte}</p>
+                <h3>8 CONDITIONS FINANCIÈRES</h3>
+                {art8_texte}
 
-                <h3>Article 9 : Sanctions</h3>
-                <p>En cas de manquement à la présente convention et de violation d'une disposition réglementaire, l'élève s'expose à une confiscation de la tablette par l’Etablissement ainsi qu'à des sanctions disciplinaires.<br>
-                En cas de mauvais usage, de revente, cession, échange, prêt ou location de la tablette et des accessoires, le matériel sera repris et des sanctions pouvant aller jusqu’à l’exclusion seront prises.<br>
-                Les accessoires et la tablette de marque Apple sont la propriété de l’ensemble St Charles. Toute casse ou perte entraine la refacturation de ceux-ci. Le remplacement par des accessoires standards est interdit.<br>
-                En cas de dégradation, la refacturation suivante sera opérée : Vitre de protection 15 € | Câble Apple 25 € | Bloc alimentation Apple 25 € | Coque 25 €.</p>
+                <h3>9 SANCTIONS</h3>
+                <p>Tout manquement à la présente convention expose l'élève à une confiscation de la tablette et à des sanctions disciplinaires pouvant aller jusqu'à l'exclusion. Tarifs de refacturation en cas de dégradation :</p>
+                <table class="grid-table" style="width:70%; margin:4px auto;">
+                    <tr><td>Vitre de protection</td><td><b>15 €</b></td><td>Câble Apple</td><td><b>25 €</b></td></tr>
+                    <tr><td>Bloc alimentation Apple</td><td><b>25 €</b></td><td>Coque de protection</td><td><b>25 €</b></td></tr>
+                </table>
+                <span class="warning-text">⚠️ La tablette et l'ensemble de ses accessoires de marque Apple restent la propriété exclusive de l'Établissement Saint-Charles jusqu'à cession effective. Tout remplacement par des accessoires non d'origine Apple est strictement interdit.</span>
 
                 <table class="footer-sigs">
                     <tr>
-                        <td>Le : ........................................<br><br><b>Elève</b><br><span style="font-size:9px;">(noter lu et accepté + signature)</span></td>
-                        <td><br><br><b>Représentants légaux</b><br><span style="font-size:9px;">(noter lu et accepté + signature)</span></td>
+                        <td colspan="3" style="border:none; text-align:left; height:auto; padding-bottom:5px;"><b>SIGNATURES</b><br>Fait à Chalon-sur-Saône, le ........................................</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;"><b>SIGNATURE DE L'ÉLÈVE</b><br><br><br><br><span style="font-size:8px;">Lu et accepté</span></td>
+                        <td style="text-align:center;"><b>SIGNATURE DES REPRÉSENTANTS LÉGAUX</b><br><br><br><br><span style="font-size:8px;">Lu et accepté</span></td>
+                        <td style="text-align:center;"><b>CACHET ET SIGNATURE DU CHEF D'ÉTABLISSEMENT</b><br><br><br><br></td>
                     </tr>
                 </table>
+                <div style="text-align:center; font-size:8px; margin-top:5px; color:#666;">OGEC Saint-Charles Borromée - 3 rue du Général Giraud - 71100 Chalon-sur-Saône - Tél. 03.85.45.83.35</div>
             </div>
             """
 
