@@ -246,117 +246,85 @@ def calculer_bilan_logistique(df_eleves, df_incidents):
 # ==========================================
 # 📄 GÉNÉRATEUR PDF HTML
 # ==========================================
-function generer_pdf_html(elevesSelectionnes) {
-  let html = `
-    <html>
-    <head>
-      <style>
-        @media print {
-          .page-break { page-break-after: always; }
-        }
-        body { font-family: Arial, sans-serif; line-height: 1.4; color: #333; margin: 0; padding: 0; }
-        .convention-page { padding: 40px; position: relative; }
-        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #004a99; padding-bottom: 10px; }
-        .header h1 { color: #004a99; font-size: 18px; margin: 0; text-transform: uppercase; }
-        .header h2 { font-size: 14px; margin: 5px 0; }
-        
-        .info-box { border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; background: #f9f9f9; }
-        .info-box table { width: 100%; }
-        .info-box td { padding: 3px; font-size: 13px; }
-        
-        .credentials-box { border: 2px dashed #004a99; padding: 10px; margin: 15px 0; background: #eef6ff; }
-        .credentials-box h3 { margin: 0 0 5px 0; font-size: 14px; color: #004a99; }
-        
-        h3 { font-size: 14px; margin-top: 15px; margin-bottom: 5px; text-decoration: underline; }
-        p, li { font-size: 12px; text-align: justify; margin: 4px 0; }
-        
-        .footer-sigs { margin-top: 30px; width: 100%; border-collapse: collapse; }
-        .footer-sigs td { border: 1px solid #ccc; width: 33%; height: 80px; vertical-align: top; padding: 10px; font-size: 11px; }
-        .mention { font-style: italic; font-size: 10px; color: #666; }
-      </style>
-    </head>
-    <body>
-  `;
+def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_prov, print_ipad):
+    html_content = """
+    <html><head><meta charset="utf-8">
+    <style>
+        @media print { .page-break { page-break-after: always; } }
+        body { font-family: Arial, sans-serif; color: #333; margin: 0; padding: 0; }
+        .convention-page { padding: 30px; border: 1px solid #EEE; position: relative; }
+        .logo-header { width: 100%; text-align: center; margin-bottom: 10px; }
+        .header-title { text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 5px; text-transform: uppercase; }
+        .header-sub { text-align: center; font-size: 14px; margin-bottom: 20px; border-bottom: 2px solid #444; padding-bottom: 10px; }
+        .info-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        .info-table td { padding: 5px; border: 1px solid #CCC; font-size: 12px; }
+        .credentials-box { border: 2px dashed #1e3a5f; background: #f0f4f8; padding: 10px; margin: 15px 0; }
+        .credentials-box b { color: #1e3a5f; }
+        h3 { font-size: 13px; margin-top: 15px; margin-bottom: 5px; text-decoration: underline; }
+        p, li { font-size: 11px; text-align: justify; margin: 3px 0; }
+        .footer-sigs { margin-top: 20px; width: 100%; border-collapse: collapse; }
+        .footer-sigs td { border: 1px solid #000; width: 50%; height: 70px; vertical-align: top; padding: 8px; font-size: 11px; }
+    </style>
+    </head><body>"""
 
-  elevesSelectionnes.forEach(eleve => {
-    // Analyse de la classe pour déterminer la convention
-    const classe = eleve.classe || "";
-    let loyer = "16€";
-    let niveau = "Collège";
-    let specificitesFin = "";
-    
-    if (classe.startsWith("6")) {
-      niveau = "6ÈME";
-      specificitesFin = "Soit la famille décide d’acquérir la tablette (fin de cycle), soit elle la restitue. Toute année commencée est due.";
-    } else if (classe.startsWith("5")) {
-      niveau = "5ÈME";
-      specificitesFin = "Soit la famille décide d’acquérir la tablette (fin de cycle), soit elle la restitue. Toute année commencée est due.";
-    } else if (classe.startsWith("4")) {
-      niveau = "4ÈME";
-      specificitesFin = "À l’issue du cycle scolaire la tablette sera récupérée par l’établissement avec une attestation de restitution.";
-    } else if (classe.startsWith("3")) {
-      niveau = "3ÈME";
-      loyer = "14€";
-      specificitesFin = "À l’issue du cycle scolaire la tablette sera récupérée par l’établissement avec une attestation de restitution.";
-    }
+    for _, row in df_print.iterrows():
+        # --- LOGIQUE DYNAMIQUE SELON LE NIVEAU ---
+        classe = str(row['classe']).upper()
+        if classe.startswith("6"):
+            niveau, duree, mensualite, options_fin = "6ÈME", "4 ans", "16 €", "soit la famille décide d’acquérir la tablette (30 mensualités + 16€), soit elle la restitue."
+        elif classe.startswith("5"):
+            niveau, duree, mensualite, options_fin = "5ÈME", "3 ans", "16 €", "soit la famille décide d’acquérir la tablette (30 mensualités + 16€), soit elle la restitue."
+        elif classe.startswith("4"):
+            niveau, duree, mensualite, options_fin = "4ÈME", "2 ans", "16 €", "la tablette sera récupérée par l’établissement avec une attestation de restitution."
+        else:
+            niveau, duree, mensualite, options_fin = "3ÈME", "1 an", "14 €", "la tablette sera récupérée par l’établissement avec une attestation de restitution."
 
-    html += `
-      <div class="convention-page page-break">
-        <div class="header">
-          <h1>Convention de mise à disposition d'un iPad</h1>
-          <h2>Année Scolaire 2025-2026 - ÉLÈVES DE ${niveau}</h2>
-          <p><strong>Collège Saint Charles - Chalon-sur-Saône</strong></p>
-        </div>
+        # En-tête avec mention du niveau [cite: 3, 95, 187, 282]
+        html_content += f"""
+        <div class="convention-page page-break">
+            <div class="header-title">CONVENTION DE MISE A DISPOSITION D’UN IPAD / TABLETTE NUMERIQUE</div>
+            <div class="header-sub">ANNEE SCOLAIRE 2025-26 - ÉLÈVES DE {niveau}</div>
 
-        <div class="info-box">
-          <table>
-            <tr><td><strong>Élève :</strong> ${eleve.nom} ${eleve.prenom}</td><td><strong>Classe :</strong> ${eleve.classe}</td></tr>
-            <tr><td><strong>Date d'entrée :</strong> ${eleve.dateEntree || 'Septembre 2025'}</td><td><strong>Responsable :</strong> .......................................</td></tr>
-          </table>
-        </div>
+            <table class="info-table">
+                <tr><td><b>Élève :</b> {row['nom']} {row['prenom']}</td><td><b>Classe :</b> {row['classe']}</td></tr>
+                <tr><td><b>Date d'entrée :</b> {row.get('date_entree', '02/09/2026')}</td><td><b>Date naissance :</b> {row['date_naissance']}</td></tr>
+            </table>"""
 
-        <div class="credentials-box">
-          <h3>🔑 Tes Identifiants Personnels</h3>
-          <table>
-            <tr><td><strong>Ecole Directe :</strong> ${eleve.identifiantED || 'A générer'} / ${eleve.passwordED || '********'}</td></tr>
-            <tr><td><strong>Compte Drive :</strong> ${eleve.emailDrive || 'En attente'} / ${eleve.passwordDrive || '********'}</td></tr>
-            <tr><td><strong>Code iPad :</strong> ${eleve.codeIpad || 'Non défini'}</td></tr>
-          </table>
-        </div>
+        # Bloc des identifiants (votre demande initiale)
+        html_content += f"""
+            <div class="credentials-box">
+                <b>🔑 TES CODES D'ACCÈS PERSONNELS :</b><br>
+                <table style="width:100%; font-size:12px; margin-top:5px;">"""
+        if print_ed: html_content += f"<tr><td>🔵 Ecole Directe :</td><td>ID : <b>{row['id_ed']}</b> | MDP : <b>{row['mdp_ed']}</b></td></tr>"
+        if print_dr: html_content += f"<tr><td>🟡 Drive :</td><td>ID : <b>{row['id_mail']}</b> | MDP : <b>{row['mdp_mail']}</b></td></tr>"
+        if print_ipad: html_content += f"<tr><td>📱 Code iPad :</td><td><b>{calculer_code_ipad(row['date_naissance'])}</b></td></tr>"
+        html_content += "</table></div>"
 
-        <h3>Article 1 & 2 : Objet et Matériel</h3>
-        <p>L'établissement met à disposition : une tablette iPad Apple, une housse renforcée, un adaptateur secteur et son câble original.</p>
+        # Contenu des articles adaptés aux documents Word [cite: 13, 20, 305, 352]
+        html_content += f"""
+            <h3>Article 1 & 2 : Matériel remis</h3>
+            <p>Ipad Apple, housse de protection, adaptateur secteur et câble d'alimentation originaux[cite: 15, 18, 297].</p>
+            
+            <h3>Article 3 & 4 : Propriété et Durée</h3>
+            <p>Le matériel reste la propriété de l'établissement Saint Charles jusqu'à cession éventuelle[cite: 21, 300]. Durée : {duree}[cite: 26, 305].</p>
 
-        <h3>Article 3 : Propriété</h3>
-        <p>Le matériel reste la propriété du Collège Saint Charles. La revente, le prêt ou l'échange sont strictement interdits.</p>
+            <h3>Article 8 : Conditions financières</h3>
+            <p>Location : Loyer mensuel de <b>{mensualite}</b> (sept. à juin). Fin de cycle : {options_fin}[cite: 79, 262, 356].</p>
 
-        <h3>Article 8 : Conditions de mise à disposition</h3>
-        <p>Le loyer de <strong>${loyer}</strong> sera prélevé mensuellement (septembre à juin). ${specificitesFin}</p>
+            <h3>Article 9 : Sanctions et Refacturation</h3>
+            <p>Vitre : 15 € | Câble Apple : 25 € | Bloc alim : 25 € | Coque : 25 €[cite: 85, 89, 366]. Franchise bris : 100€ (1er envoi)[cite: 65, 343].</p>
 
-        <h3>Article 9 : Sanctions et Refacturation</h3>
-        <p>En cas de dégradation constatée, la refacturation suivante sera opérée : Vitre (15€), Câble (25€), Bloc alimentation (25€), Coque (25€).</p>
+            <table class="footer-sigs">
+                <tr>
+                    <td>Fait à Chalon-sur-Saône, le ....................<br><br><b>Signature de l'élève</b></td>
+                    <td><b>Signature des Représentants légaux</b><br><span style="font-size:9px;">(Précédée de la mention manuscrite "Lu et accepté")</span></td>
+                </tr>
+            </table>
+            <div style="text-align:center; font-size:9px; margin-top:15px; color:#666;">Groupe Scolaire St Charles - Pôle Numérique</div>
+        </div>"""
 
-        <table class="footer-sigs">
-          <tr>
-            <td>Fait à Chalon-sur-Saône,<br>le ..........................</td>
-            <td>Signature de l'élève<br><span class="mention">(Lu et accepté)</span></td>
-            <td>Signature des parents<br><span class="mention">(Lu et accepté)</span></td>
-          </tr>
-        </table>
-        
-        <p style="font-size: 9px; text-align: center; margin-top: 20px;">Groupe Scolaire Saint Charles - Pôle Numérique</p>
-      </div>
-    `;
-  });
-
-  html += `</body></html>`;
-  
-  // Envoi vers l'impression
-  const win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
-  win.print();
-}
+    html_content += "</body></html>"
+    return html_content
 
 
 # ==========================================
