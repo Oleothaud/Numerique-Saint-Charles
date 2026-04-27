@@ -1042,6 +1042,7 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                 else:
                     st.info("Aucune modification détectée.")
 
+
 # ==========================================
 # 🚛 VUE LOGISTIQUE TOTALE (ADMIN SEUL)
 # ==========================================
@@ -1076,11 +1077,6 @@ elif is_admin and menu == "🚛 Vue Logistique Totale":
         st.download_button("📥 Exporter le Bilan Logistique (CSV)", csv_data, "bilan_logistique_complet.csv")
 
 
-# ==========================================
-# 💰 COMPTA
-# ==========================================
-elif (is_admin or is_compta) and menu == "💰 Espace Compta & Logistique":
-# ... (Reste de ton code pour la compta) ...
 # ==========================================
 # 💰 COMPTA
 # ==========================================
