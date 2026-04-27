@@ -244,7 +244,7 @@ def calculer_bilan_logistique(df_eleves, df_incidents):
 # 📄 GÉNÉRATEUR PDF HTML
 # ==========================================
 def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_prov, print_ipad, print_convention=False):
-    # 1. Tenter de charger le logo en base64 pour l'en-tête (Logo Collège St Charles)
+    # 1. Tenter de charger le logo en base64 pour l'en-tête (Nouveau Logo)
     logo_b64 = ""
     chemins_logo_possibles = [
         os.path.join(DOSSIER_COURANT, "Logo Collège St Charles (1).jpeg"),
@@ -256,7 +256,7 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
                 logo_b64 = base64.b64encode(f.read()).decode('utf-8')
             break
 
-    img_tag = f'<img src="data:image/jpeg;base64,{logo_b64}" style="max-height: 80px; margin-bottom:10px;">' if logo_b64 else '<h2 style="color:#004a99; margin:0;">Collège Saint Charles</h2>'
+    img_tag = f'<img src="data:image/jpeg;base64,{logo_b64}" style="max-height: 80px;">' if logo_b64 else '<h2 style="color:#1e3a5f; margin:0;">Collège Saint Charles</h2>'
 
     html_content = f"""
     <html><head><meta charset="utf-8">
@@ -267,185 +267,189 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
             .no-print {{ display: none; }}
             body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
         }}
-        body {{ font-family: "Arial", sans-serif; color: #333; margin: 0; padding: 0; line-height: 1.3; font-size: 10px; }}
+        body {{ font-family: "Segoe UI", Arial, sans-serif; color: #2c3e50; margin: 0; padding: 0; line-height: 1.2; font-size: 9px; }}
+        .convention-page {{ padding: 20px 30px; position: relative; }}
         
-        /* Convention Styles */
-        .convention-page {{ padding: 25px 40px; position: relative; }}
-        .header {{ text-align: center; margin-bottom: 20px; }}
-        .title {{ font-weight: bold; font-size: 16px; color: #004a99; text-transform: uppercase; margin-bottom: 5px; }}
-        .subtitle {{ font-weight: bold; font-size: 14px; color: #e74c3c; margin-bottom: 15px; }}
-        
-        /* Encadré d'information (Le "Beau cadre arrondi") */
+        /* En-tête */
+        .header-flex {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }}
+        .header-text {{ text-align: right; }}
+        .title {{ font-weight: bold; font-size: 13px; color: #1e3a5f; margin-bottom: 3px; text-transform: uppercase; }}
+        .subtitle {{ font-weight: bold; font-size: 11px; color: #e74c3c; }}
+
+        /* Beaux encadrés avec bords arrondis et couleurs */
         .info-box {{
-            border: 2px solid #004a99;
+            border: 2px solid #1e3a5f;
             border-radius: 12px;
+            background-color: #f8fafc;
             padding: 15px;
-            background-color: #f4f8ff;
             margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }}
-        .info-table {{ width: 100%; border-collapse: collapse; font-size: 12px; }}
-        .info-table td {{ padding: 6px; vertical-align: top; }}
-        .info-table b {{ color: #004a99; }}
-        .checkbox-container {{ font-size: 12px; line-height: 1.5; }}
-        
-        .article-title {{
-            font-size: 12px; 
+        .info-grid {{ width: 100%; border-collapse: separate; border-spacing: 5px; font-size: 11px; }}
+        .info-grid td {{ vertical-align: top; padding: 4px; }}
+        .info-label {{ font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }}
+        .info-val {{ font-size: 12px; font-weight: bold; color: #0f172a; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; display: inline-block; width: 90%; }}
+
+        /* Titres d'articles stylisés */
+        h3 {{ 
+            font-size: 10px; 
+            margin-top: 10px; 
+            margin-bottom: 4px; 
+            color: #fff; 
+            background-color: #1e3a5f; 
+            padding: 4px 8px; 
+            border-radius: 4px;
             font-weight: bold; 
-            color: #004a99; 
-            margin-top: 15px; 
-            margin-bottom: 5px; 
-            border-bottom: 1px solid #004a99; 
-            padding-bottom: 2px;
-            text-transform: uppercase;
+            text-transform: uppercase; 
+            display: inline-block;
         }}
-        p, li {{ text-align: justify; margin: 3px 0; font-size: 10px; }}
-        ul {{ margin: 3px 0; padding-left: 20px; }}
         
-        /* Tableaux de l'article 7 et 8 */
-        .grid-table {{ width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 10px; }}
-        .grid-table th {{ border: 1px solid #004a99; background-color: #004a99; color: white; padding: 5px; text-align: center; font-weight: bold; }}
-        .grid-table td {{ border: 1px solid #004a99; padding: 5px; text-align: center; }}
-        .grid-table.left-align td {{ text-align: justify; vertical-align: top; }}
+        p, li {{ text-align: justify; margin: 2px 0; font-size: 9px; }}
+        ul {{ margin: 2px 0; padding-left: 15px; }}
+
+        /* Tableaux arrondis */
+        .styled-table {{ 
+            width: 100%; 
+            border-collapse: separate; 
+            border-spacing: 0; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 8px; 
+            overflow: hidden; 
+            margin: 8px 0; 
+            font-size: 9px; 
+        }}
+        .styled-table th {{ background-color: #e2e8f0; color: #1e3a5f; padding: 5px; font-weight: bold; text-align: center; border-bottom: 1px solid #cbd5e1; }}
+        .styled-table td {{ padding: 5px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; text-align: center; }}
+        .styled-table td:last-child {{ border-right: none; }}
+        .styled-table tr:last-child td {{ border-bottom: none; }}
+        .styled-table.left-align td {{ text-align: left; vertical-align: top; }}
+
+        .warning-text {{ font-weight: bold; color: #e74c3c; margin-top: 5px; display: block; font-size: 9px; background-color: #fef2f2; padding: 5px; border-left: 3px solid #e74c3c; border-radius: 0 4px 4px 0; }}
+
+        /* Zone de signature */
+        .footer-sigs {{ margin-top: 15px; width: 100%; border-collapse: separate; border-spacing: 10px 0; }}
+        .footer-sigs td {{ width: 33.33%; height: 60px; vertical-align: top; padding: 8px; font-size: 9px; border: 1px solid #1e3a5f; border-radius: 8px; background-color: #fff; text-align: center; }}
         
-        .warning-text {{ font-weight: bold; color: #e74c3c; margin-top: 5px; display: block; font-size: 10px; }}
-        
-        /* Signatures */
-        .footer-sigs {{ margin-top: 20px; width: 100%; border-collapse: collapse; }}
-        .footer-sigs td {{ border: 1px solid #004a99; width: 33.33%; height: 70px; vertical-align: top; padding: 8px; font-size: 10px; text-align: center; }}
-        
-        /* Carte Identifiants Séparée */
-        .card {{ border: 2px solid #004a99; border-radius: 12px; padding: 20px; margin: 20px 40px; page-break-inside: avoid; background-color: #f9fbfd; font-size: 14px; }}
-        .card-header {{ font-size: 16px; font-weight: bold; border-bottom: 2px solid #004a99; padding-bottom: 8px; margin-bottom: 15px; color: #004a99; }}
-        .cred-row {{ margin: 8px 0; padding: 10px; background: #fff; border-radius: 6px; border-left: 4px solid; color: #004a99; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
+        /* Styles de la fiche identifiants séparée (Inchangés car déjà beaux et arrondis) */
+        .card {{ border: 2px solid #1e3a5f; border-radius: 12px; padding: 20px; margin: 20px 40px; page-break-inside: avoid; background-color: #f9fbfd; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
+        .card-header {{ font-size: 16px; font-weight: bold; border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; margin-bottom: 15px; color: #1e3a5f; }}
+        .cred-row {{ margin: 8px 0; padding: 10px; background: #fff; border-radius: 6px; border-left: 4px solid; color: #1e3a5f; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
         .cred-ed {{ border-color: #3498db; }} .cred-dr {{ border-color: #f1c40f; }}
         .cred-px {{ border-color: #9b59b6; }} .cred-ipad {{ border-color: #2ecc71; background-color: #f0fff4; }}
         .cred-prov {{ border-color: #e67e22; background-color: #fff3e0; }}
         .label {{ font-weight: bold; display: inline-block; width: 220px; }}
-        .code {{ font-family: monospace; font-size: 16px; background: #e2e8f0; padding: 3px 8px; border-radius: 4px; color: #000; font-weight: bold; letter-spacing: 1px; }}
+        .code {{ font-family: monospace; font-size: 16px; background: #e2e8f0; padding: 3px 8px; border-radius: 4px; color: #0f172a; font-weight: bold; letter-spacing: 1px; }}
     </style>
     </head><body>
-    <div class="no-print" style="background: #e74c3c; color: white; padding: 10px; text-align: center; margin-bottom: 20px; border-radius: 5px; font-size: 13px;">
-        <b>Astuce :</b> Appuyez sur <b>Ctrl + P</b> (ou Cmd + P sur Mac) pour imprimer. Déroulez "Plus de paramètres" et cochez <b>"Graphiques d'arrière-plan"</b> pour afficher les couleurs de l'encadré et des tableaux !
+    <div class="no-print" style="background: #e74c3c; color: white; padding: 10px; text-align: center; margin-bottom: 20px; border-radius: 5px; font-family: Arial, sans-serif; font-size: 13px;">
+        <b>Astuce Impression :</b> Cochez la case <b>"Graphiques d'arrière-plan"</b> (dans Plus de paramètres) pour afficher les beaux encadrés et couleurs !
     </div>"""
 
     for _, row in df_print.iterrows():
         classe = str(row['classe']).upper()
         nom = str(row['nom']).upper()
         prenom = str(row['prenom']).capitalize()
-        date_entree = str(row.get('date_entree', '')).strip()
+        date_entree = str(row.get('date_entree', ''))
         if not date_entree: 
             date_entree = "Septembre 2025"
         code_ipad = calculer_code_ipad(row['date_naissance'])
 
         # ==========================================
-        # PAGE 1 : CONVENTION DE PRÊT (Exactement calquée sur le PDF)
+        # PAGE 1 : CONVENTION DE PRÊT (Si demandée)
         # ==========================================
         if print_convention:
-            if classe.startswith("6"):
-                niveau = "6ème"
-                duree = "4 ans"
+            # --- Paramétrage dynamique selon le niveau (Textes reproduits fidèlement) ---
+            if classe.startswith("6") or classe.startswith("5"):
+                niveau = "6ÈME" if classe.startswith("6") else "5ÈME"
+                duree = "4 ans" if classe.startswith("6") else "3 ans"
+                nb_mois = "40" if classe.startswith("6") else "30"
+                cout_total = "640 €" if classe.startswith("6") else "480 €"
+                
                 art8_texte = f"""
-                <p>La tablette numérique est financée sur la durée de la scolarité selon le cycle.</p>
-                <table class="grid-table">
+                <p>La tablette est financée sur la durée de la scolarité selon le cycle.</p>
+                {"<p>Un élève arrivant en cours de cycle se verra attribuer une tablette d’occasion.</p>" if classe.startswith("5") else ""}
+                <table class="styled-table" style="width: 80%; margin: 8px auto;">
                     <tr><th>Nombre de mensualités</th><th>Montant mensuel</th><th>Coût total</th></tr>
-                    <tr><td>40</td><td>16 €</td><td>640 €</td></tr>
+                    <tr><td>{nb_mois}</td><td>16 €</td><td>{cout_total}</td></tr>
                 </table>
-                <p>Un dernier loyer de 16 € sera appliqué pour lever l'option d'achat.<br>
-                Ces loyers couvrent l'achat de la tablette, ses accessoires, les applications installées par l'établissement, ainsi que l'assurance souscrite par l'établissement.<br>
-                Lors du départ définitif de l'élève, que ce soit de manière anticipée (réorientation, déménagement...) ou à l'issue du cycle scolaire :<br>
-                Soit la famille décide d'acquérir la tablette, sous réserve de son paiement intégral et de la signature d'une attestation de cession de propriété. Toutes les restrictions d'utilisation seront alors levées.<br>
-                Soit la famille ne souhaite pas l'acquérir. Dans ce cas, toute année commencée est due. La tablette et ses accessoires doivent être restitués à l'établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée.</p>
-                """
-            elif classe.startswith("5"):
-                niveau = "5ème"
-                duree = "3 ans"
-                art8_texte = f"""
-                <p>La tablette numérique est financée sur la durée de la scolarité selon le cycle.<br>
-                Un élève arrivant en cours de cycle se verra attribuer une tablette d'occasion.</p>
-                <table class="grid-table">
-                    <tr><th>Nombre de mensualités</th><th>Montant mensuel</th><th>Coût total</th></tr>
-                    <tr><td>30</td><td>16 €</td><td>480 €</td></tr>
-                </table>
-                <p>Un dernier loyer de 16 € sera appliqué pour lever l'option d'achat.<br>
-                Ces loyers couvrent l'achat de la tablette, ses accessoires, les applications installées par l'établissement, ainsi que l'assurance souscrite par l'établissement.<br>
-                Lors du départ définitif de l'élève, que ce soit de manière anticipée (réorientation, déménagement...) ou à l'issue du cycle scolaire :<br>
-                Soit la famille décide d'acquérir la tablette, sous réserve de son paiement intégral et de la signature d'une attestation de cession de propriété. Toutes les restrictions d'utilisation seront alors levées.<br>
-                Soit la famille ne souhaite pas l'acquérir. Dans ce cas, toute année commencée est due. La tablette et ses accessoires doivent être restitués à l'établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée.</p>
-                """
-            elif classe.startswith("4"):
-                niveau = "4ème"
-                duree = "2 ans"
-                art8_texte = f"""
-                <p>La tablette numérique est en location sur la durée des deux années scolaires.<br>
-                L'élève arrivant en classe de 4ème se verra attribuer une tablette d'occasion.<br>
-                Le montant du loyer de 16€ sera prélevé chaque mois de l'année scolaire (de septembre à juin).<br>
-                Ces loyers couvrent la location globale de la tablette (y compris ses accessoires, les applications installées par l'établissement, ainsi que l'assurance souscrite par l'établissement).</p>
-                <table class="grid-table" style="width: 70%; margin: 8px auto;">
-                    <tr><th>Loyer mensuel (septembre à juin)</th><th>Nombre de mensualités (sur 2 ans)</th></tr>
-                    <tr><td>16 €</td><td>20 mois</td></tr>
-                </table>
-                <p>En cas de départ anticipé (réorientation, déménagement...), toute année commencée est due.<br>
-                La tablette et ses accessoires doivent être restitués en parfait état de marche.<br>
-                À l'issue du cycle scolaire la tablette sera récupérée par l'établissement avec une attestation de restitution.</p>
-                <span class="warning-text">⚠️ La tablette est en location uniquement : aucune option d'achat n'est prévue pour les élèves arrivant en 4ème. La tablette reste la propriété exclusive de l'établissement.</span>
+                <p>Un dernier loyer de 16 € sera appliqué pour lever l’option d’achat.<br>
+                Ces loyers couvrent l’achat de la tablette, ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement.</p>
+                <p><b>En cas de départ définitif de l'élève</b><br>
+                Que ce soit de manière anticipée (réorientation, déménagement...) ou à l'issue du cycle scolaire :<br>
+                • <b>Acquisition de la tablette :</b> la famille règle le solde restant et signe une attestation de cession de propriété. Toutes les restrictions d'utilisation sont alors levées.<br>
+                • <b>Restitution :</b> toute année commencée est due. La tablette, ses accessoires et sa boîte d'origine doivent être restitués à l'établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée.</p>
                 """
             else:
-                niveau = "3ème"
-                duree = "1 an"
+                niveau = "4ÈME" if classe.startswith("4") else "3ÈME"
+                duree = "2 ans" if classe.startswith("4") else "1 an"
+                nb_mois = "20" if classe.startswith("4") else "10"
+                loyer_montant = "16 €" if classe.startswith("4") else "14 €"
+                
                 art8_texte = f"""
-                <p>La tablette numérique est en location sur la durée de l'année scolaire.<br>
-                L'élève arrivant en classe de 3ème se verra attribuer une tablette d'occasion.<br>
-                Le montant du loyer de 14€ sera prélevé chaque mois de l'année scolaire (de septembre à juin).<br>
-                Ces loyers couvrent la location globale de la tablette (y compris ses accessoires, les applications installées par l'établissement, ainsi que l'assurance souscrite par l'établissement).</p>
-                <table class="grid-table" style="width: 70%; margin: 8px auto;">
-                    <tr><th>Loyer mensuel (septembre à juin)</th><th>Nombre de mensualités</th></tr>
-                    <tr><td>14 €</td><td>10 mois</td></tr>
+                <p>La tablette numérique est en location sur la durée {"des deux années scolaires" if classe.startswith("4") else "d'une année scolaire"}.<br>
+                L'élève arrivant en classe de {niveau.lower()} se verra attribuer une tablette d'occasion.<br>
+                Le montant du loyer de {loyer_montant} sera prélevé chaque mois de l'année scolaire (de septembre à juin).<br>
+                Ces loyers couvrent la location globale de la tablette, y compris ses accessoires, les applications installées par l'établissement, ainsi que l'assurance souscrite par l'établissement.</p>
+                <table class="styled-table" style="width: 70%; margin: 8px auto;">
+                    <tr><th>Loyer mensuel (septembre à juin)</th><th>Nombre de mensualités{" (sur 2 ans)" if classe.startswith("4") else ""}</th></tr>
+                    <tr><td>{loyer_montant}</td><td>{nb_mois} mois</td></tr>
                 </table>
-                <p>En cas de départ anticipé (réorientation, déménagement...), toute année commencée est due.<br>
-                La tablette et ses accessoires doivent être restitués en parfait état de marche.<br>
-                À l'issue du cycle scolaire la tablette sera récupérée par l'établissement avec une attestation de restitution.</p>
-                <span class="warning-text">⚠️ La tablette est en location uniquement : aucune option d'achat n'est prévue pour les élèves arrivant en 3ème. La tablette reste la propriété exclusive de l'établissement.</span>
+                <span class="warning-text">⚠️ La tablette est en location uniquement : aucune option d'achat n'est prévue pour les élèves arrivant en {niveau.lower()}. La tablette reste la propriété exclusive de l'établissement.</span>
+                <p><b>Fin de convention et départ anticipé</b><br>
+                • <b>Départ anticipé (réorientation, déménagement...) :</b> toute année commencée est due. La tablette et ses accessoires doivent être restitués à l'établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée.<br>
+                • <b>Fin du cycle scolaire :</b> la tablette est restituée à l'établissement, qui remettra une attestation de restitution aux représentants légaux.</p>
                 """
 
             html_content += f"""
             <div class="convention-page page-break">
-                <div class="header">
+                <div class="header-flex">
                     {img_tag}
-                    <div class="title">CONVENTION DE MISE A DISPOSITION D'UN IPAD / TABLETTE NUMERIQUE<br>EDUCATIVE A DESTINATION DES ELEVES</div>
-                    <div class="subtitle">ANNEE SCOLAIRE 2025-2026 - ÉLÈVES DE {niveau.upper()}</div>
+                    <div class="header-text">
+                        <div class="title">CONVENTION DE MISE A DISPOSITION<br>D'UN IPAD / TABLETTE NUMERIQUE</div>
+                        <div class="subtitle">ANNEE SCOLAIRE 2025-2026 - ÉLÈVES DE {niveau}</div>
+                    </div>
                 </div>
 
                 <div class="info-box">
-                    <table class="info-table">
+                    <table class="info-grid">
                         <tr>
                             <td style="width: 50%;">
-                                <b>ÉTABLISSEMENT</b><br>
-                                <div class="checkbox-container">
-                                    ☐ Site Le Devoir<br>
-                                    ☑ Site Saint-Dominique
-                                </div>
+                                <div class="info-label">ÉTABLISSEMENT</div>
+                                <div style="font-size: 11px; margin-top:4px;">☐ Site Le Devoir<br>☑ Site Saint-Dominique</div>
                             </td>
                             <td style="width: 50%;">
-                                <b>DATE D'ENTRÉE :</b> {date_entree}<br><br>
-                                <b>CLASSE :</b> {classe}
+                                <div class="info-label">DATE D'ENTRÉE</div>
+                                <div class="info-val">{date_entree}</div>
                             </td>
                         </tr>
                         <tr>
-                            <td><b>NOM DE L'ÉLÈVE :</b> {nom}</td>
-                            <td><b>PRÉNOM :</b> {prenom}</td>
+                            <td>
+                                <div class="info-label">NOM DE L'ÉLÈVE</div>
+                                <div class="info-val">{nom}</div>
+                            </td>
+                            <td>
+                                <div class="info-label">PRÉNOM</div>
+                                <div class="info-val">{prenom}</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <div class="info-label">CLASSE</div>
+                                <div class="info-val" style="width: 40%;">{classe}</div>
+                            </td>
                         </tr>
                     </table>
                 </div>
 
-                <p>Entre le Groupe Scolaire Saint-Charles, représenté par M. Bruno AUBRIET, chef d'établissement coordinateur,<br>
+                <p style="margin-bottom: 10px;">Entre le Groupe Scolaire Saint-Charles, représenté par M. Bruno AUBRIET, chef d'établissement coordinateur,<br>
                 Et (noms et prénoms des parents) ................................................................................................................................<br>
-                Représentants légaux de l'élève {prenom} {nom} en classe de {classe}<br>
-                Il est convenu ce qui suit :</p>
+                Représentants légaux de l'élève <b>{prenom} {nom}</b> en classe de <b>{classe}</b><br>
+                il est convenu ce qui suit :</p>
 
-                <div class="article-title">1 OBJET DE LA CONVENTION</div>
+                <h3>1 Objet de la convention</h3>
                 <p>La présente convention régit les conditions de mise à disposition d'une tablette numérique par l'établissement à l'élève, pour la durée de sa scolarité dans l'établissement cité ci-dessus.</p>
 
-                <div class="article-title">2 LE MATÉRIEL MIS À DISPOSITION</div>
+                <h3>2 Le matériel mis à disposition</h3>
                 <ul>
                     <li>Une tablette tactile iPad de la marque Apple</li>
                     <li>Une housse de protection</li>
@@ -453,17 +457,17 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
                     <li>Des applications préinstallées et préconfigurées par l'établissement</li>
                 </ul>
 
-                <div class="article-title">3 PROPRIÉTÉ</div>
+                <h3>3 Propriété</h3>
                 <p>La tablette et ses accessoires restent la propriété de l'établissement Saint-Charles jusqu'à leur cession éventuelle en fin de cycle. La revente, la cession, l'échange, le prêt ou la location sont strictement interdits.</p>
 
-                <div class="article-title">4 CONDITIONS DE MISE À DISPOSITION ET DURÉE</div>
+                <h3>4 Conditions de mise à disposition et durée</h3>
                 <p>La tablette est remise à l'élève à la rentrée scolaire ou à la date d'arrivée dans l'établissement. La durée de mise à disposition est de {duree}. Elle est conditionnée à :</p>
                 <ul>
-                    <li>Acceptation sans réserve de la présente convention, datée, signée et paraphée avec la mention manuscrite « lu et accepté » par le ou les représentants légaux et l'élève.</li>
+                    <li>Acceptation sans réserve de la présente convention, datée, signée et paraphée avec la mention manuscrite lu et accepté par le ou les représentants légaux et l'élève.</li>
                     <li>Versement d'une caution de 500 € par chèque uniquement, non daté, à l'ordre de OGEC Saint Charles. Cette caution sera détruite lors de la remise de la tablette en fin de cycle.</li>
                 </ul>
 
-                <div class="article-title">5 ENGAGEMENTS DES ÉLÈVES ET DES RESPONSABLES LÉGAUX</div>
+                <h3>5 Engagements des élèves et des responsables légaux</h3>
                 <p>La tablette est mise à disposition à titre individuel et nominatif. Les usages hors de l'établissement relèvent de la responsabilité des représentants légaux.</p>
                 <ul>
                     <li>Conserver et prendre le plus grand soin de la tablette et de ses accessoires</li>
@@ -482,57 +486,55 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
                 </ul>
                 <p>⚠️ L'établissement met en œuvre un système de supervision (MDM) permettant le contrôle à distance des tablettes : réinitialisation du code de verrouillage, gestion des applications, géolocalisation en cas de perte ou de vol. Les enseignants et la direction peuvent accéder aux dossiers pour vérifier le travail accompli.</p>
 
-                <div class="article-title">6 PROTECTION DES DONNÉES</div>
+                <h3>6 Protection des données</h3>
                 <p>Les données collectées auprès des élèves sont nécessaires à la bonne gestion et à la sécurisation des systèmes d'information. Elles sont supprimées en fin de scolarité et le compte désactivé.</p>
 
-                <div class="article-title">7 PANNES, BRIS, PERTE OU VOL</div>
+                <h3>7 Pannes, bris, perte ou vol</h3>
                 <p>Aucune intervention externe n'est autorisée. Tout problème, incident, panne ou casse relatifs à la tablette, aux accessoires ou aux applications installées doit être signalé immédiatement via la déclaration de dysfonctionnement et/ou de dommages (document disponible auprès de la vie scolaire). Le remplacement du matériel est assuré par l'établissement.</p>
                 
-                <table class="grid-table left-align">
+                <table class="styled-table left-align">
                     <tr><th style="width:50%;">BRIS OU PANNE</th><th style="width:50%;">PERTE OU VOL</th></tr>
                     <tr>
                         <td>Aucune réparation externe n'est autorisée. L'établissement prend en charge le remplacement du matériel défectueux.</td>
                         <td>Une plainte (vol) ou une main courante (perte) devra obligatoirement être déposée immédiatement auprès des services de Police ou de Gendarmerie compétents. Le récépissé devra être transmis à l'établissement par courrier postal ou voie électronique dans un délai de 48 heures.</td>
                     </tr>
                 </table>
-                <table class="grid-table">
-                    <tr><th colspan="4">FRANCHISE APPLICABLE (BRIS, PANNE, PERTE OU VOL)</th></tr>
+                <table class="styled-table">
+                    <tr><th colspan="4" style="background-color:#94a3b8; color:#fff;">FRANCHISE APPLICABLE (BRIS, PANNE, PERTE OU VOL)</th></tr>
                     <tr>
-                        <td style="width:25%;">1ER INCIDENT<br><b>100 €</b></td>
-                        <td style="width:25%;">2E INCIDENT<br><b>200 €</b></td>
-                        <td style="width:25%;">3E INCIDENT<br><b>300 €</b></td>
-                        <td style="width:25%;">4E INCIDENT ET +<br><b>+100 € / incident</b></td>
+                        <td style="width:25%;">1ER INCIDENT<br><b style="font-size:11px; color:#1e3a5f;">100 €</b></td>
+                        <td style="width:25%;">2E INCIDENT<br><b style="font-size:11px; color:#1e3a5f;">200 €</b></td>
+                        <td style="width:25%;">3E INCIDENT<br><b style="font-size:11px; color:#1e3a5f;">300 €</b></td>
+                        <td style="width:25%;">4E INCIDENT ET +<br><b style="font-size:11px; color:#e74c3c;">+100 € / incident</b></td>
                     </tr>
                 </table>
-                <p style="font-size:8px; text-align:center; color:#666;">Au-delà du 3ème incident, chaque incident supplémentaire est facturé 100 € de plus que le précédent.</p>
+                <p style="font-size:8px; text-align:center; color:#64748b;">Au-delà du 3e incident, chaque incident supplémentaire est facturé 100 € de plus que le précédent (4e = 400 €, 5e = 500 € etc.).</p>
 
-                <div class="article-title">8 CONDITIONS FINANCIÈRES</div>
+                <h3>8 Conditions financières</h3>
                 {art8_texte}
 
-                <div class="article-title">9 SANCTIONS</div>
+                <h3>9 Sanctions</h3>
                 <p>Tout manquement à la présente convention expose l'élève à une confiscation de la tablette et à des sanctions disciplinaires pouvant aller jusqu'à l'exclusion. Tarifs de refacturation en cas de dégradation :</p>
-                <table class="grid-table" style="width:80%; margin:8px auto;">
-                    <tr><td>Vitre de protection</td><td><b>15 €</b></td><td>Câble Apple</td><td><b>25 €</b></td></tr>
-                    <tr><td>Bloc alimentation Apple</td><td><b>25 €</b></td><td>Coque de protection</td><td><b>25 €</b></td></tr>
+                <table class="styled-table" style="width:70%; margin:8px auto;">
+                    <tr><td style="text-align:left;">Vitre de protection</td><td><b>15 €</b></td><td style="text-align:left;">Câble Apple</td><td><b>25 €</b></td></tr>
+                    <tr><td style="text-align:left;">Bloc alimentation Apple</td><td><b>25 €</b></td><td style="text-align:left;">Coque de protection</td><td><b>25 €</b></td></tr>
                 </table>
-                <span class="warning-text" style="text-align:center; display:block;">⚠️ La tablette et l'ensemble de ses accessoires de marque Apple restent la propriété exclusive de l'Établissement Saint-Charles jusqu'à cession effective. Tout remplacement par des accessoires non d'origine Apple est strictement interdit.</span>
+                <span class="warning-text">⚠️ La tablette et l'ensemble de ses accessoires de marque Apple restent la propriété exclusive de l'Établissement Saint-Charles jusqu'à cession effective. Tout remplacement par des accessoires non d'origine Apple est strictement interdit.</span>
 
+                <div style="font-weight:bold; margin-top:15px; text-transform:uppercase; font-size: 11px;">SIGNATURES - Fait à Chalon-sur-Saône, le ........................................</div>
                 <table class="footer-sigs">
                     <tr>
-                        <td colspan="3" style="border:none; text-align:left; height:auto; padding-bottom:5px;"><b>Fait à Chalon-sur-Saône, le ........................................</b></td>
-                    </tr>
-                    <tr>
-                        <td><b>SIGNATURE DE L'ÉLÈVE</b><br><br><br><br><span style="font-size:8px; color:#666;">Lu et accepté</span></td>
-                        <td><b>SIGNATURE DES REPRÉSENTANTS LÉGAUX</b><br><br><br><br><span style="font-size:8px; color:#666;">Lu et accepté</span></td>
-                        <td><b>CACHET ET SIGNATURE DE LA DIRECTION</b><br><br><br><br></td>
+                        <td><b>SIGNATURE DE L'ÉLÈVE</b><br><br><br><br><span style="font-size:8px; color:#64748b;">Lu et accepté</span></td>
+                        <td><b>SIGNATURE DES REPRÉSENTANTS LÉGAUX</b><br><br><br><br><span style="font-size:8px; color:#64748b;">Lu et accepté</span></td>
+                        <td><b>CACHET ET SIGNATURE DU CHEF D'ÉTABLISSEMENT</b><br><br><br><br></td>
                     </tr>
                 </table>
-                <div style="text-align:center; font-size:8px; margin-top:10px; color:#666;">OGEC Saint-Charles Borromée - 3 rue du Général Giraud - 71100 Chalon-sur-Saône - Tél. 03.85.45.83.35</div>
+                <div style="text-align:center; font-size:8px; margin-top:8px; color:#94a3b8;">OGEC Saint-Charles Borromée - 3 rue du Général Giraud - 71100 Chalon-sur-Saône - Tél. 03.85.45.83.35</div>
             </div>
             """
 
         # ==========================================
-        # PAGE 2 : CARTE IDENTIFIANTS (Séparée et Sécurisée)
+        # PAGE 2 : CARTE IDENTIFIANTS (Uniquement si au moins une option est cochée)
         # ==========================================
         if print_ed or print_dr or print_px or print_prov or print_ipad:
             html_content += f"""
@@ -1402,7 +1404,7 @@ elif (is_admin or is_compta) and menu == "📦 Restitutions (Fin d'année)":
         c2.metric("🔓 iPads à libérer du MDM", len(df_rest[df_rest['statut_ipad'] != 'Location']))
         cols_to_show = ["nom", "prenom", "classe", "statut_ipad", "Action Requise"]
         st.dataframe(df_rest[cols_to_show], use_container_width=True, hide_index=True)
-        st.download_button("📥 Exporter la liste de fin d'année", df_rest[cols_to_show].to_csv(index=False).encode('utf-8'), "actions_ipads_3eme.csv")
+        st.download_button("📥 Exporter la liste de fin d'année", df_rest[df_rest['statut_ipad'] == 'Location'][['nom', 'prenom', 'classe']].to_csv(index=False).encode('utf-8'), "actions_ipads_3eme.csv")
 
 
 # ==========================================
