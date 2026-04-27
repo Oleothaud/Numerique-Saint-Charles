@@ -246,24 +246,37 @@ def calculer_bilan_logistique(df_eleves, df_incidents):
 # ==========================================
 # 📄 GÉNÉRATEUR PDF HTML
 # ==========================================
-def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_prov, print_ipad):
+def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_prov, print_ipad, print_conv=False):
     html_content = """
     <html><head><meta charset="utf-8">
-    <title>Conventions - """ + cible_titre + """</title>
+    <title>Documents - """ + cible_titre + """</title>
     <style>
         @media print { .page-break { page-break-after: always; } .no-print { display: none; } }
-        body { font-family: "Arial", sans-serif; color: #000; margin: 0; padding: 0; line-height: 1.15; font-size: 10px; }
-        .convention-page { padding: 20px; position: relative; }
-        .header { text-align: center; margin-bottom: 10px; }
-        .title { font-weight: bold; font-size: 12px; margin-bottom: 2px; }
-        .subtitle { font-weight: bold; font-size: 11px; margin-bottom: 8px; }
-        h3 { font-size: 11px; margin-top: 8px; margin-bottom: 2px; text-decoration: underline; }
-        p, li { text-align: justify; margin: 2px 0; }
-        ul { margin: 2px 0; padding-left: 20px; }
+        body { font-family: "Arial", sans-serif; color: #333; margin: 0; padding: 0; }
+        
+        /* Styles pour la Fiche Identifiants (Card) */
+        .card { border: 2px solid #1e3a5f; border-radius: 8px; padding: 15px; margin-bottom: 15px; page-break-inside: avoid; background-color: #f9fbfd; font-size: 14px; }
+        .header-card { font-size: 16px; font-weight: bold; border-bottom: 2px solid #1e3a5f; padding-bottom: 6px; margin-bottom: 10px; color: #1e3a5f; }
+        .cred-row { font-size: 14px; margin: 6px 0; padding: 6px; background: #fff; border-radius: 5px; border-left: 4px solid; color: #1e3a5f; }
+        .cred-ed { border-color: #3498db; } .cred-dr { border-color: #f1c40f; }
+        .cred-px { border-color: #9b59b6; } .cred-ipad { border-color: #2ecc71; background-color: #f0fff4; }
+        .cred-prov { border-color: #e67e22; background-color: #fff3e0; }
+        .label { font-weight: bold; display: inline-block; width: 220px; }
+        .code { font-family: monospace; font-size: 15px; background: #eee; padding: 2px 6px; border-radius: 4px; }
+        .warning { font-size: 13px; color: #c0392b; margin-bottom: 10px; font-weight: bold; text-decoration: underline; }
+        
+        /* Styles pour la Convention A4 */
+        .convention-page { padding: 20px; position: relative; line-height: 1.15; font-size: 10px; color: #000; }
+        .header-conv { text-align: center; margin-bottom: 10px; }
+        .title-conv { font-weight: bold; font-size: 12px; margin-bottom: 2px; text-decoration: underline; }
+        .subtitle-conv { font-weight: bold; font-size: 11px; margin-bottom: 8px; }
+        .convention-page h3 { font-size: 11px; margin-top: 8px; margin-bottom: 2px; text-decoration: underline; color: #000; font-weight: bold; }
+        .convention-page p, .convention-page li { text-align: justify; margin: 2px 0; }
+        .convention-page ul { margin: 2px 0; padding-left: 20px; }
         .info-block { margin-bottom: 10px; }
-        .credentials-box { border: 2px dashed #004a99; background: #f2f7ff; padding: 6px; margin: 8px 0; font-size: 10px; }
-        .footer-sigs { margin-top: 10px; width: 100%; border-collapse: collapse; }
+        .footer-sigs { margin-top: 15px; width: 100%; border-collapse: collapse; }
         .footer-sigs td { border: 1px solid #000; width: 50%; height: 50px; vertical-align: top; padding: 5px; font-size: 10px; }
+        .st-charles-footer { text-align: center; font-size: 9px; margin-top: 10px; color: #444; }
     </style>
     </head><body>
     <div class="no-print" style="background: #e74c3c; color: white; padding: 10px; text-align: center; margin-bottom: 20px; border-radius: 5px;">
@@ -277,164 +290,176 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
         date_entree = str(row.get('date_entree', ''))
         if not date_entree: 
             date_entree = "........................"
+        code_ipad = calculer_code_ipad(row['date_naissance'])
 
-        # --- REPRODUCTION INTÉGRALE DES TEXTES PAR NIVEAU ---
-        if classe.startswith("6"):
-            niveau = "6ÈME"
-            duree = "4 ans"
-            art8_texte = """La tablette numérique est financée sur la durée de la scolarité selon le cycle.<br>
-            <b>Nombre de mensualités : 40 | Montant mensuel : 16 € | Coût total : 640 €</b><br>
-            Un dernier loyer de 16 € sera appliqué pour lever l’option d’achat.<br>
-            Ces loyers couvrent l’achat de la tablette, ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement.<br>
-            Lors du départ définitif de l’élève, que ce soit de manière anticipée (réorientation, déménagement…) ou à l’issue du cycle scolaire :<br>
-            Soit la famille décide d’acquérir la tablette, sous réserve de son paiement intégral et de la signature d’une attestation de cession de propriété. Toutes les restrictions d’utilisation seront alors levées.<br>
-            Soit la famille ne souhaite pas l’acquérir. Dans ce cas, toute année commencée est due. La tablette et ses accessoires doivent être restitués à l’établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée."""
-        elif classe.startswith("5"):
-            niveau = "5ÈME"
-            duree = "3 ans"
-            art8_texte = """La tablette numérique est financée sur la durée de la scolarité selon le cycle.<br>
-            Un élève arrivant en cours de cycle se verra attribuer une tablette d’occasion.<br>
-            <b>Nombre de mensualités : 30 | Montant mensuel : 16 € | Coût total : 480 €</b><br>
-            Un dernier loyer de 16 € sera appliqué pour lever l’option d’achat.<br>
-            Ces loyers couvrent l’achat de la tablette, ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement.<br>
-            Lors du départ définitif de l’élève, que ce soit de manière anticipée (réorientation, déménagement…) ou à l’issue du cycle scolaire :<br>
-            Soit la famille décide d’acquérir la tablette, sous réserve de son paiement intégral et de la signature d’une attestation de cession de propriété. Toutes les restrictions d’utilisation seront alors levées.<br>
-            Soit la famille ne souhaite pas l’acquérir. Dans ce cas, toute année commencée est due. La tablette et ses accessoires doivent être restitués à l’établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée."""
-        elif classe.startswith("4"):
-            niveau = "4ÈME"
-            duree = "2 ans"
-            art8_texte = """La tablette numérique est en location sur la durée des deux années scolaires.<br>
-            L’élève arrivant en classe de 4ème se verra attribuer une tablette d’occasion.<br>
-            Le montant du loyer de 16€ sera prélevé chaque mois de l’année scolaire (de septembre à juin).<br>
-            Ces loyers couvrent la location globale de la tablette (y compris ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement).<br>
-            En cas de départ anticipé (réorientation, déménagement…), toute année commencée est due.<br>
-            La tablette et ses accessoires doivent être restitués en parfait état de marche.<br>
-            À l’issue du cycle scolaire la tablette sera récupérée par l’établissement avec une attestation de restitution."""
-        else:
-            niveau = "3ÈME"
-            duree = "1 an"
-            art8_texte = """La tablette numérique est en location sur la durée de l'année scolaire.<br>
-            L’élève arrivant en classe de 3ème se verra attribuer une tablette d’occasion.<br>
-            Le montant du loyer de 14€ sera prélevé chaque mois de l’année scolaire (de septembre à juin).<br>
-            Ces loyers couvrent la location globale de la tablette (y compris ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement).<br>
-            En cas de départ anticipé (réorientation, déménagement…), toute année commencée est due.<br>
-            La tablette et ses accessoires doivent être restitués en parfait état de marche.<br>
-            À l’issue du cycle scolaire la tablette sera récupérée par l’établissement avec une attestation de restitution."""
+        # ==========================================
+        # PARTIE 1 : LA CONVENTION (Si demandée)
+        # ==========================================
+        if print_conv:
+            if classe.startswith("6"):
+                niveau, duree = "6ÈME", "4 ans"
+                art8_texte = """La tablette numérique est financée sur la durée de la scolarité selon le cycle.<br>
+                <b>Nombre de mensualités : 40 | Montant mensuel : 16 € | Coût total : 640 €</b><br>
+                Un dernier loyer de 16 € sera appliqué pour lever l’option d’achat.<br>
+                Ces loyers couvrent l’achat de la tablette, ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement.<br>
+                Lors du départ définitif de l’élève, que ce soit de manière anticipée (réorientation, déménagement…) ou à l’issue du cycle scolaire :<br>
+                Soit la famille décide d’acquérir la tablette, sous réserve de son paiement intégral et de la signature d’une attestation de cession de propriété. Toutes les restrictions d’utilisation seront alors levées.<br>
+                Soit la famille ne souhaite pas l’acquérir. Dans ce cas, toute année commencée est due. La tablette et ses accessoires doivent être restitués à l’établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée."""
+            elif classe.startswith("5"):
+                niveau, duree = "5ÈME", "3 ans"
+                art8_texte = """La tablette numérique est financée sur la durée de la scolarité selon le cycle.<br>
+                Un élève arrivant en cours de cycle se verra attribuer une tablette d’occasion.<br>
+                <b>Nombre de mensualités : 30 | Montant mensuel : 16 € | Coût total : 480 €</b><br>
+                Un dernier loyer de 16 € sera appliqué pour lever l’option d’achat.<br>
+                Ces loyers couvrent l’achat de la tablette, ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement.<br>
+                Lors du départ définitif de l’élève, que ce soit de manière anticipée (réorientation, déménagement…) ou à l’issue du cycle scolaire :<br>
+                Soit la famille décide d’acquérir la tablette, sous réserve de son paiement intégral et de la signature d’une attestation de cession de propriété. Toutes les restrictions d’utilisation seront alors levées.<br>
+                Soit la famille ne souhaite pas l’acquérir. Dans ce cas, toute année commencée est due. La tablette et ses accessoires doivent être restitués à l’établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée."""
+            elif classe.startswith("4"):
+                niveau, duree = "4ÈME", "2 ans"
+                art8_texte = """La tablette numérique est en location sur la durée des deux années scolaires.<br>
+                L’élève arrivant en classe de 4ème se verra attribuer une tablette d’occasion.<br>
+                Le montant du loyer de 16€ sera prélevé chaque mois de l’année scolaire (de septembre à juin).<br>
+                Ces loyers couvrent la location globale de la tablette (y compris ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement).<br>
+                En cas de départ anticipé (réorientation, déménagement…), toute année commencée est due.<br>
+                La tablette et ses accessoires doivent être restitués en parfait état de marche.<br>
+                À l’issue du cycle scolaire la tablette sera récupérée par l’établissement avec une attestation de restitution."""
+            else:
+                niveau, duree = "3ÈME", "1 an"
+                art8_texte = """La tablette numérique est en location sur la durée de l'année scolaire.<br>
+                L’élève arrivant en classe de 3ème se verra attribuer une tablette d’occasion.<br>
+                Le montant du loyer de 14€ sera prélevé chaque mois de l’année scolaire (de septembre à juin).<br>
+                Ces loyers couvrent la location globale de la tablette (y compris ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement).<br>
+                En cas de départ anticipé (réorientation, déménagement…), toute année commencée est due.<br>
+                La tablette et ses accessoires doivent être restitués en parfait état de marche.<br>
+                À l’issue du cycle scolaire la tablette sera récupérée par l’établissement avec une attestation de restitution."""
 
-        html_content += f"""
-        <div class="convention-page page-break">
-            <div class="header">
-                <div class="title">CONVENTION DE MISE A DISPOSITION D’UN IPAD / TABLETTE NUMERIQUE EDUCATIVE A DESTINATION DES ELEVES</div>
-                <div class="subtitle">ANNEE SCOLAIRE 2025-26 - ÉLÈVES DE {niveau}</div>
-            </div>
+            html_content += f"""
+            <div class="convention-page page-break">
+                <div class="header-conv">
+                    <div class="title-conv">CONVENTION DE MISE A DISPOSITION D’UN IPAD / TABLETTE NUMERIQUE EDUCATIVE A DESTINATION DES ELEVES</div>
+                    <div class="subtitle-conv">ANNEE SCOLAIRE 2025-26 - ÉLÈVES DE {niveau}</div>
+                </div>
 
-            <div class="info-block">
-                <b>Etablissement :</b> Collège Saint Charles<br>
-                <b>Classe :</b> {classe}<br>
-                <b>Nom élève :</b> {nom}<br>
-                <b>Prénom :</b> {prenom}<br>
-                <b>Date entrée dans l’établissement :</b> {date_entree}<br><br>
-                Entre le groupe scolaire St Charles représenté par Mr Bruno AUBRIET, chef d’établissement coordinateur,<br>
-                Et (noms et prénoms des parents) ....................................................................................................<br>
-                Représentants légaux de l’élève {prenom} {nom} en classe de {classe}<br>
-                Il est convenu ce qui suit :
-            </div>
+                <div class="info-block">
+                    <b>Etablissement :</b> Collège Saint Charles<br>
+                    <b>Classe :</b> {classe}<br>
+                    <b>Nom élève :</b> {nom}<br>
+                    <b>Prénom :</b> {prenom}<br>
+                    <b>Date entrée dans l’établissement :</b> {date_entree}<br><br>
+                    Entre le groupe scolaire St Charles représenté par Mr Bruno AUBRIET, chef d’établissement coordinateur,<br>
+                    Et (noms et prénoms des parents) ....................................................................................................<br>
+                    Représentants légaux de l’élève {prenom} {nom} en classe de {classe}<br>
+                    Il est convenu ce qui suit :
+                </div>
 
-            <div class="credentials-box">
-                <b>🔑 IDENTIFIANTS NUMÉRIQUES DE L'ÉLÈVE (À CONSERVER) :</b><br>
-                <table style="width:100%; font-size:10px; margin-top:2px;">"""
-        
-        if print_ed: html_content += f"<tr><td>🔵 Ecole Directe :</td><td>ID : <b>{row['id_ed']}</b> | MDP : <b>{row['mdp_ed']}</b></td></tr>"
-        if print_prov and 'id_ed_prov' in row and str(row['id_ed_prov']).strip() != "":
-            html_content += f"<tr><td>🟠 ED (Provisoire) :</td><td>ID : <b>{row['id_ed_prov']}</b> | MDP : <b>{row['mdp_ed_prov']}</b></td></tr>"
-        if print_dr: html_content += f"<tr><td>🟡 Drive :</td><td>ID : <b>{row['id_mail']}</b> | MDP : <b>{row['mdp_mail']}</b></td></tr>"
-        if print_px: html_content += f"<tr><td>🟣 Pix :</td><td>ID : <b>{row['id_pix']}</b> | MDP : <b>{row['mdp_pix']}</b></td></tr>"
-        if print_ipad: html_content += f"<tr><td>📱 Code iPad :</td><td><b>{calculer_code_ipad(row['date_naissance'])}</b></td></tr>"
+                <h3>Article 1 : Objet de la convention</h3>
+                <p>La présente convention régit les conditions de mise à disposition d’une tablette numérique par l’établissement à l’élève, pour la durée de sa scolarité dans l’établissement cité ci-dessus.</p>
 
-        html_content += f"""
+                <h3>Article 2 : Le matériel mis à disposition</h3>
+                <ul>
+                    <li>Une tablette tactile Ipad de la marque Apple</li>
+                    <li>Une housse de protection</li>
+                    <li>Un adaptateur secteur et un câble d'alimentation marque IPAD pour la tablette</li>
+                    <li>Des applications préinstallées et préconfigurées</li>
+                </ul>
+
+                <h3>Article 3 : Propriété</h3>
+                <p>La tablette et les accessoires mis à disposition font partie des outils pédagogiques, et restent la propriété de l’établissement Saint Charles{' jusqu’à ce que ces derniers soient cédés aux élèves en fin de cycle scolaire' if classe.startswith('6') or classe.startswith('5') else ''}.<br>
+                La revente, la cession, même à titre gratuit, l'échange, le prêt, la location, de la tablette et de ses accessoires sont donc strictement interdits.<br>
+                Au moment du départ, le référent indiquera la procédure de sauvegarde des fichiers sur un outil de stockage personnel.</p>
+
+                <h3>Article 4 : Conditions de mise à disposition et durée</h3>
+                <p>L’Etablissement procède à la remise de la tablette à l'élève à la rentrée scolaire ou à la date d’arrivée dans l’établissement.<br>
+                La durée de mise à disposition est de {duree}.<br>
+                La mise à disposition reste conditionnée aux étapes suivantes :</p>
+                <ul>
+                    <li>Acceptation sans réserve de la présente convention de prêt et d'utilisation de la tablette tactile numérique datée, signée, et paraphée avec la mention manuscrite « lu et accepté » par le ou les représentants légaux et l'élève.</li>
+                    <li>Versement d'une caution de 500 € par chèque uniquement et non daté (non encaissé, à l'ordre de « OGEC Saint Charles »).</li>
+                </ul>
+                <p>Cette caution sera détruite par l’établissement lors de la remise de la tablette en fin de cycle.{' Pour toute tablette non restituée, la caution sera immédiatement encaissée.' if classe.startswith('3') or classe.startswith('4') else ''}</p>
+
+                <h3>Article 5 : Les engagements des élèves et des responsables</h3>
+                <p>La tablette est mise à disposition de l'élève à titre individuel et nominatif. L'usage du matériel est réservé à l'élève dont l'identité figure sur la présente convention.<br>
+                Les usages hors enceinte de l’Etablissement relèvent de l'autorité et de la responsabilité du ou des représentants légaux.<br>
+                La signature de la présente convention par l'un des représentants légaux et de l'élève constitue l'acceptation de la remise de la tablette et de la détention de la tablette et des accessoires par l'élève.<br>
+                <b>L’élève et ses représentant légaux s’engagent à :</b></p>
+                <ul>
+                    <li>Conserver et à prendre le plus grand soin de la tablette et des accessoires confiés</li>
+                    <li>Garder la tablette dans la housse de protection et à l’abri des regards notamment dans les transports scolaires</li>
+                    <li>Ne pas dégrader le matériel (pas d’inscription, pas d’autocollant)</li>
+                    <li>Charger la tablette à 100% tous les soirs</li>
+                    <li>Ne pas modifier la configuration initiale, respecter les réglages installés</li>
+                    <li>Ne pas modifier ou détruire des fichiers sans autorisation</li>
+                    <li>Ne pas prêter la tablette ou la mettre à la disposition d’autres personnes</li>
+                </ul>
+                <p><b>En classe :</b></p>
+                <ul>
+                    <li>Rester sur l’application demandée par le professeur et bien classer ses cours</li>
+                    <li>Ne pas naviguer sur internet sans autorisation : ni jeux, ni réseaux sociaux, ne rien publier</li>
+                    <li>Ne pas prendre de photos, ni vidéo sans autorisation</li>
+                    <li>Ne pas utiliser l’Apple TV ni l’air Drop sans autorisation</li>
+                </ul>
+                <p>L'intégrité du système d'exploitation est contrôlée par l’établissement afin d'empêcher des fonctionnements non autorisés de la tablette.<br>
+                Pour garantir l'utilisation de la tablette, l’Établissement met en œuvre un système de supervision de chaque tablette permettant son contrôle grâce à un logiciel de gestion de terminaux mobiles. Ce système de supervision permet d'appliquer des actions à distance telles que la réinitialisation du code de verrouillage, les réglages sur la tablette et de mettre à disposition des applications sélectionnées par l’Etablissement. Il permet aussi de géo localiser la tablette en cas de perte ou de vol.<br>
+                Les enseignants ou le personnel de direction peuvent accéder aux dossiers de l'élève pour vérifier le travail accompli ou en cours.</p>
+
+                <h3>Article 6 : Protection des données</h3>
+                <p>À toutes fins utiles, il est rappelé que les données collectées auprès des élèves sont obligatoires aux fins de bonne gestion, d'organisation et de sécurisation des systèmes d'information et de communication. Les données stockées sont supprimées à la fin de la scolarité et le compte désactivé.</p>
+
+                <h3>Article 7 : Pannes, bris, perte ou vol</h3>
+                <p><b>En cas de panne ou de bris</b><br>
+                La maintenance de la tablette, des accessoires et des logiciels et applications associés est de la compétence de l’Etablissement et de son prestataire. Aucune intervention externe n'est autorisée sur la tablette et ses accessoires. L'élève et son ou ses représentants légaux ne devront en aucun cas faire réparer ou remplacer un élément de la tablette.<br>
+                Tout problème, incident, panne ou casse relatifs à la tablette, aux accessoires, aux applications installées doit être immédiatement signalé au référent numérique. Le remplacement éventuel du matériel se fera par l’établissement.<br>
+                En cas de bris, une franchise sera appliquée de la manière suivante : 100€ pour un premier envoi, 200€ pour un deuxième, 300€ pour un troisième…</p>
+                <p><b>En cas de perte ou de vol</b><br>
+                En cas de vol ou de perte, une plainte ou une main courante (uniquement en cas de perte) devra obligatoirement être déposée immédiatement auprès des services de Police ou de Gendarmerie compétents territorialement par le ou les représentants légaux. Le récépissé devra être envoyé soit par courrier postal, soit par voie électronique à l’Etablissement, et ce, dans un délai de 48 heures à compter de la date indiquée sur le récépissé.<br>
+                Le dispositif de géolocalisation à distance pourra être activé de manière exceptionnelle et ponctuelle afin de la retrouver. Les données relatives à la géolocalisation, susceptibles d'être enregistrées ne le seront donc, qu'à partir de la déclaration de perte, de vol ou d'abus de confiance.<br>
+                En cas de perte ou vol, une franchise sera appliquée de la manière suivante : 100€ pour un premier envoi, 200€ pour un deuxième, 300€ pour un troisième…</p>
+
+                <h3>Article 8 : Conditions financières</h3>
+                <p>{art8_texte}</p>
+
+                <h3>Article 9 : Sanctions</h3>
+                <p>En cas de manquement à la présente convention et de violation d'une disposition réglementaire, l'élève s'expose à une confiscation de la tablette par l’Etablissement ainsi qu'à des sanctions disciplinaires.<br>
+                En cas de mauvais usage, de revente, cession, échange, prêt ou location de la tablette et des accessoires, le matériel sera repris et des sanctions pouvant aller jusqu’à l’exclusion seront prises.<br>
+                Les accessoires et la tablette de marque Apple sont la propriété de l’ensemble St Charles. Toute casse ou perte entraine la refacturation de ceux-ci. Le remplacement par des accessoires standards est interdit.<br>
+                En cas de dégradation, la refacturation suivante sera opérée : Vitre de protection 15 € | Câble Apple 25 € | Bloc alimentation Apple 25 € | Coque 25 €.</p>
+
+                <table class="footer-sigs">
+                    <tr>
+                        <td>Le : ........................................<br><br><b>Elève</b><br><span style="font-size:9px;">(noter lu et accepté + signature)</span></td>
+                        <td><br><br><b>Représentants légaux</b><br><span style="font-size:9px;">(noter lu et accepté + signature)</span></td>
+                    </tr>
                 </table>
+                <div class="st-charles-footer">Collège Saint Charles - Chalon-sur-Saône - Pôle Numérique</div>
             </div>
+            """
 
-            <h3>Article 1 : Objet de la convention</h3>
-            <p>La présente convention régit les conditions de mise à disposition d’une tablette numérique par l’établissement à l’élève, pour la durée de sa scolarité dans l’établissement cité ci-dessus.</p>
-
-            <h3>Article 2 : Le matériel mis à disposition</h3>
-            <ul>
-                <li>Une tablette tactile Ipad de la marque Apple</li>
-                <li>Une housse de protection</li>
-                <li>Un adaptateur secteur et un câble d'alimentation marque IPAD pour la tablette</li>
-                <li>Des applications préinstallées et préconfigurées</li>
-            </ul>
-
-            <h3>Article 3 : Propriété</h3>
-            <p>La tablette et les accessoires mis à disposition font partie des outils pédagogiques, et restent la propriété de l’établissement Saint Charles{' jusqu’à ce que ces derniers soient cédés aux élèves en fin de cycle scolaire' if classe.startswith('6') or classe.startswith('5') else ''}.<br>
-            La revente, la cession, même à titre gratuit, l'échange, le prêt, la location, de la tablette et de ses accessoires sont donc strictement interdits.<br>
-            Au moment du départ, le référent indiquera la procédure de sauvegarde des fichiers sur un outil de stockage personnel.</p>
-
-            <h3>Article 4 : Conditions de mise à disposition et durée</h3>
-            <p>L’Etablissement procède à la remise de la tablette à l'élève à la rentrée scolaire ou à la date d’arrivée dans l’établissement.<br>
-            La durée de mise à disposition est de {duree}.<br>
-            La mise à disposition reste conditionnée aux étapes suivantes :</p>
-            <ul>
-                <li>Acceptation sans réserve de la présente convention de prêt et d'utilisation de la tablette tactile numérique datée, signée, et paraphée avec la mention manuscrite « lu et accepté » par le ou les représentants légaux et l'élève.</li>
-                <li>Versement d'une caution de 500 € par chèque uniquement et non daté (non encaissé, à l'ordre de « OGEC Saint Charles »).</li>
-            </ul>
-            <p>Cette caution sera détruite par l’établissement lors de la remise de la tablette en fin de cycle.{' Pour toute tablette non restituée, la caution sera immédiatement encaissée.' if classe.startswith('3') or classe.startswith('4') else ''}</p>
-
-            <h3>Article 5 : Les engagements des élèves et des responsables</h3>
-            <p>La tablette est mise à disposition de l'élève à titre individuel et nominatif. L'usage du matériel est réservé à l'élève dont l'identité figure sur la présente convention.<br>
-            Les usages hors enceinte de l’Etablissement relèvent de l'autorité et de la responsabilité du ou des représentants légaux.<br>
-            La signature de la présente convention par l'un des représentants légaux et de l'élève constitue l'acceptation de la remise de la tablette et de la détention de la tablette et des accessoires par l'élève.<br>
-            <b>L’élève et ses représentant légaux s’engagent à :</b></p>
-            <ul>
-                <li>Conserver et à prendre le plus grand soin de la tablette et des accessoires confiés</li>
-                <li>Garder la tablette dans la housse de protection et à l’abri des regards notamment dans les transports scolaires</li>
-                <li>Ne pas dégrader le matériel (pas d’inscription, pas d’autocollant)</li>
-                <li>Charger la tablette à 100% tous les soirs</li>
-                <li>Ne pas modifier la configuration initiale, respecter les réglages installés</li>
-                <li>Ne pas modifier ou détruire des fichiers sans autorisation</li>
-                <li>Ne pas prêter la tablette ou la mettre à la disposition d’autres personnes</li>
-            </ul>
-            <p><b>En classe :</b></p>
-            <ul>
-                <li>Rester sur l’application demandée par le professeur et bien classer ses cours</li>
-                <li>Ne pas naviguer sur internet sans autorisation : ni jeux, ni réseaux sociaux, ne rien publier</li>
-                <li>Ne pas prendre de photos, ni vidéo sans autorisation</li>
-                <li>Ne pas utiliser l’Apple TV ni l’air Drop sans autorisation</li>
-            </ul>
-            <p>L'intégrité du système d'exploitation est contrôlée par l’établissement afin d'empêcher des fonctionnements non autorisés de la tablette.<br>
-            Pour garantir l'utilisation de la tablette, l’Établissement met en œuvre un système de supervision de chaque tablette permettant son contrôle grâce à un logiciel de gestion de terminaux mobiles. Ce système de supervision permet d'appliquer des actions à distance telles que la réinitialisation du code de verrouillage, les réglages sur la tablette et de mettre à disposition des applications sélectionnées par l’Etablissement. Il permet aussi de géo localiser la tablette en cas de perte ou de vol.<br>
-            Les enseignants ou le personnel de direction peuvent accéder aux dossiers de l'élève pour vérifier le travail accompli ou en cours.</p>
-
-            <h3>Article 6 : Protection des données</h3>
-            <p>À toutes fins utiles, il est rappelé que les données collectées auprès des élèves sont obligatoires aux fins de bonne gestion, d'organisation et de sécurisation des systèmes d'information et de communication. Les données stockées sont supprimées à la fin de la scolarité et le compte désactivé.</p>
-
-            <h3>Article 7 : Pannes, bris, perte ou vol</h3>
-            <p><b>En cas de panne ou de bris</b><br>
-            La maintenance de la tablette, des accessoires et des logiciels et applications associés est de la compétence de l’Etablissement et de son prestataire. Aucune intervention externe n'est autorisée sur la tablette et ses accessoires. L'élève et son ou ses représentants légaux ne devront en aucun cas faire réparer ou remplacer un élément de la tablette.<br>
-            Tout problème, incident, panne ou casse relatifs à la tablette, aux accessoires, aux applications installées doit être immédiatement signalé au référent numérique. Le remplacement éventuel du matériel se fera par l’établissement.<br>
-            En cas de bris, une franchise sera appliquée de la manière suivante : 100€ pour un premier envoi, 200€ pour un deuxième, 300€ pour un troisième…</p>
-            <p><b>En cas de perte ou de vol</b><br>
-            En cas de vol ou de perte, une plainte ou une main courante (uniquement en cas de perte) devra obligatoirement être déposée immédiatement auprès des services de Police ou de Gendarmerie compétents territorialement par le ou les représentants légaux. Le récépissé devra être envoyé soit par courrier postal, soit par voie électronique à l’Etablissement, et ce, dans un délai de 48 heures à compter de la date indiquée sur le récépissé.<br>
-            Le dispositif de géolocalisation à distance pourra être activé de manière exceptionnelle et ponctuelle afin de la retrouver. Les données relatives à la géolocalisation, susceptibles d'être enregistrées ne le seront donc, qu'à partir de la déclaration de perte, de vol ou d'abus de confiance.<br>
-            En cas de perte ou vol, une franchise sera appliquée de la manière suivante : 100€ pour un premier envoi, 200€ pour un deuxième, 300€ pour un troisième…</p>
-
-            <h3>Article 8 : Conditions financières</h3>
-            <p>{art8_texte}</p>
-
-            <h3>Article 9 : Sanctions</h3>
-            <p>En cas de manquement à la présente convention et de violation d'une disposition réglementaire, l'élève s'expose à une confiscation de la tablette par l’Etablissement ainsi qu'à des sanctions disciplinaires.<br>
-            En cas de mauvais usage, de revente, cession, échange, prêt ou location de la tablette et des accessoires, le matériel sera repris et des sanctions pouvant aller jusqu’à l’exclusion seront prises.<br>
-            Les accessoires et la tablette de marque Apple sont la propriété de l’ensemble St Charles. Toute casse ou perte entraine la refacturation de ceux-ci. Le remplacement par des accessoires standards est interdit.<br>
-            En cas de dégradation, la refacturation suivante sera opérée : Vitre de protection 15 € | Câble Apple 25 € | Bloc alimentation Apple 25 € | Coque 25 €.</p>
-
-            <table class="footer-sigs">
-                <tr>
-                    <td>Le : ........................................<br><br><b>Elève</b><br><span style="font-size:9px;">(noter lu et accepté + signature)</span></td>
-                    <td><br><br><b>Représentants légaux</b><br><span style="font-size:9px;">(noter lu et accepté + signature)</span></td>
-                </tr>
-            </table>
-        </div>"""
+        # ==========================================
+        # PARTIE 2 : LA FICHE CARTONNÉE DES CODES
+        # ==========================================
+        
+        # Si on imprime la convention, on force un saut de page APRÈS la fiche carton pour le prochain élève
+        page_break_class = "page-break" if print_conv else ""
+        
+        html_content += f"""
+        <div class="card {page_break_class}">
+            <div class="header-card">🎓 {row['nom']} {row['prenom']} - Classe : {row['classe']}</div>"""
+        
+        if print_prov and 'id_ed_prov' in row and str(row['id_ed_prov']).strip() != "":
+            html_content += "<div class='warning'>⚠️ ATTENTION : Les codes 'PROVISOIRE' sont à usage unique. Ils doivent obligatoirement être modifiés lors de la première connexion.</div>"
+            html_content += f"<div class='cred-row cred-prov'><span class='label'>🟠 Ecole Directe (PROVISOIRE) :</span> ID : <span class='code'>{row['id_ed_prov']}</span> &nbsp;|&nbsp; Mdp : <span class='code'>{row['mdp_ed_prov']}</span></div>"
+        if print_ipad:
+            html_content += f"<div class='cred-row cred-ipad'><span class='label'>📱 Code déverrouillage iPad :</span> <span class='code'>{code_ipad}</span></div>"
+        if print_ed:
+            html_content += f"<div class='cred-row cred-ed'><span class='label'>🔵 Ecole Directe (Définitifs) :</span> ID : <span class='code'>{row['id_ed']}</span> &nbsp;|&nbsp; Mdp : <span class='code'>{row['mdp_ed']}</span></div>"
+        if print_dr:
+            html_content += f"<div class='cred-row cred-dr'><span class='label'>🟡 Drive :</span> ID : <span class='code'>{row['id_mail']}</span> &nbsp;|&nbsp; Mdp : <span class='code'>{row['mdp_mail']}</span></div>"
+        if print_px:
+            html_content += f"<div class='cred-row cred-px'><span class='label'>🟣 Pix :</span> ID : <span class='code'>{row['id_pix']}</span> &nbsp;|&nbsp; Mdp : <span class='code'>{row['mdp_pix']}</span></div>"
+        
+        html_content += "</div>"
 
     html_content += "<script>setTimeout(function() { window.print(); }, 500);</script></body></html>"
     return html_content
@@ -934,15 +959,21 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
 
             st.markdown("---")
             st.markdown("### 🖨️ Impression des identifiants de la classe")
+            
+            # --- NOUVEAUTÉ : Checkbox pour imprimer la convention format A4 ---
+            print_conv = st.checkbox("📄 Imprimer la Convention de prêt iPad (Format A4)", value=False, key="p_conv")
+            st.write("")
+            st.markdown("**Quels identifiants inclure sur la fiche cartonnée ?**")
+            
             col_ed, col_dr, col_px, col_prov, col_ipad = st.columns(5)
             print_ed = col_ed.checkbox("🔵 ED (Définitifs)", value=True, key="p_ed")
             print_dr = col_dr.checkbox("🟡 Drive", value=True, key="p_dr")
             print_px = col_px.checkbox("🟣 Pix", value=True, key="p_px")
-            print_prov = col_prov.checkbox("🟠 ED (Provisoires - Rentrée)", value=False, key="p_prov")
+            print_prov = col_prov.checkbox("🟠 ED (Provisoires)", value=False, key="p_prov")
             print_ipad = col_ipad.checkbox("📱 Code iPad", value=True, key="p_ipad")
 
             if st.button(f"📄 Générer la fiche d'impression pour les {classe_choisie}", type="primary"):
-                html_content = generer_pdf_html(classe_choisie, df_print, print_ed, print_dr, print_px, print_prov, print_ipad)
+                html_content = generer_pdf_html(classe_choisie, df_print, print_ed, print_dr, print_px, print_prov, print_ipad, print_conv)
                 b64 = base64.b64encode(html_content.encode('utf-8')).decode('utf-8')
                 href = f'<a href="data:text/html;base64,{b64}" download="Identifiants_{classe_choisie}.html" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #2ecc71; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; margin-top: 10px;">👉 Ouvrir la fiche pour l\'impression PDF</a>'
                 st.markdown(href, unsafe_allow_html=True)
@@ -1108,7 +1139,12 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
             df_print_raw = fetch_table("eleves", eq_col="est_nouveau", eq_val=1)
             df_print = df_print_raw[df_print_raw['est_parti'] == 0].sort_values(["classe", "nom"]) if not df_print_raw.empty else pd.DataFrame()
 
-        st.markdown("**Quels identifiants inclure ?**")
+        st.markdown("---")
+        # --- NOUVEAUTÉ : Checkbox pour imprimer la convention format A4 ---
+        print_conv = st.checkbox("📄 Imprimer la Convention de prêt iPad (Format A4)", value=(type_impression == "✨ Tous les NOUVEAUX élèves (Rentrée)"), key="admin_p_conv")
+        
+        st.write("")
+        st.markdown("**Quels identifiants inclure sur la fiche cartonnée ?**")
         col_ed, col_dr, col_px, col_prov, col_ipad = st.columns(5)
         print_ed = col_ed.checkbox("🔵 ED (Définitifs)", value=True, key="admin_p_ed")
         print_dr = col_dr.checkbox("🟡 Drive", value=True, key="admin_p_dr")
@@ -1117,12 +1153,12 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
         print_ipad = col_ipad.checkbox("📱 Code iPad", value=True, key="admin_p_ipad")
 
         if st.button("📄 Générer la fiche à imprimer", type="primary"):
-            if not print_ed and not print_dr and not print_px and not print_prov and not print_ipad:
-                st.error("❌ Sélectionnez au moins un identifiant.")
+            if not print_ed and not print_dr and not print_px and not print_prov and not print_ipad and not print_conv:
+                st.error("❌ Sélectionnez au moins un document ou identifiant à imprimer.")
             elif df_print.empty:
                 st.warning("⚠️ Aucun élève trouvé.")
             else:
-                html_content = generer_pdf_html(cible, df_print, print_ed, print_dr, print_px, print_prov, print_ipad)
+                html_content = generer_pdf_html(cible, df_print, print_ed, print_dr, print_px, print_prov, print_ipad, print_conv)
                 b64 = base64.b64encode(html_content.encode('utf-8')).decode('utf-8')
                 href = f'<a href="data:text/html;base64,{b64}" download="Identifiants_{cible.replace(" ", "_")}.html" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #2ecc71; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; margin-top: 10px;">👉 Ouvrir la fiche pour l\'impression PDF</a>'
                 st.markdown(href, unsafe_allow_html=True)
@@ -1177,367 +1213,4 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                         new_statut = str(row['statut_ipad']).strip() if pd.notna(row['statut_ipad']) else ""
                         orig_statut = str(orig_row['statut_ipad']).strip() if pd.notna(orig_row['statut_ipad']) else ""
                         new_rest = str(row['restitution']).strip() if pd.notna(row['restitution']) else ""
-                        orig_rest = str(orig_row['restitution']).strip() if pd.notna(orig_row['restitution']) else ""
-                        if new_statut != orig_statut or new_rest != orig_rest:
-                            parti_int = 1 if new_statut == 'Parti' else 0
-                            supabase.table("eleves").update({
-                                "nom": str(row['nom']).upper(), "prenom": str(row['prenom']).capitalize(),
-                                "classe": str(row['classe']), "statut_ipad": new_statut,
-                                "restitution": new_rest, "est_parti": parti_int
-                            }).eq("id", row['id']).execute()
-                            modifs_count += 1
-                if modifs_count > 0:
-                    invalidate_cache()
-                    # --- NOUVEAU : On stocke le message avant de recharger ---
-                    st.session_state["msg_masse"] = f"✅ {modifs_count} compte(s) mis à jour avec succès !"
-                    st.rerun()  # Plus besoin de time.sleep, le rerun est immédiat
-                else:
-                    st.info("Aucune modification détectée.")
-
-
-# ==========================================
-# 🚛 VUE LOGISTIQUE TOTALE (ADMIN SEUL)
-# ==========================================
-elif is_admin and menu == "🚛 Vue Logistique Totale":
-    st.title("🚛 Vue Logistique & Financière Totale")
-    st.info("Ce tableau regroupe les contrats, la casse et les montants financiers pour chaque élève.")
-    
-    df_e = fetch_table("eleves", eq_col="est_parti", eq_val=0)
-    df_i = fetch_table("incidents_ipad")
-    
-    if df_e.empty:
-        st.warning("Aucun élève dans la base.")
-    else:
-        df_bilan = calculer_bilan_logistique(df_e, df_i)
-        
-        # Formatage pour l'affichage
-        df_disp = df_bilan.rename(columns={
-            'nom': 'Nom', 'prenom': 'Prénom', 'classe': 'Classe', 
-            'statut_ipad': 'Contrat', 'nb_incidents': 'Nb Incidents',
-            'total_sav': 'Total SAV (€)', 'loyer_annuel': 'Loyer Annuel (€)',
-            'dette_totale': 'Dette Totale (€)'
-        })
-        
-        st.dataframe(df_disp.drop(columns=['id']), use_container_width=True, hide_index=True)
-        
-        st.markdown("---")
-        st.markdown("### 📥 Export Logistique")
-        st.write("Utilisez cet export pour avoir une vision globale de la facturation par élève.")
-        
-        # Export avec point-virgule pour Excel
-        csv_data = df_disp.to_csv(index=False, sep=';').encode('utf-8')
-        st.download_button("📥 Exporter le Bilan Logistique (CSV)", csv_data, "bilan_logistique_complet.csv")
-
-
-# ==========================================
-# 💰 COMPTA
-# ==========================================
-elif (is_admin or is_compta) and menu == "💰 Espace Compta & Logistique":
-    st.title("💰 Suivi Comptabilité & Loyers")
-    st.warning("⚠️ **RAPPEL :** Les élèves **FRATRIE** paient **15 € / an** (MDM). À leur départ : **16 €** de soulte.")
-
-    df_c = fetch_table("eleves", eq_col="est_parti", eq_val=0, order_col="classe")
-    if df_c.empty:
-        st.info("Aucun élève actif.")
-    else:
-        df_c = df_c.sort_values(by=["classe", "nom"])
-        niveaux_existants = sorted(list(set([str(c)[0] for c in df_c['classe'] if str(c)[0].isdigit()])), reverse=True)
-        options_niveaux = ["Tous les élèves"] + [f"{n}ème" for n in niveaux_existants]
-        filtre_niveau = st.selectbox("📂 Filtrer par niveau :", options_niveaux)
-        if filtre_niveau != "Tous les élèves":
-            chiffre_niveau = filtre_niveau[0]
-            df_c = df_c[df_c['classe'].astype(str).str.startswith(chiffre_niveau)]
-
-        df_c['Mensualité (€)'] = df_c.apply(lambda r: calculer_mensualite_ipad(r['classe'], r['statut_ipad'])[0], axis=1)
-        df_c['Action Spéciale'] = df_c['statut_ipad'].apply(lambda s: "🚨 PRÉLEVER 15€/AN" if s == "Fratrie" else "-")
-        df_c['Solde SI Rendu'] = df_c.apply(lambda r: calculer_solde_depart(r['classe'], True, r['statut_ipad']), axis=1)
-        df_c['Solde SI Gardé'] = df_c.apply(lambda r: calculer_solde_depart(r['classe'], False, r['statut_ipad']), axis=1)
-        cols_to_show = ["nom", "prenom", "classe", "statut_ipad", "Mensualité (€)", "Action Spéciale", "Solde SI Rendu", "Solde SI Gardé"]
-        st.dataframe(df_c[cols_to_show], use_container_width=True, hide_index=True)
-        st.download_button("📥 Exporter le tableau", df_c[cols_to_show].to_csv(index=False).encode('utf-8'), "compta_ipads.csv")
-
-
-# ==========================================
-# 📦 RESTITUTIONS (FIN D'ANNÉE)
-# ==========================================
-elif (is_admin or is_compta) and menu == "📦 Restitutions (Fin d'année)":
-    st.title("📦 Restitutions & Sorties MDM (Fin d'année)")
-    st.info("📋 Seuls les élèves de **3ème** sont listés ici avec l'action à réaliser avant leur départ.")
-
-    df_rest = fetch_table("eleves", eq_col="est_parti", eq_val=0)
-    if not df_rest.empty:
-        df_rest = df_rest[df_rest['classe'].astype(str).str.startswith("3")].sort_values(by=["classe", "nom"])
-
-    if df_rest.empty:
-        st.success("Aucun élève de 3ème à traiter.")
-    else:
-        df_rest['Action Requise'] = df_rest['statut_ipad'].apply(
-            lambda s: "📥 Récupérer l'iPad" if s == 'Location' else "🔓 Réinitialiser (Sortie MDM)"
-        )
-        c1, c2 = st.columns(2)
-        c1.metric("📥 iPads à récupérer (Locations)", len(df_rest[df_rest['statut_ipad'] == 'Location']))
-        c2.metric("🔓 iPads à libérer du MDM", len(df_rest[df_rest['statut_ipad'] != 'Location']))
-        cols_to_show = ["nom", "prenom", "classe", "statut_ipad", "Action Requise"]
-        st.dataframe(df_rest[cols_to_show], use_container_width=True, hide_index=True)
-        st.download_button("📥 Exporter la liste de fin d'année", df_rest[cols_to_show].to_csv(index=False).encode('utf-8'), "actions_ipads_3eme.csv")
-
-
-# ==========================================
-# 🛠️ HISTORIQUE SAV GLOBAL
-# ==========================================
-elif is_admin and menu == "🛠️ Historique SAV iPad":
-    st.title("🛠️ Historique SAV")
-    st.info("Cochez la case 'Sélection' pour supprimer un incident de l'historique.")
-
-    df_sav = fetch_table("incidents_ipad", select_cols="*, eleves(nom, prenom)")
-    flat_list = []
-    for _, i in df_sav.iterrows():
-        row = {"sav_id": i["id"], "date_incident": i["date_incident"], "type_incident": i["type_incident"], "montant": i["montant"]}
-        if isinstance(i.get("eleves"), dict):
-            row["Nom"] = i["eleves"]["nom"]
-            row["Prénom"] = i["eleves"]["prenom"]
-        flat_list.append(row)
-
-    df_sav_flat = pd.DataFrame(flat_list).fillna("")
-
-    if not df_sav_flat.empty:
-        df_sav_flat.insert(0, "🗑️ Sélection", False)
-        cols_ordre = ["🗑️ Sélection", "Nom", "Prénom", "date_incident", "type_incident", "montant"]
-        df_display = df_sav_flat[cols_ordre]
-        edited_sav = st.data_editor(df_display, hide_index=True, use_container_width=True,
-                                    disabled=["Nom", "Prénom", "date_incident", "type_incident", "montant"])
-
-        st.markdown("---")
-        df_export_sav = df_sav_flat.drop(columns=["🗑️ Sélection", "sav_id"], errors='ignore')
-        df_export_sav = df_export_sav.rename(columns={"date_incident": "Date", "type_incident": "Type d'incident", "montant": "Montant"})
-        cols_export = [c for c in ["Nom", "Prénom", "Date", "Type d'incident", "Montant"] if c in df_export_sav.columns]
-        st.download_button("📥 Exporter l'historique SAV complet (CSV)",
-                           df_export_sav[cols_export].to_csv(index=False, sep=';').encode('utf-8'),
-                           "historique_sav_complet.csv")
-        st.markdown("---")
-
-        sav_a_supprimer = edited_sav[edited_sav["🗑️ Sélection"] == True].index.tolist()
-        if sav_a_supprimer:
-            st.warning(f"⚠️ Suppression de {len(sav_a_supprimer)} incident(s).")
-            if st.button("🗑️ Confirmer la suppression", type="primary"):
-                for idx in sav_a_supprimer:
-                    sid_to_del = df_sav_flat.iloc[idx]["sav_id"]
-                    supabase.table("incidents_ipad").delete().eq("id", sid_to_del).execute()
-                invalidate_cache()
-                st.success("✅ Incidents supprimés.")
-                time.sleep(1.5)
-                st.rerun()
-    else:
-        st.success("L'historique est vide.")
-
-
-# ==========================================
-# ⚙️ MAINTENANCE & NETTOYAGE (ADMIN)
-# ==========================================
-elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
-    st.title("⚙️ Maintenance de la Base Cloud")
-    tab_import, tab_import_sav, tab_import_ipad, tab_nettoyage = st.tabs([
-        "📥 Importation CSV", "📥 Import SAV", "📥 Import Statuts iPad", "🧹 Nettoyage de la Base"
-    ])
-
-    with tab_import:
-        st.markdown("""
-        ### 📝 Instructions d'importation Annuaire (Charlemagne)
-        **Format du fichier attendu (.csv avec séparateur `;`).**
-        Le fichier doit contenir **exactement 8 colonnes** dans cet ordre précis, avec ces intitulés :
-        1. **Classe** *(ex: 6G1)*
-        2. **Nom** *(ex: DUPONT)*
-        3. **Prénom** *(ex: Jean)*
-        4. **Date de Naissance** *(ex: 15/05/2012)*
-        5. **Professeur Principal** *(ex: M. MARTIN)*
-        6. **Date d'entrée** *(ex: 02/09/2026)*
-        7. **ID ED Provisoire** *(ex: dupont.j)*
-        8. **MDP ED Provisoire** *(ex: XyZ789)*
-
-        **Modes de fonctionnement :**
-        - **Mode Standard (Décoché) :** Ajoute uniquement les nouveaux élèves trouvés dans le fichier.
-        - **Mode Rentrée (Coché) :** Ajoute les nouveaux, met à jour la classe des anciens, et archive les élèves absents du fichier en 'Parti'.
-        """)
-        st.markdown("---")
-        mode_rentree = st.checkbox("🎓 Activer le Mode Rentrée")
-        up = st.file_uploader("Fichier CSV", type="csv", key="up_import_eleve")
-
-        if up and st.button("🚀 Lancer l'Import vers Supabase"):
-            df_new = pd.read_csv(io.StringIO(up.getvalue().decode('utf-8')), sep=None, engine='python')
-            eleves_presents_csv = []
-            nb_total = len(df_new)
-            nb_nouveaux = 0
-            repartition = {}
-
-            res_all = supabase.table("eleves").select("id, nom, prenom").execute()
-            existing_eleves = {(nettoyeur_identifiant(r['nom']), nettoyeur_identifiant(r['prenom'])): r['id'] for r in res_all.data} if res_all.data else {}
-
-            if mode_rentree and res_all.data:
-                for r in res_all.data:
-                    supabase.table("eleves").update({"est_nouveau": 0}).eq("id", r['id']).execute()
-
-            with st.spinner("Importation en cours, veuillez patienter..."):
-                for _, row in df_new.iterrows():
-                    if len(row) < 3:
-                        continue
-                    cl = str(row.iloc[0]).strip() if pd.notna(row.iloc[0]) else ""
-                    n = str(row.iloc[1]).strip().upper() if pd.notna(row.iloc[1]) else ""
-                    p = str(row.iloc[2]).strip().capitalize() if pd.notna(row.iloc[2]) else ""
-                    dob = str(row.iloc[3]).strip() if len(row) > 3 and pd.notna(row.iloc[3]) else ""
-                    pp_val = str(row.iloc[4]).strip() if len(row) > 4 and pd.notna(row.iloc[4]) else ""
-                    entree_val = str(row.iloc[5]).strip() if len(row) > 5 and pd.notna(row.iloc[5]) else ""
-                    id_prov = str(row.iloc[6]).strip() if len(row) > 6 and pd.notna(row.iloc[6]) else ""
-                    mdp_prov = str(row.iloc[7]).strip() if len(row) > 7 and pd.notna(row.iloc[7]) else ""
-
-                    repartition[cl] = repartition.get(cl, 0) + 1
-                    n_clean = nettoyeur_identifiant(n)
-                    p_clean = nettoyeur_identifiant(p)
-
-                    if (n_clean, p_clean) not in existing_eleves:
-                        id_ed, id_mail, id_pix = generer_identifiants(p, n, dob, cl)
-                        res_ins = supabase.table("eleves").insert({
-                            "nom": n, "prenom": p, "classe": cl, "date_naissance": dob, "pp": pp_val,
-                            "date_entree": entree_val, "id_ed": id_ed, "mdp_ed": MDP_DEFAUT,
-                            "id_mail": id_mail, "mdp_mail": MDP_DEFAUT, "id_pix": id_pix, "mdp_pix": MDP_DEFAUT,
-                            "id_ed_prov": id_prov, "mdp_ed_prov": mdp_prov,
-                            "statut_ipad": 'Achat', "est_parti": 0, "est_nouveau": 1
-                        }).execute()
-                        if res_ins.data:
-                            eleves_presents_csv.append(res_ins.data[0]['id'])
-                        nb_nouveaux += 1
-                    else:
-                        eleve_id = existing_eleves[(n_clean, p_clean)]
-                        eleves_presents_csv.append(eleve_id)
-                        supabase.table("eleves").update({"id_ed_prov": id_prov, "mdp_ed_prov": mdp_prov}).eq("id", eleve_id).execute()
-                        if mode_rentree:
-                            supabase.table("eleves").update({"classe": cl, "pp": pp_val, "date_entree": entree_val}).eq("id", eleve_id).execute()
-
-            if mode_rentree and eleves_presents_csv:
-                res_active = supabase.table("eleves").select("id").eq("est_parti", 0).execute()
-                if res_active.data:
-                    active_ids = [r['id'] for r in res_active.data]
-                    ids_to_mark = [aid for aid in active_ids if aid not in eleves_presents_csv]
-                    for aid in ids_to_mark:
-                        supabase.table("eleves").update({"est_parti": 1, "statut_ipad": 'Parti'}).eq("id", aid).execute()
-
-            invalidate_cache()
-            st.success("✅ Importation terminée avec succès !")
-            st.markdown("### 📊 Bilan")
-            c_tot, c_new = st.columns(2)
-            c_tot.metric("Total élèves lus", nb_total)
-            c_new.metric("Vrais nouveaux détectés", nb_nouveaux)
-            df_rep = pd.DataFrame(list(repartition.items()), columns=['Classe', "Nb élèves"]).sort_values('Classe')
-            st.dataframe(df_rep, hide_index=True, use_container_width=True)
-
-    with tab_import_sav:
-        st.markdown("""
-        ### 📥 Instructions d'importation Historique SAV
-        **Format du fichier attendu (.csv avec séparateur `;`).**
-        Le fichier doit contenir **exactement 5 colonnes** dans cet ordre précis :
-        1. **Nom** de l'élève
-        2. **Prénom** de l'élève
-        3. **Date** de l'incident *(ex: 12/10/2025)*
-        4. **Type d'incident** *(ex: Écran cassé)*
-        5. **Montant** *(ex: 50 - mettre uniquement des chiffres entiers)*
-        """)
-        st.markdown("---")
-        up_sav = st.file_uploader("Fichier CSV (SAV)", type="csv", key="up_sav_import")
-        if up_sav and st.button("🚀 Lancer l'Import SAV vers Supabase"):
-            df_sav_new = pd.read_csv(io.StringIO(up_sav.getvalue().decode('utf-8')), sep=None, engine='python')
-            res_el = supabase.table("eleves").select("id, nom, prenom").execute()
-            map_el = {(nettoyeur_identifiant(r['nom']), nettoyeur_identifiant(r['prenom'])): r['id'] for r in res_el.data} if res_el.data else {}
-            count = 0
-            with st.spinner("Importation SAV en cours..."):
-                for _, row in df_sav_new.iterrows():
-                    if len(row) < 5:
-                        continue
-                    n_clean = nettoyeur_identifiant(row.iloc[0])
-                    p_clean = nettoyeur_identifiant(row.iloc[1])
-                    if (n_clean, p_clean) in map_el:
-                        try:
-                            supabase.table("incidents_ipad").insert({
-                                "eleve_id": map_el[(n_clean, p_clean)],
-                                "date_incident": str(row.iloc[2]).strip(),
-                                "type_incident": str(row.iloc[3]).strip(),
-                                "montant": int(row.iloc[4]), "envoye_compta": 1
-                            }).execute()
-                            count += 1
-                        except Exception:
-                            pass
-            invalidate_cache()
-            st.success(f"✅ {count} incidents SAV importés !")
-
-    with tab_import_ipad:
-        st.markdown("""
-        ### 📥 Instructions d'importation Statut iPad
-        **Format du fichier attendu (.csv avec séparateur `;`).**
-        Le fichier doit contenir **exactement 3 colonnes** dans cet ordre précis :
-        1. **Nom** de l'élève
-        2. **Prénom** de l'élève
-        3. **Statut iPad** *(Valeurs obligatoires : Achat, Location, Fratrie, Parti)*
-        """)
-        st.markdown("---")
-        up_ipad = st.file_uploader("Fichier CSV (Statut iPad)", type="csv", key="up_ipad_import")
-        if up_ipad and st.button("🚀 Lancer la mise à jour des statuts iPad"):
-            df_ipad_new = pd.read_csv(io.StringIO(up_ipad.getvalue().decode('utf-8')), sep=None, engine='python')
-            res_el = supabase.table("eleves").select("id, nom, prenom").execute()
-            map_el = {(nettoyeur_identifiant(r['nom']), nettoyeur_identifiant(r['prenom'])): r['id'] for r in res_el.data} if res_el.data else {}
-            count = 0
-            with st.spinner("Mise à jour des statuts en cours..."):
-                for _, row in df_ipad_new.iterrows():
-                    if len(row) < 3:
-                        continue
-                    n_clean = nettoyeur_identifiant(row.iloc[0])
-                    p_clean = nettoyeur_identifiant(row.iloc[1])
-                    statut_brut = str(row.iloc[2]).strip().capitalize()
-                    statut = "Achat"
-                    if "Location" in statut_brut:
-                        statut = "Location"
-                    elif "Fratrie" in statut_brut:
-                        statut = "Fratrie"
-                    elif "Parti" in statut_brut:
-                        statut = "Parti"
-                    if (n_clean, p_clean) in map_el:
-                        try:
-                            parti_int = 1 if statut == 'Parti' else 0
-                            supabase.table("eleves").update({"statut_ipad": statut, "est_parti": parti_int}).eq("id", map_el[(n_clean, p_clean)]).execute()
-                            count += 1
-                        except Exception:
-                            pass
-            invalidate_cache()
-            st.success(f"✅ {count} statuts iPad mis à jour !")
-
-    with tab_nettoyage:
-        st.warning("⚠️ **ZONE DE DANGER :** Suppression définitive de tous les élèves marqués 'Partis' (tickets et SAV inclus).")
-        if st.button("🗑️ Supprimer définitivement TOUS les élèves partis", type="primary"):
-            res_partis = supabase.table("eleves").select("id").eq("est_parti", 1).execute()
-            nb_suppr = len(res_partis.data) if res_partis.data else 0
-            if nb_suppr > 0:
-                ids = [r['id'] for r in res_partis.data]
-                for pid in ids:
-                    supabase.table("incidents_ipad").delete().eq("eleve_id", pid).execute()
-                    supabase.table("demandes").delete().eq("eleve_id", pid).execute()
-                    supabase.table("eleves").delete().eq("id", pid).execute()
-                invalidate_cache()
-                st.success(f"✅ {nb_suppr} élève(s) supprimés définitivement !")
-            else:
-                st.info("💡 Aucun élève marqué comme 'Parti'. La base est propre.")
-            time.sleep(2.5)
-            st.rerun()
-
-        st.markdown("---")
-        st.error("🧨 **RESET TOTAL :** Efface la totalité des élèves, tickets et SAV.")
-        if st.button("🧨 Vider l'intégralité de la base de données", type="primary"):
-            res_all = supabase.table("eleves").select("id").execute()
-            if res_all.data:
-                ids = [r['id'] for r in res_all.data]
-                for pid in ids:
-                    supabase.table("incidents_ipad").delete().eq("eleve_id", pid).execute()
-                    supabase.table("demandes").delete().eq("eleve_id", pid).execute()
-                    supabase.table("eleves").delete().eq("id", pid).execute()
-                invalidate_cache()
-                st.success(f"✅ Base vidée : {len(res_all.data)} élèves supprimés !")
-            else:
-                st.info("La base est déjà vide.")
-            time.sleep(2.5)
-            st.rerun()
+                        orig_rest = str(orig_row['restitution']).strip() if pd.notna(orig_row['re
