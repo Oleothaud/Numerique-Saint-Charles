@@ -56,6 +56,7 @@ MDP_DEFAUT = st.secrets["MDP_DEFAUT"]
 # ==========================================
 
 # --- OPTIMISATION 2 : Cache avec TTL court pour les lectures fréquentes ---
+# ttl=60 = données rafraîchies au max toutes les 60s, évite les appels répétés à chaque widget
 @st.cache_data(ttl=60, show_spinner=False)
 def fetch_table(table_name, eq_col=None, eq_val=None, order_col=None, select_cols="*"):
     query = get_supabase_client().table(table_name).select(select_cols)
@@ -247,83 +248,109 @@ def calculer_bilan_logistique(df_eleves, df_incidents):
 # 📄 GÉNÉRATEUR PDF HTML
 # ==========================================
 def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_prov, print_ipad):
-    html_content = """
+    html_content = f"""
     <html><head><meta charset="utf-8">
+    <title>Conventions - {cible_titre}</title>
     <style>
-        @media print { .page-break { page-break-after: always; } }
-        body { font-family: Arial, sans-serif; color: #333; margin: 0; padding: 0; }
-        .convention-page { padding: 30px; border: 1px solid #EEE; position: relative; }
-        .logo-header { width: 100%; text-align: center; margin-bottom: 10px; }
-        .header-title { text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 5px; text-transform: uppercase; }
-        .header-sub { text-align: center; font-size: 14px; margin-bottom: 20px; border-bottom: 2px solid #444; padding-bottom: 10px; }
-        .info-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-        .info-table td { padding: 5px; border: 1px solid #CCC; font-size: 12px; }
-        .credentials-box { border: 2px dashed #1e3a5f; background: #f0f4f8; padding: 10px; margin: 15px 0; }
-        .credentials-box b { color: #1e3a5f; }
-        h3 { font-size: 13px; margin-top: 15px; margin-bottom: 5px; text-decoration: underline; }
-        p, li { font-size: 11px; text-align: justify; margin: 3px 0; }
-        .footer-sigs { margin-top: 20px; width: 100%; border-collapse: collapse; }
-        .footer-sigs td { border: 1px solid #000; width: 50%; height: 70px; vertical-align: top; padding: 8px; font-size: 11px; }
+        @media print {{ .page-break {{ page-break-after: always; }} .no-print {{ display: none; }} }}
+        body {{ font-family: "Arial", sans-serif; color: #000; margin: 0; padding: 0; line-height: 1.2; }}
+        .convention-page {{ padding: 25px; position: relative; border: 1px solid #EEE; }}
+        .header {{ text-align: center; margin-bottom: 10px; }}
+        .title {{ font-weight: bold; font-size: 14px; text-decoration: underline; margin-bottom: 5px; }}
+        .subtitle {{ font-weight: bold; font-size: 13px; margin-bottom: 10px; }}
+        
+        .info-table {{ width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px; }}
+        .info-table td {{ border: 1px solid #000; padding: 4px; }}
+        
+        .credentials-box {{ border: 2px dashed #004a99; background: #f2f7ff; padding: 8px; margin: 10px 0; font-size: 11px; }}
+        
+        h3 {{ font-size: 11px; margin-top: 8px; margin-bottom: 2px; font-weight: bold; text-transform: uppercase; }}
+        p, li {{ font-size: 10px; text-align: justify; margin: 2px 0; }}
+        ul {{ margin: 2px 0; padding-left: 20px; }}
+        
+        .footer-sigs {{ margin-top: 15px; width: 100%; border-collapse: collapse; }}
+        .footer-sigs td {{ border: 1px solid #000; width: 50%; height: 60px; vertical-align: top; padding: 5px; font-size: 10px; }}
+        .st-charles-footer {{ text-align: center; font-size: 9px; margin-top: 10px; color: #444; }}
     </style>
-    </head><body>"""
+    </head><body>
+    <div class="no-print" style="background: #e74c3c; color: white; padding: 10px; text-align: center; margin-bottom: 20px; border-radius: 5px;">
+        <b>Astuce :</b> Appuyez sur <b>Ctrl + P</b> (ou Cmd + P sur Mac) pour imprimer. Dans destination, choisissez "Enregistrer au format PDF".
+    </div>"""
 
     for _, row in df_print.iterrows():
-        # --- LOGIQUE DYNAMIQUE SELON LE NIVEAU ---
         classe = str(row['classe']).upper()
-        if classe.startswith("6"):
-            niveau, duree, mensualite, options_fin = "6ÈME", "4 ans", "16 €", "soit la famille décide d’acquérir la tablette (30 mensualités + 16€), soit elle la restitue."
-        elif classe.startswith("5"):
-            niveau, duree, mensualite, options_fin = "5ÈME", "3 ans", "16 €", "soit la famille décide d’acquérir la tablette (30 mensualités + 16€), soit elle la restitue."
-        elif classe.startswith("4"):
-            niveau, duree, mensualite, options_fin = "4ÈME", "2 ans", "16 €", "la tablette sera récupérée par l’établissement avec une attestation de restitution."
+        
+        # --- LOGIQUE DE TEXTE PAR NIVEAU ---
+        if classe.startswith("6") or classe.startswith("5"):
+            niveau = "6ÈME" if classe.startswith("6") else "5ÈME"
+            duree = "4 ans" if classe.startswith("6") else "3 ans"
+            art4_loyer = "Le montant du loyer de 16€ sera prélevé chaque mois de l’année scolaire (de septembre à juin)."
+            art8_fin = "Soit la famille décide d’acquérir la tablette, sous réserve de son paiement intégral et de la signature d’une attestation de cession de propriété.<br>Soit la famille ne souhaite pas l’acquérir. Dans ce cas, toute année commencée est due. La tablette et ses accessoires doivent être restitués."
         else:
-            niveau, duree, mensualite, options_fin = "3ÈME", "1 an", "14 €", "la tablette sera récupérée par l’établissement avec une attestation de restitution."
+            niveau = "4ÈME" if classe.startswith("4") else "3ÈME"
+            duree = "2 ans" if classe.startswith("4") else "1 an"
+            loyer_montant = "14€" if niveau == "3ÈME" else "16€"
+            art4_loyer = f"Le montant du loyer de {loyer_montant} sera prélevé chaque mois de l’année scolaire (de septembre à juin)."
+            art8_fin = "À l’issue du cycle scolaire la tablette sera récupérée par l’établissement avec une attestation de restitution."
 
-        # En-tête avec mention du niveau [cite: 3, 95, 187, 282]
         html_content += f"""
         <div class="convention-page page-break">
-            <div class="header-title">CONVENTION DE MISE A DISPOSITION D’UN IPAD / TABLETTE NUMERIQUE</div>
-            <div class="header-sub">ANNEE SCOLAIRE 2025-26 - ÉLÈVES DE {niveau}</div>
+            <div class="header">
+                <div class="title">CONVENTION DE MISE A DISPOSITION D’UN IPAD / TABLETTE NUMERIQUE</div>
+                <div class="subtitle">ANNEE SCOLAIRE 2025-26 - ÉLÈVES DE {niveau}</div>
+            </div>
 
             <table class="info-table">
-                <tr><td><b>Élève :</b> {row['nom']} {row['prenom']}</td><td><b>Classe :</b> {row['classe']}</td></tr>
-                <tr><td><b>Date d'entrée :</b> {row.get('date_entree', '02/09/2026')}</td><td><b>Date naissance :</b> {row['date_naissance']}</td></tr>
-            </table>"""
+                <tr><td><b>Classe :</b> {row['classe']}</td><td><b>Date d'entrée :</b> {row.get('date_entree', 'Sept. 2025')}</td></tr>
+                <tr><td><b>Nom de l'élève :</b> {row['nom']}</td><td><b>Prénom :</b> {row['prenom']}</td></tr>
+                <tr><td colspan="2"><b>Représentants légaux :</b> ................................................................................</td></tr>
+            </table>
 
-        # Bloc des identifiants (votre demande initiale)
-        html_content += f"""
             <div class="credentials-box">
-                <b>🔑 TES CODES D'ACCÈS PERSONNELS :</b><br>
-                <table style="width:100%; font-size:12px; margin-top:5px;">"""
-        if print_ed: html_content += f"<tr><td>🔵 Ecole Directe :</td><td>ID : <b>{row['id_ed']}</b> | MDP : <b>{row['mdp_ed']}</b></td></tr>"
-        if print_dr: html_content += f"<tr><td>🟡 Drive :</td><td>ID : <b>{row['id_mail']}</b> | MDP : <b>{row['mdp_mail']}</b></td></tr>"
-        if print_ipad: html_content += f"<tr><td>📱 Code iPad :</td><td><b>{calculer_code_ipad(row['date_naissance'])}</b></td></tr>"
-        html_content += "</table></div>"
-
-        # Contenu des articles adaptés aux documents Word [cite: 13, 20, 305, 352]
+                <b>🔑 ACCÈS NUMÉRIQUES (À conserver précieusement) :</b><br>
+                <table style="width:100%; font-size:11px; margin-top:5px;">"""
+        
+        if print_ed: 
+            html_content += f"<tr><td>🔵 Ecole Directe :</td><td>ID : <b>{row['id_ed']}</b> | MDP : <b>{row['mdp_ed']}</b></td></tr>"
+        if print_prov and 'id_ed_prov' in row and str(row['id_ed_prov']).strip() != "":
+            html_content += f"<tr><td>🟠 ED (Provisoire) :</td><td>ID : <b>{row['id_ed_prov']}</b> | MDP : <b>{row['mdp_ed_prov']}</b></td></tr>"
+        if print_dr: 
+            html_content += f"<tr><td>🟡 Drive :</td><td>ID : <b>{row['id_mail']}</b> | MDP : <b>{row['mdp_mail']}</b></td></tr>"
+        if print_px: 
+            html_content += f"<tr><td>🟣 Pix :</td><td>ID : <b>{row['id_pix']}</b> | MDP : <b>{row['mdp_pix']}</b></td></tr>"
+        if print_ipad: 
+            html_content += f"<tr><td>📱 Code iPad :</td><td><b>{calculer_code_ipad(row['date_naissance'])}</b></td></tr>"
+        
         html_content += f"""
-            <h3>Article 1 & 2 : Matériel remis</h3>
-            <p>Ipad Apple, housse de protection, adaptateur secteur et câble d'alimentation originaux[cite: 15, 18, 297].</p>
-            
-            <h3>Article 3 & 4 : Propriété et Durée</h3>
-            <p>Le matériel reste la propriété de l'établissement Saint Charles jusqu'à cession éventuelle[cite: 21, 300]. Durée : {duree}[cite: 26, 305].</p>
+                </table>
+            </div>
 
-            <h3>Article 8 : Conditions financières</h3>
-            <p>Location : Loyer mensuel de <b>{mensualite}</b> (sept. à juin). Fin de cycle : {options_fin}[cite: 79, 262, 356].</p>
+            <h3>Article 1 & 2 : Objet et Matériel</h3>
+            <p>La présente convention régit les conditions de mise à disposition d'un iPad Apple, d'une housse de protection, d'un adaptateur et d'un câble d'alimentation originaux.</p>
+
+            <h3>Article 3 : Propriété</h3>
+            <p>Le matériel reste la propriété de l’établissement Saint Charles jusqu'à cession éventuelle. La revente ou le prêt sont strictement interdits.</p>
+
+            <h3>Article 4 & 8 : Conditions financières et Fin de cycle</h3>
+            <p>Durée de mise à disposition : {duree}. {art4_loyer} {art8_fin}</p>
 
             <h3>Article 9 : Sanctions et Refacturation</h3>
-            <p>Vitre : 15 € | Câble Apple : 25 € | Bloc alim : 25 € | Coque : 25 €[cite: 85, 89, 366]. Franchise bris : 100€ (1er envoi)[cite: 65, 343].</p>
+            <p>En cas de dégradation, la refacturation suivante sera opérée : 
+            Vitre (15€), Câble Apple (25€), Bloc alimentation (25€), Coque (25€). 
+            Toute casse ou perte entraîne la refacturation du matériel original.</p>
+
+            <p style="font-size:9px; margin-top:10px;"><i>* L'intégralité du règlement intérieur numérique s'applique à cette convention.</i></p>
 
             <table class="footer-sigs">
                 <tr>
                     <td>Fait à Chalon-sur-Saône, le ....................<br><br><b>Signature de l'élève</b></td>
-                    <td><b>Signature des Représentants légaux</b><br><span style="font-size:9px;">(Précédée de la mention manuscrite "Lu et accepté")</span></td>
+                    <td><b>Signature des Représentants légaux</b><br><span>(Mention "Lu et accepté")</span></td>
                 </tr>
             </table>
-            <div style="text-align:center; font-size:9px; margin-top:15px; color:#666;">Groupe Scolaire St Charles - Pôle Numérique</div>
+            <div class="st-charles-footer">Collège Saint Charles - Chalon-sur-Saône - Pôle Numérique</div>
         </div>"""
 
-    html_content += "</body></html>"
+    html_content += "<script>setTimeout(function() { window.print(); }, 500);</script></body></html>"
     return html_content
 
 
