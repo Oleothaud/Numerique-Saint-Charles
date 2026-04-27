@@ -656,8 +656,14 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                     with st.form(f"form_ticket_prof_{el['id']}"):
                         email_prof = st.text_input("Votre e-mail :", key=f"prof_{el['id']}")
                         plateforme = st.selectbox("Plateforme concernée :", ["Ecole Directe", "Compte Drive", "Pix"], key=f"plat_{el['id']}")
+                        
+                        # --- NOUVEAUTÉ : Checkbox obligatoire ---
+                        a_ete_teste = st.checkbox("✅ Je certifie avoir testé ce mot de passe avec l'élève et il ne fonctionne pas.", key=f"check_{el['id']}")
+                        
                         if st.form_submit_button("Envoyer la demande à l'Admin"):
-                            if not email_prof or "@" not in email_prof:
+                            if not a_ete_teste:
+                                st.error("❌ Vous devez certifier avoir testé le code avant d'envoyer la demande.")
+                            elif not email_prof or "@" not in email_prof:
                                 st.error("❌ Veuillez saisir une adresse e-mail valide.")
                             else:
                                 df_verif = fetch_table("demandes", eq_col="eleve_id", eq_val=el['id'])
