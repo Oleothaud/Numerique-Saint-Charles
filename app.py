@@ -1042,7 +1042,45 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                 else:
                     st.info("Aucune modification détectée.")
 
+# ==========================================
+# 🚛 VUE LOGISTIQUE TOTALE (ADMIN SEUL)
+# ==========================================
+elif is_admin and menu == "🚛 Vue Logistique Totale":
+    st.title("🚛 Vue Logistique & Financière Totale")
+    st.info("Ce tableau regroupe les contrats, la casse et les montants financiers pour chaque élève.")
+    
+    df_e = fetch_table("eleves", eq_col="est_parti", eq_val=0)
+    df_i = fetch_table("incidents_ipad")
+    
+    if df_e.empty:
+        st.warning("Aucun élève dans la base.")
+    else:
+        df_bilan = calculer_bilan_logistique(df_e, df_i)
+        
+        # Formatage pour l'affichage
+        df_disp = df_bilan.rename(columns={
+            'nom': 'Nom', 'prenom': 'Prénom', 'classe': 'Classe', 
+            'statut_ipad': 'Contrat', 'nb_incidents': 'Nb Incidents',
+            'total_sav': 'Total SAV (€)', 'loyer_annuel': 'Loyer Annuel (€)',
+            'dette_totale': 'Dette Totale (€)'
+        })
+        
+        st.dataframe(df_disp.drop(columns=['id']), use_container_width=True, hide_index=True)
+        
+        st.markdown("---")
+        st.markdown("### 📥 Export Logistique")
+        st.write("Utilisez cet export pour avoir une vision globale de la facturation par élève.")
+        
+        # Export avec point-virgule pour Excel
+        csv = df_disp.to_csv(index=False, sep=';').encode('utf-8')
+        st.download_button("📥 Exporter le Bilan Logistique (CSV)", csv, "bilan_logistique_complet.csv")
 
+
+# ==========================================
+# 💰 COMPTA
+# ==========================================
+elif (is_admin or is_compta) and menu == "💰 Espace Compta & Logistique":
+# ... (Reste de ton code pour la compta) ...
 # ==========================================
 # 💰 COMPTA
 # ==========================================
