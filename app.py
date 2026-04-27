@@ -189,7 +189,6 @@ def calculer_mensualite_ipad(classe, statut):
     mensualite = 14 if str(classe).strip().startswith("3") else 16
     return mensualite, mensualite * 10
 
-
 def calculer_solde_depart(classe, rend_ipad, statut):
     if statut == "Parti":
         return "0 €"
@@ -215,6 +214,34 @@ def calculer_solde_depart(classe, rend_ipad, statut):
     elif classe_str.startswith("4"):
         annees_suivantes = 140
     return f"{solde_annee_courante + annees_suivantes + 16} €"
+
+def calculer_bilan_logistique(df_eleves, df_incidents):
+    if df_eleves.empty:
+        return pd.DataFrame()
+    
+    # On prépare le bilan
+    bilan = df_eleves[['id', 'nom', 'prenom', 'classe', 'statut_ipad']].copy()
+    
+    # Calcul du nombre d'incidents et montant SAV par élève
+    if not df_incidents.empty:
+        sav_stats = df_incidents.groupby('eleve_id')['montant'].agg(['count', 'sum']).reset_index()
+        sav_stats.columns = ['id', 'nb_incidents', 'total_sav']
+        bilan = pd.merge(bilan, sav_stats, on='id', how='left')
+    else:
+        bilan['nb_incidents'] = 0
+        bilan['total_sav'] = 0
+        
+    bilan = bilan.fillna(0)
+    
+    # Calcul du loyer annuel théorique
+    def get_loyer(row):
+        mens, annuel = calculer_mensualite_ipad(row['classe'], row['statut_ipad'])
+        return annuel
+    
+    bilan['loyer_annuel'] = bilan.apply(get_loyer, axis=1)
+    bilan['dette_totale'] = bilan['total_sav'] + bilan['loyer_annuel']
+    
+    return bilan.sort_values(['classe', 'nom'])
 
 
 # ==========================================
@@ -355,7 +382,9 @@ if is_admin:
     elif section == "🧑‍🏫 Gestion MdP":
         menu = st.sidebar.radio("Option :", ["👩‍🏫 Portail Profs", "🛎️ Tickets", "🗄️ Historique des MdP"], key="side_opt_mdp")
     elif section == "📱 Gestion iPad":
-        menu = st.sidebar.radio("Option :", ["💰 Espace Compta & Logistique", "🛠️ Historique SAV iPad", "📦 Restitutions (Fin d'année)"], key="side_opt_ipad")
+        # L'admin voit une option en plus : "🚛 Vue Logistique Totale"
+        options_ipad = ["🚛 Vue Logistique Totale", "💰 Espace Compta & Logistique", "🛠️ Historique SAV iPad", "📦 Restitutions (Fin d'année)"]
+        menu = st.sidebar.radio("Option :", options_ipad, key="side_opt_ipad")
     elif section == "⚙️ Base de Données":
         menu = st.sidebar.radio("Option :", ["👥 Annuaire, Édition & PDF", "⚙️ Maintenance & Nettoyage"], key="side_opt_db")
 
