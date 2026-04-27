@@ -56,7 +56,6 @@ MDP_DEFAUT = st.secrets["MDP_DEFAUT"]
 # ==========================================
 
 # --- OPTIMISATION 2 : Cache avec TTL court pour les lectures fréquentes ---
-# ttl=60 = données rafraîchies au max toutes les 60s, évite les appels répétés à chaque widget
 @st.cache_data(ttl=60, show_spinner=False)
 def fetch_table(table_name, eq_col=None, eq_val=None, order_col=None, select_cols="*"):
     query = get_supabase_client().table(table_name).select(select_cols)
@@ -1184,33 +1183,24 @@ elif is_admin and menu == "🛠️ Historique SAV iPad":
 # ==========================================
 elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
     st.title("⚙️ Maintenance de la Base Cloud")
-    
-    # Ajout du nouvel onglet "Import Logistique"
-    tab_import, tab_import_sav, tab_import_ipad, tab_import_logistique, tab_nettoyage = st.tabs([
-        "📥 Importation CSV", "📥 Import SAV", "📥 Import Statuts iPad", "📥 Import Logistique", "🧹 Nettoyage de la Base"
+    tab_import, tab_import_sav, tab_import_ipad, tab_nettoyage = st.tabs([
+        "📥 Importation CSV", "📥 Import SAV", "📥 Import Statuts iPad", "🧹 Nettoyage de la Base"
     ])
 
     with tab_import:
         st.markdown("""
-        ### 📝 Instructions d'importation Annuaire (Charlemagne)
-        **Format du fichier attendu (.csv avec séparateur `;`).**
-        Le fichier doit contenir **exactement 8 colonnes** dans cet ordre précis, avec ces intitulés :
-        1. **Classe** *(ex: 6G1)*
-        2. **Nom** *(ex: DUPONT)*
-        3. **Prénom** *(ex: Jean)*
-        4. **Date de Naissance** *(ex: 15/05/2012)*
-        5. **Professeur Principal** *(ex: M. MARTIN)*
-        6. **Date d'entrée** *(ex: 02/09/2026)*
-        7. **ID ED Provisoire** *(ex: dupont.j)*
-        8. **MDP ED Provisoire** *(ex: XyZ789)*
+        ### 📝 Instructions d'importation
+        **Format du fichier attendu (.csv avec séparateur `;`) — 8 colonnes dans l'ordre :**
+        1. **Classe** | 2. **Nom** | 3. **Prénom** | 4. **Date de Naissance**
+        5. **Professeur Principal** | 6. **Date d'entrée** | 7. **ID ED Provisoire** | 8. **MDP ED Provisoire**
 
-        **Modes de fonctionnement :**
-        - **Mode Standard (Décoché) :** Ajoute uniquement les nouveaux élèves trouvés dans le fichier.
-        - **Mode Rentrée (Coché) :** Ajoute les nouveaux, met à jour la classe des anciens, et archive les élèves absents du fichier en 'Parti'.
+        **Modes :**
+        - **Décoché (Import classique) :** Ajoute uniquement les nouveaux élèves.
+        - **Coché (Mode Rentrée) :** Ajoute les nouveaux, met à jour les anciens, archive les absents en 'Parti'.
         """)
         st.markdown("---")
         mode_rentree = st.checkbox("🎓 Activer le Mode Rentrée")
-        up = st.file_uploader("Fichier CSV (Élèves)", type="csv", key="up_import_eleve")
+        up = st.file_uploader("Fichier CSV", type="csv", key="up_import_eleve")
 
         if up and st.button("🚀 Lancer l'Import vers Supabase"):
             df_new = pd.read_csv(io.StringIO(up.getvalue().decode('utf-8')), sep=None, engine='python')
@@ -1281,14 +1271,8 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
 
     with tab_import_sav:
         st.markdown("""
-        ### 📥 Instructions d'importation Historique SAV
-        **Format du fichier attendu (.csv avec séparateur `;`).**
-        Le fichier doit contenir **exactement 5 colonnes** dans cet ordre précis :
-        1. **Nom** de l'élève
-        2. **Prénom** de l'élève
-        3. **Date** de l'incident *(ex: 12/10/2025)*
-        4. **Type d'incident** *(ex: Écran cassé)*
-        5. **Montant** *(ex: 50 - mettre uniquement des chiffres entiers)*
+        ### 📥 Importation Historique SAV
+        **5 colonnes :** Nom | Prénom | Date | Type d'incident | Montant
         """)
         st.markdown("---")
         up_sav = st.file_uploader("Fichier CSV (SAV)", type="csv", key="up_sav_import")
@@ -1319,12 +1303,8 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
 
     with tab_import_ipad:
         st.markdown("""
-        ### 📥 Instructions d'importation Statut iPad
-        **Format du fichier attendu (.csv avec séparateur `;`).**
-        Le fichier doit contenir **exactement 3 colonnes** dans cet ordre précis :
-        1. **Nom** de l'élève
-        2. **Prénom** de l'élève
-        3. **Statut iPad** *(Valeurs obligatoires : Achat, Location, Fratrie, Parti)*
+        ### 📥 Importation Statut iPad
+        **3 colonnes :** Nom | Prénom | Statut iPad (Achat / Location / Fratrie / Parti)
         """)
         st.markdown("---")
         up_ipad = st.file_uploader("Fichier CSV (Statut iPad)", type="csv", key="up_ipad_import")
@@ -1356,50 +1336,6 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                             pass
             invalidate_cache()
             st.success(f"✅ {count} statuts iPad mis à jour !")
-
-    with tab_import_logistique:
-        st.markdown("""
-        ### 📥 Instructions d'importation depuis le Bilan Logistique
-        **Format du fichier attendu (.csv avec séparateur `;`).**
-        ⚠️ *Note : L'application recalcule les montants (Loyer, Dette...) toute seule. Cet import sert **uniquement** à mettre à jour les Contrats en masse (ex: passer plusieurs élèves de Location à Achat).*
-        
-        Vous pouvez utiliser directement le fichier exporté depuis la "Vue Logistique Totale", modifier la colonne "Contrat", et le réimporter ici. 
-        L'outil lira les **4 premières colonnes** :
-        1. **Nom**
-        2. **Prénom**
-        3. **Classe** *(Ignorée par sécurité)*
-        4. **Contrat** *(Valeurs obligatoires : Achat, Location, Fratrie, Parti)*
-        """)
-        st.markdown("---")
-        up_log = st.file_uploader("Fichier CSV (Bilan Logistique)", type="csv", key="up_log_import")
-        if up_log and st.button("🚀 Mettre à jour les Contrats depuis le Bilan"):
-            df_log_new = pd.read_csv(io.StringIO(up_log.getvalue().decode('utf-8')), sep=None, engine='python')
-            res_el = supabase.table("eleves").select("id, nom, prenom").execute()
-            map_el = {(nettoyeur_identifiant(r['nom']), nettoyeur_identifiant(r['prenom'])): r['id'] for r in res_el.data} if res_el.data else {}
-            count = 0
-            with st.spinner("Mise à jour des contrats en cours..."):
-                for _, row in df_log_new.iterrows():
-                    if len(row) < 4:
-                        continue
-                    n_clean = nettoyeur_identifiant(row.iloc[0])
-                    p_clean = nettoyeur_identifiant(row.iloc[1])
-                    statut_brut = str(row.iloc[3]).strip().capitalize()
-                    statut = "Achat"
-                    if "Location" in statut_brut:
-                        statut = "Location"
-                    elif "Fratrie" in statut_brut:
-                        statut = "Fratrie"
-                    elif "Parti" in statut_brut:
-                        statut = "Parti"
-                    if (n_clean, p_clean) in map_el:
-                        try:
-                            parti_int = 1 if statut == 'Parti' else 0
-                            supabase.table("eleves").update({"statut_ipad": statut, "est_parti": parti_int}).eq("id", map_el[(n_clean, p_clean)]).execute()
-                            count += 1
-                        except Exception:
-                            pass
-            invalidate_cache()
-            st.success(f"✅ {count} contrats iPad mis à jour depuis le Bilan Logistique !")
 
     with tab_nettoyage:
         st.warning("⚠️ **ZONE DE DANGER :** Suppression définitive de tous les élèves marqués 'Partis' (tickets et SAV inclus).")
