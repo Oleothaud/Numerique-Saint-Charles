@@ -56,7 +56,6 @@ MDP_DEFAUT = st.secrets["MDP_DEFAUT"]
 # ==========================================
 
 # --- OPTIMISATION 2 : Cache avec TTL court pour les lectures fréquentes ---
-# ttl=60 = données rafraîchies au max toutes les 60s, évite les appels répétés à chaque widget
 @st.cache_data(ttl=60, show_spinner=False)
 def fetch_table(table_name, eq_col=None, eq_val=None, order_col=None, select_cols="*"):
     query = get_supabase_client().table(table_name).select(select_cols)
@@ -248,29 +247,23 @@ def calculer_bilan_logistique(df_eleves, df_incidents):
 # 📄 GÉNÉRATEUR PDF HTML
 # ==========================================
 def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_prov, print_ipad):
-    html_content = f"""
+    html_content = """
     <html><head><meta charset="utf-8">
-    <title>Conventions - {cible_titre}</title>
+    <title>Conventions - """ + cible_titre + """</title>
     <style>
-        @media print {{ .page-break {{ page-break-after: always; }} .no-print {{ display: none; }} }}
-        body {{ font-family: "Arial", sans-serif; color: #000; margin: 0; padding: 0; line-height: 1.2; }}
-        .convention-page {{ padding: 25px; position: relative; border: 1px solid #EEE; }}
-        .header {{ text-align: center; margin-bottom: 10px; }}
-        .title {{ font-weight: bold; font-size: 14px; text-decoration: underline; margin-bottom: 5px; }}
-        .subtitle {{ font-weight: bold; font-size: 13px; margin-bottom: 10px; }}
-        
-        .info-table {{ width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px; }}
-        .info-table td {{ border: 1px solid #000; padding: 4px; }}
-        
-        .credentials-box {{ border: 2px dashed #004a99; background: #f2f7ff; padding: 8px; margin: 10px 0; font-size: 11px; }}
-        
-        h3 {{ font-size: 11px; margin-top: 8px; margin-bottom: 2px; font-weight: bold; text-transform: uppercase; }}
-        p, li {{ font-size: 10px; text-align: justify; margin: 2px 0; }}
-        ul {{ margin: 2px 0; padding-left: 20px; }}
-        
-        .footer-sigs {{ margin-top: 15px; width: 100%; border-collapse: collapse; }}
-        .footer-sigs td {{ border: 1px solid #000; width: 50%; height: 60px; vertical-align: top; padding: 5px; font-size: 10px; }}
-        .st-charles-footer {{ text-align: center; font-size: 9px; margin-top: 10px; color: #444; }}
+        @media print { .page-break { page-break-after: always; } .no-print { display: none; } }
+        body { font-family: "Arial", sans-serif; color: #000; margin: 0; padding: 0; line-height: 1.15; font-size: 10px; }
+        .convention-page { padding: 20px; position: relative; }
+        .header { text-align: center; margin-bottom: 10px; }
+        .title { font-weight: bold; font-size: 12px; margin-bottom: 2px; }
+        .subtitle { font-weight: bold; font-size: 11px; margin-bottom: 8px; }
+        h3 { font-size: 11px; margin-top: 8px; margin-bottom: 2px; text-decoration: underline; }
+        p, li { text-align: justify; margin: 2px 0; }
+        ul { margin: 2px 0; padding-left: 20px; }
+        .info-block { margin-bottom: 10px; }
+        .credentials-box { border: 2px dashed #004a99; background: #f2f7ff; padding: 6px; margin: 8px 0; font-size: 10px; }
+        .footer-sigs { margin-top: 10px; width: 100%; border-collapse: collapse; }
+        .footer-sigs td { border: 1px solid #000; width: 50%; height: 50px; vertical-align: top; padding: 5px; font-size: 10px; }
     </style>
     </head><body>
     <div class="no-print" style="background: #e74c3c; color: white; padding: 10px; text-align: center; margin-bottom: 20px; border-radius: 5px;">
@@ -279,75 +272,168 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
 
     for _, row in df_print.iterrows():
         classe = str(row['classe']).upper()
-        
-        # --- LOGIQUE DE TEXTE PAR NIVEAU ---
-        if classe.startswith("6") or classe.startswith("5"):
-            niveau = "6ÈME" if classe.startswith("6") else "5ÈME"
-            duree = "4 ans" if classe.startswith("6") else "3 ans"
-            art4_loyer = "Le montant du loyer de 16€ sera prélevé chaque mois de l’année scolaire (de septembre à juin)."
-            art8_fin = "Soit la famille décide d’acquérir la tablette, sous réserve de son paiement intégral et de la signature d’une attestation de cession de propriété.<br>Soit la famille ne souhaite pas l’acquérir. Dans ce cas, toute année commencée est due. La tablette et ses accessoires doivent être restitués."
+        nom = str(row['nom']).upper()
+        prenom = str(row['prenom'])
+        date_entree = str(row.get('date_entree', ''))
+        if not date_entree: 
+            date_entree = "........................"
+
+        # --- REPRODUCTION INTÉGRALE DES TEXTES PAR NIVEAU ---
+        if classe.startswith("6"):
+            niveau = "6ÈME"
+            duree = "4 ans"
+            art8_texte = """La tablette numérique est financée sur la durée de la scolarité selon le cycle.<br>
+            <b>Nombre de mensualités : 40 | Montant mensuel : 16 € | Coût total : 640 €</b><br>
+            Un dernier loyer de 16 € sera appliqué pour lever l’option d’achat.<br>
+            Ces loyers couvrent l’achat de la tablette, ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement.<br>
+            Lors du départ définitif de l’élève, que ce soit de manière anticipée (réorientation, déménagement…) ou à l’issue du cycle scolaire :<br>
+            Soit la famille décide d’acquérir la tablette, sous réserve de son paiement intégral et de la signature d’une attestation de cession de propriété. Toutes les restrictions d’utilisation seront alors levées.<br>
+            Soit la famille ne souhaite pas l’acquérir. Dans ce cas, toute année commencée est due. La tablette et ses accessoires doivent être restitués à l’établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée."""
+        elif classe.startswith("5"):
+            niveau = "5ÈME"
+            duree = "3 ans"
+            art8_texte = """La tablette numérique est financée sur la durée de la scolarité selon le cycle.<br>
+            Un élève arrivant en cours de cycle se verra attribuer une tablette d’occasion.<br>
+            <b>Nombre de mensualités : 30 | Montant mensuel : 16 € | Coût total : 480 €</b><br>
+            Un dernier loyer de 16 € sera appliqué pour lever l’option d’achat.<br>
+            Ces loyers couvrent l’achat de la tablette, ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement.<br>
+            Lors du départ définitif de l’élève, que ce soit de manière anticipée (réorientation, déménagement…) ou à l’issue du cycle scolaire :<br>
+            Soit la famille décide d’acquérir la tablette, sous réserve de son paiement intégral et de la signature d’une attestation de cession de propriété. Toutes les restrictions d’utilisation seront alors levées.<br>
+            Soit la famille ne souhaite pas l’acquérir. Dans ce cas, toute année commencée est due. La tablette et ses accessoires doivent être restitués à l’établissement en parfait état de marche. Dans le cas contraire, la caution sera immédiatement encaissée."""
+        elif classe.startswith("4"):
+            niveau = "4ÈME"
+            duree = "2 ans"
+            art8_texte = """La tablette numérique est en location sur la durée des deux années scolaires.<br>
+            L’élève arrivant en classe de 4ème se verra attribuer une tablette d’occasion.<br>
+            Le montant du loyer de 16€ sera prélevé chaque mois de l’année scolaire (de septembre à juin).<br>
+            Ces loyers couvrent la location globale de la tablette (y compris ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement).<br>
+            En cas de départ anticipé (réorientation, déménagement…), toute année commencée est due.<br>
+            La tablette et ses accessoires doivent être restitués en parfait état de marche.<br>
+            À l’issue du cycle scolaire la tablette sera récupérée par l’établissement avec une attestation de restitution."""
         else:
-            niveau = "4ÈME" if classe.startswith("4") else "3ÈME"
-            duree = "2 ans" if classe.startswith("4") else "1 an"
-            loyer_montant = "14€" if niveau == "3ÈME" else "16€"
-            art4_loyer = f"Le montant du loyer de {loyer_montant} sera prélevé chaque mois de l’année scolaire (de septembre à juin)."
-            art8_fin = "À l’issue du cycle scolaire la tablette sera récupérée par l’établissement avec une attestation de restitution."
+            niveau = "3ÈME"
+            duree = "1 an"
+            art8_texte = """La tablette numérique est en location sur la durée de l'année scolaire.<br>
+            L’élève arrivant en classe de 3ème se verra attribuer une tablette d’occasion.<br>
+            Le montant du loyer de 14€ sera prélevé chaque mois de l’année scolaire (de septembre à juin).<br>
+            Ces loyers couvrent la location globale de la tablette (y compris ses accessoires, les applications installées par l’établissement, ainsi que l’assurance souscrite par l’établissement).<br>
+            En cas de départ anticipé (réorientation, déménagement…), toute année commencée est due.<br>
+            La tablette et ses accessoires doivent être restitués en parfait état de marche.<br>
+            À l’issue du cycle scolaire la tablette sera récupérée par l’établissement avec une attestation de restitution."""
 
         html_content += f"""
         <div class="convention-page page-break">
             <div class="header">
-                <div class="title">CONVENTION DE MISE A DISPOSITION D’UN IPAD / TABLETTE NUMERIQUE</div>
+                <div class="title">CONVENTION DE MISE A DISPOSITION D’UN IPAD / TABLETTE NUMERIQUE EDUCATIVE A DESTINATION DES ELEVES</div>
                 <div class="subtitle">ANNEE SCOLAIRE 2025-26 - ÉLÈVES DE {niveau}</div>
             </div>
 
-            <table class="info-table">
-                <tr><td><b>Classe :</b> {row['classe']}</td><td><b>Date d'entrée :</b> {row.get('date_entree', 'Sept. 2025')}</td></tr>
-                <tr><td><b>Nom de l'élève :</b> {row['nom']}</td><td><b>Prénom :</b> {row['prenom']}</td></tr>
-                <tr><td colspan="2"><b>Représentants légaux :</b> ................................................................................</td></tr>
-            </table>
+            <div class="info-block">
+                <b>Etablissement :</b> Collège Saint Charles<br>
+                <b>Classe :</b> {classe}<br>
+                <b>Nom élève :</b> {nom}<br>
+                <b>Prénom :</b> {prenom}<br>
+                <b>Date entrée dans l’établissement :</b> {date_entree}<br><br>
+                Entre le groupe scolaire St Charles représenté par Mr Bruno AUBRIET, chef d’établissement coordinateur,<br>
+                Et (noms et prénoms des parents) ....................................................................................................<br>
+                Représentants légaux de l’élève {prenom} {nom} en classe de {classe}<br>
+                Il est convenu ce qui suit :
+            </div>
 
             <div class="credentials-box">
-                <b>🔑 ACCÈS NUMÉRIQUES (À conserver précieusement) :</b><br>
-                <table style="width:100%; font-size:11px; margin-top:5px;">"""
+                <b>🔑 IDENTIFIANTS NUMÉRIQUES DE L'ÉLÈVE (À CONSERVER) :</b><br>
+                <table style="width:100%; font-size:10px; margin-top:2px;">"""
         
-        if print_ed: 
-            html_content += f"<tr><td>🔵 Ecole Directe :</td><td>ID : <b>{row['id_ed']}</b> | MDP : <b>{row['mdp_ed']}</b></td></tr>"
+        if print_ed: html_content += f"<tr><td>🔵 Ecole Directe :</td><td>ID : <b>{row['id_ed']}</b> | MDP : <b>{row['mdp_ed']}</b></td></tr>"
         if print_prov and 'id_ed_prov' in row and str(row['id_ed_prov']).strip() != "":
             html_content += f"<tr><td>🟠 ED (Provisoire) :</td><td>ID : <b>{row['id_ed_prov']}</b> | MDP : <b>{row['mdp_ed_prov']}</b></td></tr>"
-        if print_dr: 
-            html_content += f"<tr><td>🟡 Drive :</td><td>ID : <b>{row['id_mail']}</b> | MDP : <b>{row['mdp_mail']}</b></td></tr>"
-        if print_px: 
-            html_content += f"<tr><td>🟣 Pix :</td><td>ID : <b>{row['id_pix']}</b> | MDP : <b>{row['mdp_pix']}</b></td></tr>"
-        if print_ipad: 
-            html_content += f"<tr><td>📱 Code iPad :</td><td><b>{calculer_code_ipad(row['date_naissance'])}</b></td></tr>"
-        
+        if print_dr: html_content += f"<tr><td>🟡 Drive :</td><td>ID : <b>{row['id_mail']}</b> | MDP : <b>{row['mdp_mail']}</b></td></tr>"
+        if print_px: html_content += f"<tr><td>🟣 Pix :</td><td>ID : <b>{row['id_pix']}</b> | MDP : <b>{row['mdp_pix']}</b></td></tr>"
+        if print_ipad: html_content += f"<tr><td>📱 Code iPad :</td><td><b>{calculer_code_ipad(row['date_naissance'])}</b></td></tr>"
+
         html_content += f"""
                 </table>
             </div>
 
-            <h3>Article 1 & 2 : Objet et Matériel</h3>
-            <p>La présente convention régit les conditions de mise à disposition d'un iPad Apple, d'une housse de protection, d'un adaptateur et d'un câble d'alimentation originaux.</p>
+            <h3>Article 1 : Objet de la convention</h3>
+            <p>La présente convention régit les conditions de mise à disposition d’une tablette numérique par l’établissement à l’élève, pour la durée de sa scolarité dans l’établissement cité ci-dessus.</p>
+
+            <h3>Article 2 : Le matériel mis à disposition</h3>
+            <ul>
+                <li>Une tablette tactile Ipad de la marque Apple</li>
+                <li>Une housse de protection</li>
+                <li>Un adaptateur secteur et un câble d'alimentation marque IPAD pour la tablette</li>
+                <li>Des applications préinstallées et préconfigurées</li>
+            </ul>
 
             <h3>Article 3 : Propriété</h3>
-            <p>Le matériel reste la propriété de l’établissement Saint Charles jusqu'à cession éventuelle. La revente ou le prêt sont strictement interdits.</p>
+            <p>La tablette et les accessoires mis à disposition font partie des outils pédagogiques, et restent la propriété de l’établissement Saint Charles{' jusqu’à ce que ces derniers soient cédés aux élèves en fin de cycle scolaire' if classe.startswith('6') or classe.startswith('5') else ''}.<br>
+            La revente, la cession, même à titre gratuit, l'échange, le prêt, la location, de la tablette et de ses accessoires sont donc strictement interdits.<br>
+            Au moment du départ, le référent indiquera la procédure de sauvegarde des fichiers sur un outil de stockage personnel.</p>
 
-            <h3>Article 4 & 8 : Conditions financières et Fin de cycle</h3>
-            <p>Durée de mise à disposition : {duree}. {art4_loyer} {art8_fin}</p>
+            <h3>Article 4 : Conditions de mise à disposition et durée</h3>
+            <p>L’Etablissement procède à la remise de la tablette à l'élève à la rentrée scolaire ou à la date d’arrivée dans l’établissement.<br>
+            La durée de mise à disposition est de {duree}.<br>
+            La mise à disposition reste conditionnée aux étapes suivantes :</p>
+            <ul>
+                <li>Acceptation sans réserve de la présente convention de prêt et d'utilisation de la tablette tactile numérique datée, signée, et paraphée avec la mention manuscrite « lu et accepté » par le ou les représentants légaux et l'élève.</li>
+                <li>Versement d'une caution de 500 € par chèque uniquement et non daté (non encaissé, à l'ordre de « OGEC Saint Charles »).</li>
+            </ul>
+            <p>Cette caution sera détruite par l’établissement lors de la remise de la tablette en fin de cycle.{' Pour toute tablette non restituée, la caution sera immédiatement encaissée.' if classe.startswith('3') or classe.startswith('4') else ''}</p>
 
-            <h3>Article 9 : Sanctions et Refacturation</h3>
-            <p>En cas de dégradation, la refacturation suivante sera opérée : 
-            Vitre (15€), Câble Apple (25€), Bloc alimentation (25€), Coque (25€). 
-            Toute casse ou perte entraîne la refacturation du matériel original.</p>
+            <h3>Article 5 : Les engagements des élèves et des responsables</h3>
+            <p>La tablette est mise à disposition de l'élève à titre individuel et nominatif. L'usage du matériel est réservé à l'élève dont l'identité figure sur la présente convention.<br>
+            Les usages hors enceinte de l’Etablissement relèvent de l'autorité et de la responsabilité du ou des représentants légaux.<br>
+            La signature de la présente convention par l'un des représentants légaux et de l'élève constitue l'acceptation de la remise de la tablette et de la détention de la tablette et des accessoires par l'élève.<br>
+            <b>L’élève et ses représentant légaux s’engagent à :</b></p>
+            <ul>
+                <li>Conserver et à prendre le plus grand soin de la tablette et des accessoires confiés</li>
+                <li>Garder la tablette dans la housse de protection et à l’abri des regards notamment dans les transports scolaires</li>
+                <li>Ne pas dégrader le matériel (pas d’inscription, pas d’autocollant)</li>
+                <li>Charger la tablette à 100% tous les soirs</li>
+                <li>Ne pas modifier la configuration initiale, respecter les réglages installés</li>
+                <li>Ne pas modifier ou détruire des fichiers sans autorisation</li>
+                <li>Ne pas prêter la tablette ou la mettre à la disposition d’autres personnes</li>
+            </ul>
+            <p><b>En classe :</b></p>
+            <ul>
+                <li>Rester sur l’application demandée par le professeur et bien classer ses cours</li>
+                <li>Ne pas naviguer sur internet sans autorisation : ni jeux, ni réseaux sociaux, ne rien publier</li>
+                <li>Ne pas prendre de photos, ni vidéo sans autorisation</li>
+                <li>Ne pas utiliser l’Apple TV ni l’air Drop sans autorisation</li>
+            </ul>
+            <p>L'intégrité du système d'exploitation est contrôlée par l’établissement afin d'empêcher des fonctionnements non autorisés de la tablette.<br>
+            Pour garantir l'utilisation de la tablette, l’Établissement met en œuvre un système de supervision de chaque tablette permettant son contrôle grâce à un logiciel de gestion de terminaux mobiles. Ce système de supervision permet d'appliquer des actions à distance telles que la réinitialisation du code de verrouillage, les réglages sur la tablette et de mettre à disposition des applications sélectionnées par l’Etablissement. Il permet aussi de géo localiser la tablette en cas de perte ou de vol.<br>
+            Les enseignants ou le personnel de direction peuvent accéder aux dossiers de l'élève pour vérifier le travail accompli ou en cours.</p>
 
-            <p style="font-size:9px; margin-top:10px;"><i>* L'intégralité du règlement intérieur numérique s'applique à cette convention.</i></p>
+            <h3>Article 6 : Protection des données</h3>
+            <p>À toutes fins utiles, il est rappelé que les données collectées auprès des élèves sont obligatoires aux fins de bonne gestion, d'organisation et de sécurisation des systèmes d'information et de communication. Les données stockées sont supprimées à la fin de la scolarité et le compte désactivé.</p>
+
+            <h3>Article 7 : Pannes, bris, perte ou vol</h3>
+            <p><b>En cas de panne ou de bris</b><br>
+            La maintenance de la tablette, des accessoires et des logiciels et applications associés est de la compétence de l’Etablissement et de son prestataire. Aucune intervention externe n'est autorisée sur la tablette et ses accessoires. L'élève et son ou ses représentants légaux ne devront en aucun cas faire réparer ou remplacer un élément de la tablette.<br>
+            Tout problème, incident, panne ou casse relatifs à la tablette, aux accessoires, aux applications installées doit être immédiatement signalé au référent numérique. Le remplacement éventuel du matériel se fera par l’établissement.<br>
+            En cas de bris, une franchise sera appliquée de la manière suivante : 100€ pour un premier envoi, 200€ pour un deuxième, 300€ pour un troisième…</p>
+            <p><b>En cas de perte ou de vol</b><br>
+            En cas de vol ou de perte, une plainte ou une main courante (uniquement en cas de perte) devra obligatoirement être déposée immédiatement auprès des services de Police ou de Gendarmerie compétents territorialement par le ou les représentants légaux. Le récépissé devra être envoyé soit par courrier postal, soit par voie électronique à l’Etablissement, et ce, dans un délai de 48 heures à compter de la date indiquée sur le récépissé.<br>
+            Le dispositif de géolocalisation à distance pourra être activé de manière exceptionnelle et ponctuelle afin de la retrouver. Les données relatives à la géolocalisation, susceptibles d'être enregistrées ne le seront donc, qu'à partir de la déclaration de perte, de vol ou d'abus de confiance.<br>
+            En cas de perte ou vol, une franchise sera appliquée de la manière suivante : 100€ pour un premier envoi, 200€ pour un deuxième, 300€ pour un troisième…</p>
+
+            <h3>Article 8 : Conditions financières</h3>
+            <p>{art8_texte}</p>
+
+            <h3>Article 9 : Sanctions</h3>
+            <p>En cas de manquement à la présente convention et de violation d'une disposition réglementaire, l'élève s'expose à une confiscation de la tablette par l’Etablissement ainsi qu'à des sanctions disciplinaires.<br>
+            En cas de mauvais usage, de revente, cession, échange, prêt ou location de la tablette et des accessoires, le matériel sera repris et des sanctions pouvant aller jusqu’à l’exclusion seront prises.<br>
+            Les accessoires et la tablette de marque Apple sont la propriété de l’ensemble St Charles. Toute casse ou perte entraine la refacturation de ceux-ci. Le remplacement par des accessoires standards est interdit.<br>
+            En cas de dégradation, la refacturation suivante sera opérée : Vitre de protection 15 € | Câble Apple 25 € | Bloc alimentation Apple 25 € | Coque 25 €.</p>
 
             <table class="footer-sigs">
                 <tr>
-                    <td>Fait à Chalon-sur-Saône, le ....................<br><br><b>Signature de l'élève</b></td>
-                    <td><b>Signature des Représentants légaux</b><br><span>(Mention "Lu et accepté")</span></td>
+                    <td>Le : ........................................<br><br><b>Elève</b><br><span style="font-size:9px;">(noter lu et accepté + signature)</span></td>
+                    <td><br><br><b>Représentants légaux</b><br><span style="font-size:9px;">(noter lu et accepté + signature)</span></td>
                 </tr>
             </table>
-            <div class="st-charles-footer">Collège Saint Charles - Chalon-sur-Saône - Pôle Numérique</div>
         </div>"""
 
     html_content += "<script>setTimeout(function() { window.print(); }, 500);</script></body></html>"
@@ -1071,6 +1157,7 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
         df_mass = fetch_table("eleves", eq_col="est_parti", eq_val=est_p_val)
 
         if not df_mass.empty:
+            df_mass = df_mass.sort_values(by=["classe", "nom"])
             cols = ["id", "nom", "prenom", "classe", "statut_ipad", "restitution"]
             existing_cols = [c for c in cols if c in df_mass.columns]
             edited_df = st.data_editor(
