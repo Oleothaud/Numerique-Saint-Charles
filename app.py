@@ -1189,14 +1189,21 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
 
     with tab_import:
         st.markdown("""
-        ### 📝 Instructions d'importation
-        **Format du fichier attendu (.csv avec séparateur `;`) — 8 colonnes dans l'ordre :**
-        1. **Classe** | 2. **Nom** | 3. **Prénom** | 4. **Date de Naissance**
-        5. **Professeur Principal** | 6. **Date d'entrée** | 7. **ID ED Provisoire** | 8. **MDP ED Provisoire**
+        ### 📝 Instructions d'importation Annuaire (Charlemagne)
+        **Format du fichier attendu (.csv avec séparateur `;`).**
+        Le fichier doit contenir **exactement 8 colonnes** dans cet ordre précis, avec ces intitulés :
+        1. **Classe** *(ex: 6G1)*
+        2. **Nom** *(ex: DUPONT)*
+        3. **Prénom** *(ex: Jean)*
+        4. **Date de Naissance** *(ex: 15/05/2012)*
+        5. **Professeur Principal** *(ex: M. MARTIN)*
+        6. **Date d'entrée** *(ex: 02/09/2026)*
+        7. **ID ED Provisoire** *(ex: dupont.j)*
+        8. **MDP ED Provisoire** *(ex: XyZ789)*
 
-        **Modes :**
-        - **Décoché (Import classique) :** Ajoute uniquement les nouveaux élèves.
-        - **Coché (Mode Rentrée) :** Ajoute les nouveaux, met à jour les anciens, archive les absents en 'Parti'.
+        **Modes de fonctionnement :**
+        - **Mode Standard (Décoché) :** Ajoute uniquement les nouveaux élèves trouvés dans le fichier.
+        - **Mode Rentrée (Coché) :** Ajoute les nouveaux, met à jour la classe des anciens, et archive les élèves absents du fichier en 'Parti'.
         """)
         st.markdown("---")
         mode_rentree = st.checkbox("🎓 Activer le Mode Rentrée")
@@ -1271,8 +1278,14 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
 
     with tab_import_sav:
         st.markdown("""
-        ### 📥 Importation Historique SAV
-        **5 colonnes :** Nom | Prénom | Date | Type d'incident | Montant
+        ### 📥 Instructions d'importation Historique SAV
+        **Format du fichier attendu (.csv avec séparateur `;`).**
+        Le fichier doit contenir **exactement 5 colonnes** dans cet ordre précis :
+        1. **Nom** de l'élève
+        2. **Prénom** de l'élève
+        3. **Date** de l'incident *(ex: 12/10/2025)*
+        4. **Type d'incident** *(ex: Écran cassé)*
+        5. **Montant** *(ex: 50 - mettre uniquement des chiffres entiers)*
         """)
         st.markdown("---")
         up_sav = st.file_uploader("Fichier CSV (SAV)", type="csv", key="up_sav_import")
@@ -1303,8 +1316,12 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
 
     with tab_import_ipad:
         st.markdown("""
-        ### 📥 Importation Statut iPad
-        **3 colonnes :** Nom | Prénom | Statut iPad (Achat / Location / Fratrie / Parti)
+        ### 📥 Instructions d'importation Statut iPad
+        **Format du fichier attendu (.csv avec séparateur `;`).**
+        Le fichier doit contenir **exactement 3 colonnes** dans cet ordre précis :
+        1. **Nom** de l'élève
+        2. **Prénom** de l'élève
+        3. **Statut iPad** *(Valeurs obligatoires : Achat, Location, Fratrie, Parti)*
         """)
         st.markdown("---")
         up_ipad = st.file_uploader("Fichier CSV (Statut iPad)", type="csv", key="up_ipad_import")
