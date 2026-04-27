@@ -1042,7 +1042,6 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                 else:
                     st.info("Aucune modification détectée.")
 
-# --- CETTE LIGNE CI-DESSOUS DOIT ÊTRE COLLÉE AU BORD GAUCHE ---
 # ==========================================
 # 🚛 VUE LOGISTIQUE TOTALE (ADMIN SEUL)
 # ==========================================
@@ -1073,8 +1072,8 @@ elif is_admin and menu == "🚛 Vue Logistique Totale":
         st.write("Utilisez cet export pour avoir une vision globale de la facturation par élève.")
         
         # Export avec point-virgule pour Excel
-        csv = df_disp.to_csv(index=False, sep=';').encode('utf-8')
-        st.download_button("📥 Exporter le Bilan Logistique (CSV)", csv, "bilan_logistique_complet.csv")
+        csv_data = df_disp.to_csv(index=False, sep=';').encode('utf-8')
+        st.download_button("📥 Exporter le Bilan Logistique (CSV)", csv_data, "bilan_logistique_complet.csv")
 
 
 # ==========================================
