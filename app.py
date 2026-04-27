@@ -1042,6 +1042,7 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                 else:
                     st.info("Aucune modification détectée.")
 
+# --- CETTE LIGNE CI-DESSOUS DOIT ÊTRE COLLÉE AU BORD GAUCHE ---
 # ==========================================
 # 🚛 VUE LOGISTIQUE TOTALE (ADMIN SEUL)
 # ==========================================
