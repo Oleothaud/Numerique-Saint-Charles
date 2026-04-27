@@ -246,46 +246,117 @@ def calculer_bilan_logistique(df_eleves, df_incidents):
 # ==========================================
 # 📄 GÉNÉRATEUR PDF HTML
 # ==========================================
-def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_prov=False, print_ipad=True):
-    html_content = f"""
-    <html><head>
-        <meta charset="utf-8">
-        <title>Identifiants - {cible_titre}</title>
-        <style>
-            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e3a5f; padding: 20px; }}
-            .card {{ border: 2px solid #1e3a5f; border-radius: 8px; padding: 15px; margin-bottom: 15px; page-break-inside: avoid; background-color: #f9fbfd; }}
-            .header {{ font-size: 16px; font-weight: bold; border-bottom: 2px solid #1e3a5f; padding-bottom: 6px; margin-bottom: 10px; }}
-            .cred-row {{ font-size: 14px; margin: 6px 0; padding: 6px; background: #fff; border-radius: 5px; border-left: 4px solid; }}
-            .cred-ed {{ border-color: #3498db; }} .cred-dr {{ border-color: #f1c40f; }}
-            .cred-px {{ border-color: #9b59b6; }} .cred-ipad {{ border-color: #2ecc71; background-color: #f0fff4; }}
-            .cred-prov {{ border-color: #e67e22; background-color: #fff3e0; }}
-            .label {{ font-weight: bold; display: inline-block; width: 220px; }}
-            .code {{ font-family: monospace; font-size: 15px; background: #eee; padding: 2px 6px; border-radius: 4px; }}
-            .warning {{ font-size: 13px; color: #c0392b; margin-bottom: 10px; font-weight: bold; text-decoration: underline; }}
-            @media print {{ body {{ padding: 0; margin: 0; }} .no-print {{ display: none; }} .card {{ border: 1px solid #000; box-shadow: none; background-color: white; }} }}
-        </style>
-    </head><body>
-        <div class="no-print" style="background: #e74c3c; color: white; padding: 10px; text-align: center; margin-bottom: 20px; border-radius: 5px;">
-            <b>Astuce :</b> Appuyez sur <b>Ctrl + P</b> (ou Cmd + P sur Mac) pour imprimer. Dans destination, choisissez "Enregistrer au format PDF".
+function generer_pdf_html(elevesSelectionnes) {
+  let html = `
+    <html>
+    <head>
+      <style>
+        @media print {
+          .page-break { page-break-after: always; }
+        }
+        body { font-family: Arial, sans-serif; line-height: 1.4; color: #333; margin: 0; padding: 0; }
+        .convention-page { padding: 40px; position: relative; }
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #004a99; padding-bottom: 10px; }
+        .header h1 { color: #004a99; font-size: 18px; margin: 0; text-transform: uppercase; }
+        .header h2 { font-size: 14px; margin: 5px 0; }
+        
+        .info-box { border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; background: #f9f9f9; }
+        .info-box table { width: 100%; }
+        .info-box td { padding: 3px; font-size: 13px; }
+        
+        .credentials-box { border: 2px dashed #004a99; padding: 10px; margin: 15px 0; background: #eef6ff; }
+        .credentials-box h3 { margin: 0 0 5px 0; font-size: 14px; color: #004a99; }
+        
+        h3 { font-size: 14px; margin-top: 15px; margin-bottom: 5px; text-decoration: underline; }
+        p, li { font-size: 12px; text-align: justify; margin: 4px 0; }
+        
+        .footer-sigs { margin-top: 30px; width: 100%; border-collapse: collapse; }
+        .footer-sigs td { border: 1px solid #ccc; width: 33%; height: 80px; vertical-align: top; padding: 10px; font-size: 11px; }
+        .mention { font-style: italic; font-size: 10px; color: #666; }
+      </style>
+    </head>
+    <body>
+  `;
+
+  elevesSelectionnes.forEach(eleve => {
+    // Analyse de la classe pour déterminer la convention
+    const classe = eleve.classe || "";
+    let loyer = "16€";
+    let niveau = "Collège";
+    let specificitesFin = "";
+    
+    if (classe.startsWith("6")) {
+      niveau = "6ÈME";
+      specificitesFin = "Soit la famille décide d’acquérir la tablette (fin de cycle), soit elle la restitue. Toute année commencée est due.";
+    } else if (classe.startsWith("5")) {
+      niveau = "5ÈME";
+      specificitesFin = "Soit la famille décide d’acquérir la tablette (fin de cycle), soit elle la restitue. Toute année commencée est due.";
+    } else if (classe.startsWith("4")) {
+      niveau = "4ÈME";
+      specificitesFin = "À l’issue du cycle scolaire la tablette sera récupérée par l’établissement avec une attestation de restitution.";
+    } else if (classe.startsWith("3")) {
+      niveau = "3ÈME";
+      loyer = "14€";
+      specificitesFin = "À l’issue du cycle scolaire la tablette sera récupérée par l’établissement avec une attestation de restitution.";
+    }
+
+    html += `
+      <div class="convention-page page-break">
+        <div class="header">
+          <h1>Convention de mise à disposition d'un iPad</h1>
+          <h2>Année Scolaire 2025-2026 - ÉLÈVES DE ${niveau}</h2>
+          <p><strong>Collège Saint Charles - Chalon-sur-Saône</strong></p>
         </div>
-    """
-    for _, row in df_print.iterrows():
-        code_ipad = calculer_code_ipad(row['date_naissance'])
-        html_content += f"""<div class="card"><div class="header">🎓 {row['nom']} {row['prenom']} - Classe : {row['classe']}</div>"""
-        if print_prov and 'id_ed_prov' in row and str(row['id_ed_prov']).strip() != "":
-            html_content += "<div class='warning'>⚠️ ATTENTION : Les codes 'PROVISOIRE' sont à usage unique. Ils doivent obligatoirement être modifiés lors de la première connexion.</div>"
-            html_content += f"<div class='cred-row cred-prov'><span class='label'>🟠 Ecole Directe (PROVISOIRE) :</span> ID : <span class='code'>{row['id_ed_prov']}</span> &nbsp;|&nbsp; Mdp : <span class='code'>{row['mdp_ed_prov']}</span></div>"
-        if print_ipad:
-            html_content += f"<div class='cred-row cred-ipad'><span class='label'>📱 Code déverrouillage iPad :</span> <span class='code'>{code_ipad}</span></div>"
-        if print_ed:
-            html_content += f"<div class='cred-row cred-ed'><span class='label'>🔵 Ecole Directe (Définitifs) :</span> ID : <span class='code'>{row['id_ed']}</span> &nbsp;|&nbsp; Mdp : <span class='code'>{row['mdp_ed']}</span></div>"
-        if print_dr:
-            html_content += f"<div class='cred-row cred-dr'><span class='label'>🟡 Drive :</span> ID : <span class='code'>{row['id_mail']}</span> &nbsp;|&nbsp; Mdp : <span class='code'>{row['mdp_mail']}</span></div>"
-        if print_px:
-            html_content += f"<div class='cred-row cred-px'><span class='label'>🟣 Pix :</span> ID : <span class='code'>{row['id_pix']}</span> &nbsp;|&nbsp; Mdp : <span class='code'>{row['mdp_pix']}</span></div>"
-        html_content += "</div>"
-    html_content += "<script>setTimeout(function() { window.print(); }, 500);</script></body></html>"
-    return html_content
+
+        <div class="info-box">
+          <table>
+            <tr><td><strong>Élève :</strong> ${eleve.nom} ${eleve.prenom}</td><td><strong>Classe :</strong> ${eleve.classe}</td></tr>
+            <tr><td><strong>Date d'entrée :</strong> ${eleve.dateEntree || 'Septembre 2025'}</td><td><strong>Responsable :</strong> .......................................</td></tr>
+          </table>
+        </div>
+
+        <div class="credentials-box">
+          <h3>🔑 Tes Identifiants Personnels</h3>
+          <table>
+            <tr><td><strong>Ecole Directe :</strong> ${eleve.identifiantED || 'A générer'} / ${eleve.passwordED || '********'}</td></tr>
+            <tr><td><strong>Compte Drive :</strong> ${eleve.emailDrive || 'En attente'} / ${eleve.passwordDrive || '********'}</td></tr>
+            <tr><td><strong>Code iPad :</strong> ${eleve.codeIpad || 'Non défini'}</td></tr>
+          </table>
+        </div>
+
+        <h3>Article 1 & 2 : Objet et Matériel</h3>
+        <p>L'établissement met à disposition : une tablette iPad Apple, une housse renforcée, un adaptateur secteur et son câble original.</p>
+
+        <h3>Article 3 : Propriété</h3>
+        <p>Le matériel reste la propriété du Collège Saint Charles. La revente, le prêt ou l'échange sont strictement interdits.</p>
+
+        <h3>Article 8 : Conditions de mise à disposition</h3>
+        <p>Le loyer de <strong>${loyer}</strong> sera prélevé mensuellement (septembre à juin). ${specificitesFin}</p>
+
+        <h3>Article 9 : Sanctions et Refacturation</h3>
+        <p>En cas de dégradation constatée, la refacturation suivante sera opérée : Vitre (15€), Câble (25€), Bloc alimentation (25€), Coque (25€).</p>
+
+        <table class="footer-sigs">
+          <tr>
+            <td>Fait à Chalon-sur-Saône,<br>le ..........................</td>
+            <td>Signature de l'élève<br><span class="mention">(Lu et accepté)</span></td>
+            <td>Signature des parents<br><span class="mention">(Lu et accepté)</span></td>
+          </tr>
+        </table>
+        
+        <p style="font-size: 9px; text-align: center; margin-top: 20px;">Groupe Scolaire Saint Charles - Pôle Numérique</p>
+      </div>
+    `;
+  });
+
+  html += `</body></html>`;
+  
+  // Envoi vers l'impression
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.print();
+}
 
 
 # ==========================================
