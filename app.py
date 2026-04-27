@@ -402,8 +402,36 @@ if menu == "📊 Tableau de Bord":
                     st.info("Aucun incident déclaré.")
 
         st.markdown("---")
-        fig_parc = px.pie(df_eleves, names='statut_ipad', hole=0.4, title="Répartition des Contrats")
-        st.plotly_chart(fig_parc, use_container_width=True)
+        st.markdown("### 📈 Pilotage Financier & Matériel")
+        
+        col_chart1, col_chart2 = st.columns(2)
+        
+        with col_chart1:
+            # Graphique 1 : Répartition existante
+            fig_parc = px.pie(df_eleves, names='statut_ipad', hole=0.4, title="Répartition des Contrats iPad")
+            st.plotly_chart(fig_parc, use_container_width=True)
+            
+        with col_chart2:
+            # Graphique 2 : Top Incidents par Classe
+            if not df_incidents.empty and not df_eleves.empty:
+                # On fusionne les incidents avec les élèves pour récupérer la classe
+                df_merge = pd.merge(df_incidents, df_eleves[['id', 'classe']], left_on='eleve_id', right_on='id', how='left')
+                df_casse = df_merge['classe'].value_counts().reset_index()
+                df_casse.columns = ['Classe', "Nombre d'incidents"]
+                
+                fig_casse = px.bar(df_casse, x='Classe', y="Nombre d'incidents", 
+                                   title="Alerte Casse : Incidents par Classe", 
+                                   color="Nombre d'incidents", color_continuous_scale="Reds")
+                st.plotly_chart(fig_casse, use_container_width=True)
+            else:
+                st.info("📊 Pas assez de données pour afficher le graphique des incidents.")
+
+        # --- Calcul du Revenu Prévisionnel ---
+        st.markdown("---")
+        df_loc = df_eleves[df_eleves['statut_ipad'] == 'Location']
+        total_annuel = sum(calculer_mensualite_ipad(row['classe'], 'Location')[1] for _, row in df_loc.iterrows())
+        
+        st.success(f"💶 **Projection Financière :** D'après le parc actuel ({len(df_loc)} iPads en location), le revenu annuel prévisionnel généré par les loyers s'élève à **{total_annuel} €**.")
 
 
 # ==========================================
