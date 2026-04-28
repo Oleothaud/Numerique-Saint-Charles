@@ -26,7 +26,7 @@ DOSSIER_COURANT = os.path.dirname(os.path.abspath(__file__))
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
-# --- OPTIMISATION 1 : Client Supabase en singleton ---
+# --- OPTIMISATION 1 : Client Supabase en singleton (une seule connexion pour toute la session) ---
 @st.cache_resource
 def get_supabase_client() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -42,6 +42,7 @@ SMTP_PASSWORD = st.secrets["SMTP_PASSWORD"]
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
+# L'adresse corrigée pour te mettre en copie :
 EMAIL_ADMIN = "o.leothaud@saintcharles71.fr"
 EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"
 
@@ -119,6 +120,27 @@ st.markdown("""
         label p { color: #1e3a5f !important; }
         div[data-baseweb="tooltip"], div[data-testid="stTooltipContent"] {
             display: none !important; opacity: 0 !important; visibility: hidden !important;
+        }
+        
+        /* --- NOUVEAU : STYLE DES BOUTONS (ONGLTES) --- */
+        button[kind="primary"] {
+            background-color: #e74c3c !important; 
+            color: white !important; 
+            border-color: #e74c3c !important;
+        }
+        button[kind="primary"]:hover {
+            background-color: #c0392b !important; 
+            border-color: #c0392b !important; 
+        }
+        button[kind="secondary"] {
+            background-color: #1e3a5f !important; 
+            color: white !important; 
+            border-color: #1e3a5f !important;
+        }
+        button[kind="secondary"]:hover {
+            background-color: #2c5282 !important; 
+            border-color: #2c5282 !important; 
+            color: white !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -946,6 +968,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         invalidate_cache()
                         st.session_state["open_el_id"] = str(el['id'])
                         st.session_state[f"msg_{el['id']}"] = f"✅ Incident déclaré ({prix_facture}€) !"
+                        time.sleep(1)
                         st.rerun()
 
                     st.markdown("#### 🛠️ Historique SAV")
