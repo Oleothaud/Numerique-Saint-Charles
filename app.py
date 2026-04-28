@@ -42,6 +42,7 @@ SMTP_PASSWORD = st.secrets["SMTP_PASSWORD"]
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
+# L'adresse corrigée pour te mettre en copie :
 EMAIL_ADMIN = "o.leothaud@saintcharles71.fr"
 EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"
 
@@ -244,6 +245,7 @@ def calculer_bilan_logistique(df_eleves, df_incidents):
 # 📄 GÉNÉRATEUR PDF HTML
 # ==========================================
 def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_prov, print_ipad, print_convention=False):
+    # 1. Tenter de charger le logo en base64 pour l'en-tête
     logo_b64 = ""
     chemins_logo_possibles = [
         os.path.join(DOSSIER_COURANT, "Logo Collège St Charles (1).jpeg"),
@@ -266,26 +268,30 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
             .no-print {{ display: none; }}
             body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
         }}
-        body {{ font-family: "Arial", sans-serif; color: #2c3e50; margin: 0; padding: 0; line-height: 1.2; font-size: 9px; }}
-        .convention-page {{ padding: 20px 40px; position: relative; }}
+        body {{ font-family: "Segoe UI", Arial, sans-serif; color: #2c3e50; margin: 0; padding: 0; line-height: 1.2; font-size: 9px; }}
+        .convention-page {{ padding: 20px 30px; position: relative; }}
         
-        .header {{ display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #1e3a5f; padding-bottom: 10px; margin-bottom: 15px; }}
+        /* En-tête */
+        .header-flex {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }}
         .header-text {{ text-align: right; }}
         .title {{ font-weight: bold; font-size: 13px; color: #1e3a5f; margin-bottom: 3px; text-transform: uppercase; }}
         .subtitle {{ font-weight: bold; font-size: 11px; color: #e74c3c; }}
 
+        /* Beaux encadrés avec bords arrondis et couleurs */
         .info-box {{
             border: 2px solid #1e3a5f;
             border-radius: 12px;
             background-color: #f8fafc;
-            padding: 12px;
-            margin-bottom: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }}
         .info-grid {{ width: 100%; border-collapse: separate; border-spacing: 5px; font-size: 11px; }}
         .info-grid td {{ vertical-align: top; padding: 4px; }}
-        .info-label {{ font-size: 8px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }}
-        .info-val {{ font-size: 11px; font-weight: bold; color: #0f172a; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; display: inline-block; width: 90%; }}
+        .info-label {{ font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }}
+        .info-val {{ font-size: 12px; font-weight: bold; color: #0f172a; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; display: inline-block; width: 90%; }}
 
+        /* Titres d'articles stylisés */
         h3 {{ 
             font-size: 10px; 
             margin-top: 10px; 
@@ -302,18 +308,30 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
         p, li {{ text-align: justify; margin: 2px 0; font-size: 9px; }}
         ul {{ margin: 2px 0; padding-left: 15px; }}
 
-        .styled-table {{ width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; margin: 6px 0; font-size: 9px; }}
-        .styled-table th {{ background-color: #e2e8f0; color: #1e3a5f; padding: 4px; font-weight: bold; text-align: center; border-bottom: 1px solid #cbd5e1; }}
-        .styled-table td {{ padding: 4px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; text-align: center; }}
+        /* Tableaux arrondis */
+        .styled-table {{ 
+            width: 100%; 
+            border-collapse: separate; 
+            border-spacing: 0; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 8px; 
+            overflow: hidden; 
+            margin: 8px 0; 
+            font-size: 9px; 
+        }}
+        .styled-table th {{ background-color: #e2e8f0; color: #1e3a5f; padding: 5px; font-weight: bold; text-align: center; border-bottom: 1px solid #cbd5e1; }}
+        .styled-table td {{ padding: 5px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; text-align: center; }}
         .styled-table td:last-child {{ border-right: none; }}
         .styled-table tr:last-child td {{ border-bottom: none; }}
         .styled-table.left-align td {{ text-align: left; vertical-align: top; }}
 
         .warning-text {{ font-weight: bold; color: #e74c3c; margin-top: 5px; display: block; font-size: 9px; background-color: #fef2f2; padding: 5px; border-left: 3px solid #e74c3c; border-radius: 0 4px 4px 0; }}
 
+        /* Zone de signature */
         .footer-sigs {{ margin-top: 15px; width: 100%; border-collapse: separate; border-spacing: 10px 0; }}
         .footer-sigs td {{ width: 33.33%; height: 60px; vertical-align: top; padding: 8px; font-size: 9px; border: 1px solid #1e3a5f; border-radius: 8px; background-color: #fff; text-align: center; }}
         
+        /* Styles de la fiche identifiants séparée */
         .card {{ border: 2px solid #1e3a5f; border-radius: 12px; padding: 20px; margin: 20px 40px; page-break-inside: avoid; background-color: #f9fbfd; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
         .card-header {{ font-size: 16px; font-weight: bold; border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; margin-bottom: 15px; color: #1e3a5f; }}
         .cred-row {{ margin: 8px 0; padding: 10px; background: #fff; border-radius: 6px; border-left: 4px solid; color: #1e3a5f; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
@@ -335,7 +353,7 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
         date_entree = str(row.get('date_entree', ''))
         if not date_entree: 
             date_entree = "Septembre 2025"
-        
+            
         serie_ipad = str(row.get('serie_ipad', '')).strip()
         if not serie_ipad:
             serie_ipad = "........................"
@@ -346,6 +364,7 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
         # PAGE 1 : CONVENTION DE PRÊT (Si demandée)
         # ==========================================
         if print_convention:
+            # --- Paramétrage dynamique selon le niveau (Textes reproduits fidèlement) ---
             if classe.startswith("6") or classe.startswith("5"):
                 niveau = "6ÈME" if classe.startswith("6") else "5ÈME"
                 duree = "4 ans" if classe.startswith("6") else "3 ans"
@@ -389,10 +408,10 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
 
             html_content += f"""
             <div class="convention-page page-break">
-                <div class="header">
+                <div class="header-flex">
                     {img_tag}
                     <div class="header-text">
-                        <div class="title">CONVENTION IPAD SITE ST DOMINIQUE</div>
+                        <div class="title">CONVENTION DE MISE A DISPOSITION<br>D'UN IPAD / TABLETTE NUMERIQUE</div>
                         <div class="subtitle">ANNEE SCOLAIRE 2025-2026 - ÉLÈVES DE {niveau}</div>
                     </div>
                 </div>
@@ -402,7 +421,7 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
                         <tr>
                             <td style="width: 50%;">
                                 <div class="info-label">ÉTABLISSEMENT</div>
-                                <div style="font-size: 11px; margin-top:4px;">☑ Site Saint-Dominique</div>
+                                <div style="font-size: 11px; margin-top:4px;">☐ Site Le Devoir<br>☑ Site Saint-Dominique</div>
                             </td>
                             <td style="width: 50%;">
                                 <div class="info-label">DATE D'ENTRÉE</div>
@@ -499,6 +518,7 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
                         <td style="width:25%;">4E INCIDENT ET +<br><b style="font-size:11px; color:#e74c3c;">+100 € / incident</b></td>
                     </tr>
                 </table>
+                <p style="font-size:8px; text-align:center; color:#64748b;">Au-delà du 3e incident, chaque incident supplémentaire est facturé 100 € de plus que le précédent (4e = 400 €, 5e = 500 € etc.).</p>
 
                 <h3>8 Conditions financières</h3>
                 {art8_texte}
@@ -762,14 +782,10 @@ elif is_admin and menu == "🪪 Dossier 360°":
                 if is_expanded and f"msg_{el['id']}" in st.session_state:
                     st.success(st.session_state.pop(f"msg_{el['id']}"))
 
-                # --- NOUVEAUTÉ : ONGLETS SOUS FORME DE RADIO POUR ÉVITER LE RESET ---
-                choix_onglet = st.radio("Navigation du dossier", 
-                                        ["📝 Profil & Scolarité", "🔑 Identifiants", "📱 Matériel & SAV"], 
-                                        horizontal=True, 
-                                        label_visibility="collapsed", 
-                                        key=f"onglet_{el['id']}")
+                # RETOUR DES BEAUX ONGLETS st.tabs !
+                tab_profil, tab_mdp, tab_ipad = st.tabs(["📝 Profil & Scolarité", "🔑 Identifiants", "📱 Matériel & SAV"])
 
-                if choix_onglet == "📝 Profil & Scolarité":
+                with tab_profil:
                     with st.form(f"form_profil_{el['id']}"):
                         c1, c2, c3 = st.columns(3)
                         m_nom = c1.text_input("Nom", value=el['nom'])
@@ -798,7 +814,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             st.session_state[f"msg_{el['id']}"] = "✅ Profil et scolarité mis à jour avec succès !"
                             st.rerun()
 
-                elif choix_onglet == "🔑 Identifiants":
+                with tab_mdp:
                     with st.form(f"form_mdp_{el['id']}"):
                         st.markdown("**Identifiants Actifs**")
                         c1, c2 = st.columns(2)
@@ -829,37 +845,42 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             st.session_state[f"msg_{el['id']}"] = "✅ Identifiants mis à jour avec succès !"
                             st.rerun()
 
-                elif choix_onglet == "📱 Matériel & SAV":
+                with tab_ipad:
                     st.markdown("#### 📱 Informations Appareil")
                     c_mod, c_ser = st.columns(2)
                     c_mod.text_input("Modèle iPad", value=el.get('modele_ipad', ''), disabled=True, key=f"mod_{el['id']}")
                     c_ser.text_input("N° de Série", value=el.get('serie_ipad', ''), disabled=True, key=f"ser_{el['id']}")
                     st.markdown("---")
                     
-                    with st.form(f"form_ipad_{el['id']}"):
-                        st.markdown("#### 📄 Contrat & Solde")
-                        c_stat, c_mens, c_tot = st.columns(3)
-                        statut_actuel = el['statut_ipad'] if el['statut_ipad'] != "" else "Achat"
-                        idx = ["Achat", "Location", "Fratrie", "Parti"].index(statut_actuel) if statut_actuel in ["Achat", "Location", "Fratrie", "Parti"] else 0
-                        nouveau_statut = c_stat.selectbox("Statut du matériel", ["Achat", "Location", "Fratrie", "Parti"],
-                                                          index=idx, key=f"s_st_{el['id']}_{statut_actuel}")
-                        mens_calc, tot_calc = calculer_mensualite_ipad(el['classe'], nouveau_statut)
-                        c_mens.text_input("Mensualité (€)", value=f"{mens_calc} €", disabled=True, key=f"s_ms_{el['id']}_{statut_actuel}")
-                        c_tot.text_input("Total Annuel", value=f"{tot_calc} €", disabled=True, key=f"s_tt_{el['id']}_{statut_actuel}")
-                        rend_box = st.checkbox("L'élève REND l'iPad", key=f"rend_360_{el['id']}")
-                        solde_calc = calculer_solde_depart(el['classe'], rend_box, nouveau_statut)
-                        st.info(f"💰 **Solde départ : {solde_calc}**")
+                    # --- NOUVEAUTÉ : ON ENLÈVE LE st.form ICI POUR QUE LE CONTRAT SE METTE À JOUR EN DIRECT ! ---
+                    st.markdown("#### 📄 Contrat & Solde")
+                    c_stat, c_mens, c_tot = st.columns(3)
+                    statut_actuel = el['statut_ipad'] if el['statut_ipad'] != "" else "Achat"
+                    idx = ["Achat", "Location", "Fratrie", "Parti"].index(statut_actuel) if statut_actuel in ["Achat", "Location", "Fratrie", "Parti"] else 0
+                    
+                    nouveau_statut = c_stat.selectbox("Statut du matériel", ["Achat", "Location", "Fratrie", "Parti"], index=idx, key=f"s_st_{el['id']}_{statut_actuel}")
+                    mens_calc, tot_calc = calculer_mensualite_ipad(el['classe'], nouveau_statut)
+                    
+                    c_mens.text_input("Mensualité (€)", value=f"{mens_calc} €", disabled=True, key=f"s_ms_{el['id']}_{statut_actuel}")
+                    c_tot.text_input("Total Annuel", value=f"{tot_calc} €", disabled=True, key=f"s_tt_{el['id']}_{statut_actuel}")
+                    
+                    rend_box = st.checkbox("L'élève REND l'iPad", key=f"rend_360_{el['id']}")
+                    solde_calc = calculer_solde_depart(el['classe'], rend_box, nouveau_statut)
+                    st.info(f"💰 **Solde départ : {solde_calc}**")
 
-                        if st.form_submit_button("💾 Mettre à jour le contrat"):
-                            parti_int = 1 if nouveau_statut == 'Parti' else (0 if el['est_parti'] == 1 else el['est_parti'])
-                            supabase.table("eleves").update({"statut_ipad": nouveau_statut, "est_parti": parti_int}).eq("id", el['id']).execute()
-                            invalidate_cache()
-                            st.session_state["open_el_id"] = str(el['id'])
-                            st.session_state[f"msg_{el['id']}"] = "✅ Contrat mis à jour !"
-                            st.rerun()
+                    if st.button("💾 Mettre à jour le contrat", key=f"btn_upd_contrat_{el['id']}"):
+                        parti_int = 1 if nouveau_statut == 'Parti' else (0 if el['est_parti'] == 1 else el['est_parti'])
+                        supabase.table("eleves").update({"statut_ipad": nouveau_statut, "est_parti": parti_int}).eq("id", el['id']).execute()
+                        invalidate_cache()
+                        st.session_state["open_el_id"] = str(el['id'])
+                        st.session_state[f"msg_{el['id']}"] = "✅ Contrat mis à jour !"
+                        st.rerun()
 
+                    st.markdown("---")
+                    
+                    # --- NOUVEAUTÉ : SAV EN DIRECT SANS st.form ET AVEC LES 2 BOUTONS ---
                     st.markdown("#### ➕ Déclarer un nouvel incident")
-                    # On retire le st.form ici pour que le prix se mette à jour instantanément
+                    
                     type_inc = st.selectbox("Nature du sinistre",
                         ["Écran de protection (15€)", "Chargeur (25€)", "Câble (25€)", "Coque (25€)",
                          "iPad cassé (50€/100€)", "Écran HS SAV", "Batterie HS SAV"],
@@ -876,10 +897,9 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                        
                     st.warning(f"🧾 Facturation : **{prix_facture} €**")
                     
-                    # Nouveaux boutons pour le SAV
                     col_b1, col_b2 = st.columns(2)
-                    btn_save_only = col_b1.button("💾 Enregistrer uniquement", key=f"btn_save_{el['id']}")
-                    btn_save_mail = col_b2.button("📧 Enregistrer & Envoyer Compta", type="primary", key=f"btn_mail_{el['id']}")
+                    btn_save_only = col_b1.button("💾 Enregistrer uniquement", key=f"btn_save_only_{el['id']}")
+                    btn_save_mail = col_b2.button("📧 Enregistrer & Envoyer Compta", type="primary", key=f"btn_save_mail_{el['id']}")
 
                     if btn_save_only or btn_save_mail:
                         envoye = 1 if btn_save_mail else 0
@@ -912,10 +932,10 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         invalidate_cache()
                         st.session_state["open_el_id"] = str(el['id'])
                         st.session_state[f"msg_{el['id']}"] = f"✅ Incident déclaré ({prix_facture}€) !"
+                        time.sleep(1)
                         st.rerun()
 
                     st.markdown("#### 🛠️ Historique SAV")
-                    # Filtrage local depuis le cache (pas de nouvelle requête)
                     if not df_incidents_360.empty:
                         eleve_incidents = df_incidents_360[df_incidents_360['eleve_id'] == el['id']].copy()
                         if not eleve_incidents.empty:
