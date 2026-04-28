@@ -1731,9 +1731,9 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                     n_raw = str(row.get('OwnerLastName', ''))
                     n_clean = nettoyeur_identifiant(n_raw)
                     
-                    # 💡 Cas spécifique : "davout" correspond à "d'août" dans ta base
+                    # 💡 Cas spécifique : "davout" sur Jamf correspond à "d'avout" dans la base
                     if n_clean == "davout":
-                        n_clean = "daout"
+                        n_clean = "d'avout"
                         
                     p_clean = nettoyeur_identifiant(row.get('OwnerFirstName', ''))
                     mod = str(row.get('Model', '')).strip()
