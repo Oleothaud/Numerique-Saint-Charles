@@ -26,7 +26,7 @@ DOSSIER_COURANT = os.path.dirname(os.path.abspath(__file__))
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
-# --- OPTIMISATION 1 : Client Supabase en singleton (une seule connexion pour toute la session) ---
+# --- OPTIMISATION 1 : Client Supabase en singleton ---
 @st.cache_resource
 def get_supabase_client() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -42,7 +42,6 @@ SMTP_PASSWORD = st.secrets["SMTP_PASSWORD"]
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
-# L'adresse corrigée pour te mettre en copie :
 EMAIL_ADMIN = "o.leothaud@saintcharles71.fr"
 EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"
 
@@ -782,10 +781,26 @@ elif is_admin and menu == "🪪 Dossier 360°":
                 if is_expanded and f"msg_{el['id']}" in st.session_state:
                     st.success(st.session_state.pop(f"msg_{el['id']}"))
 
-                # RETOUR DES BEAUX ONGLETS st.tabs !
-                tab_profil, tab_mdp, tab_ipad = st.tabs(["📝 Profil & Scolarité", "🔑 Identifiants", "📱 Matériel & SAV"])
+                # --- NOUVEAUTÉ : FAUX ONGLETS CUSTOM POUR GARDER LA MÉMOIRE ---
+                tab_key = f"tab_{el['id']}"
+                if tab_key not in st.session_state:
+                    st.session_state[tab_key] = "Profil"
 
-                with tab_profil:
+                c_tab1, c_tab2, c_tab3 = st.columns(3)
+                
+                if c_tab1.button("📝 Profil & Scolarité", use_container_width=True, type="primary" if st.session_state[tab_key] == "Profil" else "secondary", key=f"bt1_{el['id']}"):
+                    st.session_state[tab_key] = "Profil"
+                    st.rerun()
+                if c_tab2.button("🔑 Identifiants", use_container_width=True, type="primary" if st.session_state[tab_key] == "Identifiants" else "secondary", key=f"bt2_{el['id']}"):
+                    st.session_state[tab_key] = "Identifiants"
+                    st.rerun()
+                if c_tab3.button("📱 Matériel & SAV", use_container_width=True, type="primary" if st.session_state[tab_key] == "Materiel" else "secondary", key=f"bt3_{el['id']}"):
+                    st.session_state[tab_key] = "Materiel"
+                    st.rerun()
+
+                st.markdown("---")
+
+                if st.session_state[tab_key] == "Profil":
                     with st.form(f"form_profil_{el['id']}"):
                         c1, c2, c3 = st.columns(3)
                         m_nom = c1.text_input("Nom", value=el['nom'])
@@ -814,7 +829,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             st.session_state[f"msg_{el['id']}"] = "✅ Profil et scolarité mis à jour avec succès !"
                             st.rerun()
 
-                with tab_mdp:
+                elif st.session_state[tab_key] == "Identifiants":
                     with st.form(f"form_mdp_{el['id']}"):
                         st.markdown("**Identifiants Actifs**")
                         c1, c2 = st.columns(2)
@@ -845,14 +860,14 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             st.session_state[f"msg_{el['id']}"] = "✅ Identifiants mis à jour avec succès !"
                             st.rerun()
 
-                with tab_ipad:
+                elif st.session_state[tab_key] == "Materiel":
                     st.markdown("#### 📱 Informations Appareil")
                     c_mod, c_ser = st.columns(2)
                     c_mod.text_input("Modèle iPad", value=el.get('modele_ipad', ''), disabled=True, key=f"mod_{el['id']}")
                     c_ser.text_input("N° de Série", value=el.get('serie_ipad', ''), disabled=True, key=f"ser_{el['id']}")
                     st.markdown("---")
                     
-                    # --- NOUVEAUTÉ : ON ENLÈVE LE st.form ICI POUR QUE LE CONTRAT SE METTE À JOUR EN DIRECT ! ---
+                    # Plus de "st.form" ici pour que le calcul soit INSTANTANÉ !
                     st.markdown("#### 📄 Contrat & Solde")
                     c_stat, c_mens, c_tot = st.columns(3)
                     statut_actuel = el['statut_ipad'] if el['statut_ipad'] != "" else "Achat"
@@ -878,7 +893,6 @@ elif is_admin and menu == "🪪 Dossier 360°":
 
                     st.markdown("---")
                     
-                    # --- NOUVEAUTÉ : SAV EN DIRECT SANS st.form ET AVEC LES 2 BOUTONS ---
                     st.markdown("#### ➕ Déclarer un nouvel incident")
                     
                     type_inc = st.selectbox("Nature du sinistre",
@@ -932,7 +946,6 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         invalidate_cache()
                         st.session_state["open_el_id"] = str(el['id'])
                         st.session_state[f"msg_{el['id']}"] = f"✅ Incident déclaré ({prix_facture}€) !"
-                        time.sleep(1)
                         st.rerun()
 
                     st.markdown("#### 🛠️ Historique SAV")
