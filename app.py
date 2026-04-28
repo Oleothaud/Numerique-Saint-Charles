@@ -42,7 +42,6 @@ SMTP_PASSWORD = st.secrets["SMTP_PASSWORD"]
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
-# L'adresse corrigée pour te mettre en copie :
 EMAIL_ADMIN = "o.leothaud@saintcharles71.fr"
 EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"
 
@@ -245,7 +244,6 @@ def calculer_bilan_logistique(df_eleves, df_incidents):
 # 📄 GÉNÉRATEUR PDF HTML
 # ==========================================
 def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_prov, print_ipad, print_convention=False):
-    # 1. Tenter de charger le logo en base64 pour l'en-tête
     logo_b64 = ""
     chemins_logo_possibles = [
         os.path.join(DOSSIER_COURANT, "Logo Collège St Charles (1).jpeg"),
@@ -268,30 +266,26 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
             .no-print {{ display: none; }}
             body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
         }}
-        body {{ font-family: "Segoe UI", Arial, sans-serif; color: #2c3e50; margin: 0; padding: 0; line-height: 1.2; font-size: 9px; }}
-        .convention-page {{ padding: 20px 30px; position: relative; }}
+        body {{ font-family: "Arial", sans-serif; color: #2c3e50; margin: 0; padding: 0; line-height: 1.2; font-size: 9px; }}
+        .convention-page {{ padding: 20px 40px; position: relative; }}
         
-        /* En-tête */
-        .header-flex {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }}
+        .header {{ display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #1e3a5f; padding-bottom: 10px; margin-bottom: 15px; }}
         .header-text {{ text-align: right; }}
         .title {{ font-weight: bold; font-size: 13px; color: #1e3a5f; margin-bottom: 3px; text-transform: uppercase; }}
         .subtitle {{ font-weight: bold; font-size: 11px; color: #e74c3c; }}
 
-        /* Beaux encadrés avec bords arrondis et couleurs */
         .info-box {{
             border: 2px solid #1e3a5f;
             border-radius: 12px;
             background-color: #f8fafc;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 12px;
+            margin-bottom: 10px;
         }}
         .info-grid {{ width: 100%; border-collapse: separate; border-spacing: 5px; font-size: 11px; }}
         .info-grid td {{ vertical-align: top; padding: 4px; }}
-        .info-label {{ font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }}
-        .info-val {{ font-size: 12px; font-weight: bold; color: #0f172a; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; display: inline-block; width: 90%; }}
+        .info-label {{ font-size: 8px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }}
+        .info-val {{ font-size: 11px; font-weight: bold; color: #0f172a; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; display: inline-block; width: 90%; }}
 
-        /* Titres d'articles stylisés */
         h3 {{ 
             font-size: 10px; 
             margin-top: 10px; 
@@ -308,30 +302,18 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
         p, li {{ text-align: justify; margin: 2px 0; font-size: 9px; }}
         ul {{ margin: 2px 0; padding-left: 15px; }}
 
-        /* Tableaux arrondis */
-        .styled-table {{ 
-            width: 100%; 
-            border-collapse: separate; 
-            border-spacing: 0; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 8px; 
-            overflow: hidden; 
-            margin: 8px 0; 
-            font-size: 9px; 
-        }}
-        .styled-table th {{ background-color: #e2e8f0; color: #1e3a5f; padding: 5px; font-weight: bold; text-align: center; border-bottom: 1px solid #cbd5e1; }}
-        .styled-table td {{ padding: 5px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; text-align: center; }}
+        .styled-table {{ width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; margin: 6px 0; font-size: 9px; }}
+        .styled-table th {{ background-color: #e2e8f0; color: #1e3a5f; padding: 4px; font-weight: bold; text-align: center; border-bottom: 1px solid #cbd5e1; }}
+        .styled-table td {{ padding: 4px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; text-align: center; }}
         .styled-table td:last-child {{ border-right: none; }}
         .styled-table tr:last-child td {{ border-bottom: none; }}
         .styled-table.left-align td {{ text-align: left; vertical-align: top; }}
 
         .warning-text {{ font-weight: bold; color: #e74c3c; margin-top: 5px; display: block; font-size: 9px; background-color: #fef2f2; padding: 5px; border-left: 3px solid #e74c3c; border-radius: 0 4px 4px 0; }}
 
-        /* Zone de signature */
         .footer-sigs {{ margin-top: 15px; width: 100%; border-collapse: separate; border-spacing: 10px 0; }}
         .footer-sigs td {{ width: 33.33%; height: 60px; vertical-align: top; padding: 8px; font-size: 9px; border: 1px solid #1e3a5f; border-radius: 8px; background-color: #fff; text-align: center; }}
         
-        /* Styles de la fiche identifiants séparée */
         .card {{ border: 2px solid #1e3a5f; border-radius: 12px; padding: 20px; margin: 20px 40px; page-break-inside: avoid; background-color: #f9fbfd; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
         .card-header {{ font-size: 16px; font-weight: bold; border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; margin-bottom: 15px; color: #1e3a5f; }}
         .cred-row {{ margin: 8px 0; padding: 10px; background: #fff; border-radius: 6px; border-left: 4px solid; color: #1e3a5f; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
@@ -353,7 +335,7 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
         date_entree = str(row.get('date_entree', ''))
         if not date_entree: 
             date_entree = "Septembre 2025"
-            
+        
         serie_ipad = str(row.get('serie_ipad', '')).strip()
         if not serie_ipad:
             serie_ipad = "........................"
@@ -361,10 +343,9 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
         code_ipad = calculer_code_ipad(row['date_naissance'])
 
         # ==========================================
-        # PAGE 1 : CONVENTION DE PRÊT
+        # PAGE 1 : CONVENTION DE PRÊT (Si demandée)
         # ==========================================
         if print_convention:
-            # --- Paramétrage dynamique selon le niveau ---
             if classe.startswith("6") or classe.startswith("5"):
                 niveau = "6ÈME" if classe.startswith("6") else "5ÈME"
                 duree = "4 ans" if classe.startswith("6") else "3 ans"
@@ -408,10 +389,10 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
 
             html_content += f"""
             <div class="convention-page page-break">
-                <div class="header-flex">
+                <div class="header">
                     {img_tag}
                     <div class="header-text">
-                        <div class="title">CONVENTION DE MISE A DISPOSITION<br>D'UN IPAD / TABLETTE NUMERIQUE</div>
+                        <div class="title">CONVENTION IPAD SITE ST DOMINIQUE</div>
                         <div class="subtitle">ANNEE SCOLAIRE 2025-2026 - ÉLÈVES DE {niveau}</div>
                     </div>
                 </div>
@@ -421,7 +402,7 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
                         <tr>
                             <td style="width: 50%;">
                                 <div class="info-label">ÉTABLISSEMENT</div>
-                                <div style="font-size: 11px; margin-top:4px;">☐ Site Le Devoir<br>☑ Site Saint-Dominique</div>
+                                <div style="font-size: 11px; margin-top:4px;">☑ Site Saint-Dominique</div>
                             </td>
                             <td style="width: 50%;">
                                 <div class="info-label">DATE D'ENTRÉE</div>
@@ -441,7 +422,7 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
                         <tr>
                             <td>
                                 <div class="info-label">CLASSE</div>
-                                <div class="info-val" style="width: 40%;">{classe}</div>
+                                <div class="info-val" style="width: 80%;">{classe}</div>
                             </td>
                             <td>
                                 <div class="info-label">N° DE SÉRIE IPAD</div>
@@ -518,7 +499,6 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
                         <td style="width:25%;">4E INCIDENT ET +<br><b style="font-size:11px; color:#e74c3c;">+100 € / incident</b></td>
                     </tr>
                 </table>
-                <p style="font-size:8px; text-align:center; color:#64748b;">Au-delà du 3e incident, chaque incident supplémentaire est facturé 100 € de plus que le précédent (4e = 400 €, 5e = 500 € etc.).</p>
 
                 <h3>8 Conditions financières</h3>
                 {art8_texte}
@@ -782,9 +762,14 @@ elif is_admin and menu == "🪪 Dossier 360°":
                 if is_expanded and f"msg_{el['id']}" in st.session_state:
                     st.success(st.session_state.pop(f"msg_{el['id']}"))
 
-                tab_profil, tab_mdp, tab_ipad = st.tabs(["📝 Profil & Scolarité", "🔑 Identifiants", "📱 Matériel & SAV"])
+                # --- NOUVEAUTÉ : ONGLETS SOUS FORME DE RADIO POUR ÉVITER LE RESET ---
+                choix_onglet = st.radio("Navigation du dossier", 
+                                        ["📝 Profil & Scolarité", "🔑 Identifiants", "📱 Matériel & SAV"], 
+                                        horizontal=True, 
+                                        label_visibility="collapsed", 
+                                        key=f"onglet_{el['id']}")
 
-                with tab_profil:
+                if choix_onglet == "📝 Profil & Scolarité":
                     with st.form(f"form_profil_{el['id']}"):
                         c1, c2, c3 = st.columns(3)
                         m_nom = c1.text_input("Nom", value=el['nom'])
@@ -813,7 +798,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             st.session_state[f"msg_{el['id']}"] = "✅ Profil et scolarité mis à jour avec succès !"
                             st.rerun()
 
-                with tab_mdp:
+                elif choix_onglet == "🔑 Identifiants":
                     with st.form(f"form_mdp_{el['id']}"):
                         st.markdown("**Identifiants Actifs**")
                         c1, c2 = st.columns(2)
@@ -844,8 +829,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             st.session_state[f"msg_{el['id']}"] = "✅ Identifiants mis à jour avec succès !"
                             st.rerun()
 
-                with tab_ipad:
-                    # AFFICHAGE DU MODELE ET NUMERO DE SERIE
+                elif choix_onglet == "📱 Matériel & SAV":
                     st.markdown("#### 📱 Informations Appareil")
                     c_mod, c_ser = st.columns(2)
                     c_mod.text_input("Modèle iPad", value=el.get('modele_ipad', ''), disabled=True, key=f"mod_{el['id']}")
@@ -874,9 +858,8 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             st.session_state[f"msg_{el['id']}"] = "✅ Contrat mis à jour !"
                             st.rerun()
 
-                    # NOUVEAU SYSTEME SAV EN DIRECT (Sans st.form pour le calcul instantané)
                     st.markdown("#### ➕ Déclarer un nouvel incident")
-                    
+                    # On retire le st.form ici pour que le prix se mette à jour instantanément
                     type_inc = st.selectbox("Nature du sinistre",
                         ["Écran de protection (15€)", "Chargeur (25€)", "Câble (25€)", "Coque (25€)",
                          "iPad cassé (50€/100€)", "Écran HS SAV", "Batterie HS SAV"],
@@ -893,6 +876,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                        
                     st.warning(f"🧾 Facturation : **{prix_facture} €**")
                     
+                    # Nouveaux boutons pour le SAV
                     col_b1, col_b2 = st.columns(2)
                     btn_save_only = col_b1.button("💾 Enregistrer uniquement", key=f"btn_save_{el['id']}")
                     btn_save_mail = col_b2.button("📧 Enregistrer & Envoyer Compta", type="primary", key=f"btn_mail_{el['id']}")
@@ -914,7 +898,8 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                     <p style="margin-top: 20px;">Enregistré le {datetime.datetime.now().strftime("%d/%m/%Y à %H:%M")}.</p>
                                     <br><p>Cordialement,<br><b>L'équipe Numérique - Saint Charles</b></p>
                                 </body></html>"""
-                                envoyer_email_reel(f"SAV iPad - {el['nom'].upper()} ({el['classe']})", corps_sav, EMAIL_TEST_CIBLE)
+                                if envoyer_email_reel(f"SAV iPad - {el['nom'].upper()} ({el['classe']})", corps_sav, EMAIL_TEST_CIBLE):
+                                    envoye = 1
                             else:
                                 st.info("💡 Incident gratuit ou SAV matériel : aucun mail envoyé à la compta.")
                                 envoye = 0
@@ -927,10 +912,10 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         invalidate_cache()
                         st.session_state["open_el_id"] = str(el['id'])
                         st.session_state[f"msg_{el['id']}"] = f"✅ Incident déclaré ({prix_facture}€) !"
-                        time.sleep(1.5)
                         st.rerun()
 
                     st.markdown("#### 🛠️ Historique SAV")
+                    # Filtrage local depuis le cache (pas de nouvelle requête)
                     if not df_incidents_360.empty:
                         eleve_incidents = df_incidents_360[df_incidents_360['eleve_id'] == el['id']].copy()
                         if not eleve_incidents.empty:
@@ -993,6 +978,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                 </div>""", unsafe_allow_html=True)
             res = pd.DataFrame()
         else:
+            # --- OPTIMISATION 6 : Filtrage local sur les données en cache ---
             df = fetch_table("eleves", eq_col="est_parti", eq_val=0)
             if not df.empty:
                 search_clean = nettoyeur_identifiant(recherche)
@@ -1018,6 +1004,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                         email_prof = st.text_input("Votre e-mail :", key=f"prof_{el['id']}")
                         plateforme = st.selectbox("Plateforme concernée :", ["Ecole Directe", "Compte Drive", "Pix"], key=f"plat_{el['id']}")
                         
+                        # --- NOUVEAUTÉ : Checkbox obligatoire ---
                         a_ete_teste = st.checkbox("✅ Je certifie avoir testé ce mot de passe avec l'élève et il ne fonctionne pas.", key=f"check_{el['id']}")
                         
                         if st.form_submit_button("Envoyer la demande à l'Admin"):
@@ -1047,6 +1034,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                                         st.success("✅ Demande envoyée ! L'administration a été prévenue.")
 
     with tab_masse:
+        # --- OPTIMISATION 7 : Liste des classes depuis le cache élèves déjà chargé ---
         df_all_actifs = fetch_table("eleves", eq_col="est_parti", eq_val=0)
         classes_disponibles = sorted(df_all_actifs['classe'].dropna().unique().tolist()) if not df_all_actifs.empty else []
         classe_choisie = st.selectbox("Classe :", options=["--"] + classes_disponibles)
@@ -1230,6 +1218,7 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
             st.download_button("📥 Exporter l'annuaire complet (CSV)", df_all.to_csv(index=False).encode('utf-8'), "annuaire_eleves.csv")
 
     with tab_impr:
+        # --- NOUVEAU : Message de succès après validation ---
         if "msg_integration" in st.session_state:
             st.success(st.session_state.pop("msg_integration"))
             
@@ -1241,6 +1230,7 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
         df_print = pd.DataFrame()
         cible = ""
 
+        # --- OPTIMISATION 8 : Réutilisation du cache élèves plutôt que nouvelles requêtes ---
         df_actifs_print = fetch_table("eleves", eq_col="est_parti", eq_val=0)
 
         if type_impression == "Une classe complète":
@@ -1285,6 +1275,7 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                 href = f'<a href="data:text/html;base64,{b64}" download="Identifiants_{cible.replace(" ", "_")}.html" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #2ecc71; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; margin-top: 10px;">👉 Ouvrir la fiche pour l\'impression PDF</a>'
                 st.markdown(href, unsafe_allow_html=True)
 
+        # --- AJOUT : Bouton de validation (Uniquement pour le mode Nouveaux) ---
         if type_impression == "✨ Tous les NOUVEAUX élèves (Rentrée)" and not df_print.empty:
             st.markdown("---")
             st.warning("⚠️ **Action de fin de traitement :**")
@@ -1292,9 +1283,12 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
             
             if st.button("✅ Valider l'intégration des nouveaux (Remise à zéro)"):
                 with st.spinner("Mise à jour des dossiers en cours..."):
+                    # Récupère la liste des IDs affichés
                     ids_a_valider = df_print['id'].tolist()
+                    # Met à jour est_nouveau à 0 pour chacun
                     for eid in ids_a_valider:
                         supabase.table("eleves").update({"est_nouveau": 0}).eq("id", eid).execute()
+                
                 invalidate_cache()
                 st.session_state["msg_integration"] = f"✨ Terminé ! {len(ids_a_valider)} élèves sont maintenant intégrés officiellement."
                 st.rerun()
@@ -1302,6 +1296,7 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
     with tab_masse:
         st.markdown("### 📝 Édition Masse (Statut Matériel & Restitution)")
         
+        # --- NOUVEAU : Affichage persistant du message après le rerun ---
         if "msg_masse" in st.session_state:
             st.success(st.session_state.pop("msg_masse"))
             
@@ -1341,8 +1336,9 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                             modifs_count += 1
                 if modifs_count > 0:
                     invalidate_cache()
+                    # --- NOUVEAU : On stocke le message avant de recharger ---
                     st.session_state["msg_masse"] = f"✅ {modifs_count} compte(s) mis à jour avec succès !"
-                    st.rerun()
+                    st.rerun()  # Plus besoin de time.sleep, le rerun est immédiat
                 else:
                     st.info("Aucune modification détectée.")
 
@@ -1679,7 +1675,7 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                     n_raw = str(row.get('OwnerLastName', ''))
                     n_clean = nettoyeur_identifiant(n_raw)
                     
-                    # 💡 Cas spécifique demandé : "davout" sur le CSV correspond à "d'août" dans ta base
+                    # 💡 Cas spécifique : "davout" correspond à "d'août" dans ta base
                     if n_clean == "davout":
                         n_clean = "daout"
                         
