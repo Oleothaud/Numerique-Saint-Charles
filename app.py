@@ -117,7 +117,6 @@ st.markdown("""
         [data-testid="stMarkdownContainer"] h1, [data-testid="stMarkdownContainer"] h2,
         [data-testid="stMarkdownContainer"] h3 { color: #1e3a5f !important; }
         
-        /* CORRECTION : On inclut textarea pour qu'il soit bien visible et encadré */
         input, select, textarea, div[data-baseweb="select"] > div {
             color: #1e3a5f !important;
             background-color: #ffffff !important;
@@ -300,13 +299,11 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
         body {{ font-family: "Segoe UI", Arial, sans-serif; color: #2c3e50; margin: 0; padding: 0; line-height: 1.2; font-size: 9px; }}
         .convention-page {{ padding: 20px 30px; position: relative; }}
         
-        /* En-tête */
         .header-flex {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }}
         .header-text {{ text-align: right; }}
         .title {{ font-weight: bold; font-size: 13px; color: #1e3a5f; margin-bottom: 3px; text-transform: uppercase; }}
         .subtitle {{ font-weight: bold; font-size: 11px; color: #e74c3c; }}
 
-        /* Beaux encadrés avec bords arrondis et couleurs */
         .info-box {{
             border: 2px solid #1e3a5f;
             border-radius: 12px;
@@ -320,7 +317,6 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
         .info-label {{ font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }}
         .info-val {{ font-size: 12px; font-weight: bold; color: #0f172a; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; display: inline-block; width: 90%; }}
 
-        /* Titres d'articles stylisés */
         h3 {{ 
             font-size: 10px; 
             margin-top: 10px; 
@@ -337,7 +333,6 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
         p, li {{ text-align: justify; margin: 2px 0; font-size: 9px; }}
         ul {{ margin: 2px 0; padding-left: 15px; }}
 
-        /* Tableaux arrondis */
         .styled-table {{ 
             width: 100%; 
             border-collapse: separate; 
@@ -356,11 +351,9 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
 
         .warning-text {{ font-weight: bold; color: #e74c3c; margin-top: 5px; display: block; font-size: 9px; background-color: #fef2f2; padding: 5px; border-left: 3px solid #e74c3c; border-radius: 0 4px 4px 0; }}
 
-        /* Zone de signature */
         .footer-sigs {{ margin-top: 15px; width: 100%; border-collapse: separate; border-spacing: 10px 0; }}
         .footer-sigs td {{ width: 33.33%; height: 60px; vertical-align: top; padding: 8px; font-size: 9px; border: 1px solid #1e3a5f; border-radius: 8px; background-color: #fff; text-align: center; }}
         
-        /* Styles de la fiche identifiants séparée */
         .card {{ border: 2px solid #1e3a5f; border-radius: 12px; padding: 20px; margin: 20px 40px; page-break-inside: avoid; background-color: #f9fbfd; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
         .card-header {{ font-size: 16px; font-weight: bold; border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; margin-bottom: 15px; color: #1e3a5f; }}
         .cred-row {{ margin: 8px 0; padding: 10px; background: #fff; border-radius: 6px; border-left: 4px solid; color: #1e3a5f; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
@@ -389,11 +382,7 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
             
         code_ipad = calculer_code_ipad(row['date_naissance'])
 
-        # ==========================================
-        # PAGE 1 : CONVENTION DE PRÊT (Si demandée)
-        # ==========================================
         if print_convention:
-            # --- Paramétrage dynamique selon le niveau (Textes reproduits fidèlement) ---
             if classe.startswith("6") or classe.startswith("5"):
                 niveau = "6ÈME" if classe.startswith("6") else "5ÈME"
                 duree = "4 ans" if classe.startswith("6") else "3 ans"
@@ -572,9 +561,6 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
             </div>
             """
 
-        # ==========================================
-        # PAGE 2 : CARTE IDENTIFIANTS (Uniquement si au moins une option est cochée)
-        # ==========================================
         if print_ed or print_dr or print_px or print_prov or print_ipad:
             html_content += f"""
             <div class="card {'page-break' if print_convention else ''}">
@@ -605,7 +591,6 @@ if os.path.exists(chemin_logo):
 else:
     st.sidebar.title("🌱 Numérique Saint Charles")
 
-# --- OPTIMISATION 3 : Comptage des demandes en attente avec cache court ---
 @st.cache_data(ttl=30, show_spinner=False)
 def get_nb_demandes_en_attente():
     try:
@@ -628,9 +613,6 @@ is_admin = (pwd_input == PASSWORD_ADMIN)
 is_compta = (pwd_input == PASSWORD_COMPTA)
 is_prof = (pwd_input == PASSWORD_PROF)
 
-# ==========================================
-# 🛑 BLOCAGE DE SÉCURITÉ (PAGE D'ACCUEIL)
-# ==========================================
 if not (is_admin or is_compta or is_prof):
     st.markdown("<h1 style='text-align: center; color: #1e3a5f; margin-bottom: 0;'>Bienvenue sur Numérique Saint Charles</h1>", unsafe_allow_html=True)
     st.markdown("<h4 style='text-align: center; color: #1e3a5f; opacity: 0.7; margin-top: 0;'>Plateforme centralisée de gestion numérique</h4>", unsafe_allow_html=True)
@@ -651,16 +633,6 @@ if not (is_admin or is_compta or is_prof):
                 Cet espace est strictement réservé au personnel de l'établissement. Veuillez saisir votre <strong>code d'accès</strong> dans le menu latéral à gauche pour déverrouiller la plateforme.
             </div>
         """, unsafe_allow_html=True)
-        st.markdown("""
-        <div style='text-align: center; color: #1e3a5f;'>
-            <p style='font-size: 18px;'><strong>Que retrouverez-vous sur cette plateforme ?</strong></p>
-            <p style='margin-bottom: 8px;'>👩‍🏫 <strong>Portail Professeurs :</strong> Accès immédiat aux identifiants des élèves (Ecole Directe, Pix, Drive...) et création de tickets d'assistance.</p>
-            <p style='margin-bottom: 8px;'>💼 <strong>Pôle Administration :</strong> Gestion à 360° des dossiers numériques, annuaires complets et éditions des fiches mots de passe.</p>
-            <p>💰 <strong>Pôle Comptabilité :</strong> Suivi automatisé des contrats matériels, locations iPad, facturation SAV et restitutions.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    st.markdown("<br><br><hr>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; font-size: 13px; color: grey;'>© 2026 - Collège Saint Charles - Pôle Numérique & Informatique</p>", unsafe_allow_html=True)
     st.stop()
 
 # ==========================================
@@ -668,23 +640,15 @@ if not (is_admin or is_compta or is_prof):
 # ==========================================
 menu = "👩‍🏫 Portail Professeurs"
 
-if "jump_ticket" not in st.session_state:
-    st.session_state.jump_ticket = False
-if "jump_pannes" not in st.session_state:
-    st.session_state.jump_pannes = False
+if "jump_ticket" not in st.session_state: st.session_state.jump_ticket = False
+if "jump_pannes" not in st.session_state: st.session_state.jump_pannes = False
 
-
-def trigger_jump():
-    st.session_state.jump_ticket = True
-
-def trigger_jump_pannes():
-    st.session_state.jump_pannes = True
-
+def trigger_jump(): st.session_state.jump_ticket = True
+def trigger_jump_pannes(): st.session_state.jump_pannes = True
 
 if is_admin:
     st.sidebar.success("Mode Admin activé (Cloud)")
     
-    # Alertes dynamiques
     nb_demandes = get_nb_demandes_en_attente()
     nb_pannes = get_nb_pannes_salles()
     
@@ -710,17 +674,11 @@ if is_admin:
         
     section = st.sidebar.selectbox("📂 Catégorie d'outils :", sections, key="side_sec")
     
-    if section == "📊 Tableau de bord":
-        menu = "📊 Tableau de Bord"
-    elif section == "👤 Dossier Élève":
-        menu = st.sidebar.radio("Option :", ["🪪 Dossier 360°", "➕ Nouvel Arrivant"], key="side_opt_eleve")
-    elif section == "📟 Assistance & tickets profs":
-        menu = st.sidebar.radio("Option :", ["👩‍🏫 Portail Profs", "🛎️ Codes (Tickets)", "🚨 Pannes Salles (Tickets)", "🗄️ Historique des MdP"], key="side_opt_at")
-    elif section == "📱 Gestion iPad":
-        options_ipad = ["🚛 Vue Logistique Totale", "💰 Espace Compta & Logistique", "🛠️ Historique SAV iPad", "📦 Inventaire & Stocks", "📦 Restitutions (Fin d'année)"]
-        menu = st.sidebar.radio("Option :", options_ipad, key="side_opt_ipad")
-    elif section == "⚙️ Base de Données":
-        menu = st.sidebar.radio("Option :", ["👥 Annuaire, Édition & PDF", "⚙️ Maintenance & Nettoyage"], key="side_opt_db")
+    if section == "📊 Tableau de bord": menu = "📊 Tableau de Bord"
+    elif section == "👤 Dossier Élève": menu = st.sidebar.radio("Option :", ["🪪 Dossier 360°", "➕ Nouvel Arrivant"], key="side_opt_eleve")
+    elif section == "📟 Assistance & tickets profs": menu = st.sidebar.radio("Option :", ["👩‍🏫 Portail Profs", "🛎️ Codes (Tickets)", "🚨 Pannes Salles (Tickets)", "🗄️ Historique des MdP"], key="side_opt_at")
+    elif section == "📱 Gestion iPad": menu = st.sidebar.radio("Option :", ["🚛 Vue Logistique Totale", "💰 Espace Compta & Logistique", "🛠️ Historique SAV iPad", "📦 Inventaire & Stocks", "📦 Restitutions (Fin d'année)"], key="side_opt_ipad")
+    elif section == "⚙️ Base de Données": menu = st.sidebar.radio("Option :", ["👥 Annuaire, Édition & PDF", "⚙️ Maintenance & Nettoyage"], key="side_opt_db")
 
 elif is_compta:
     st.sidebar.success("Mode Comptabilité activé (Cloud)")
@@ -733,7 +691,6 @@ elif is_compta:
 if menu == "📊 Tableau de Bord":
     st.title("📊 Tableau de Bord & Statistiques")
 
-    # --- OPTIMISATION 4 : Chargement des deux tables en parallèle (via cache) ---
     df_eleves = fetch_table("eleves", eq_col="est_parti", eq_val=0)
     df_incidents = fetch_table("incidents_ipad")
 
@@ -770,31 +727,42 @@ if menu == "📊 Tableau de Bord":
         col_chart1, col_chart2 = st.columns(2)
         
         with col_chart1:
-            # Graphique 1 : Répartition existante
             fig_parc = px.pie(df_eleves, names='statut_ipad', hole=0.4, title="Répartition des Contrats iPad")
             st.plotly_chart(fig_parc, use_container_width=True)
             
         with col_chart2:
-            # Graphique 2 : Top Incidents par Classe
             if not df_incidents.empty and not df_eleves.empty:
-                # On fusionne les incidents avec les élèves pour récupérer la classe
                 df_merge = pd.merge(df_incidents, df_eleves[['id', 'classe']], left_on='eleve_id', right_on='id', how='left')
                 df_casse = df_merge['classe'].value_counts().reset_index()
                 df_casse.columns = ['Classe', "Nombre d'incidents"]
-                
-                fig_casse = px.bar(df_casse, x='Classe', y="Nombre d'incidents", 
-                                   title="Alerte Casse : Incidents par Classe", 
-                                   color="Nombre d'incidents", color_continuous_scale="Reds")
+                fig_casse = px.bar(df_casse, x='Classe', y="Nombre d'incidents", title="Alerte Casse : Incidents par Classe", color="Nombre d'incidents", color_continuous_scale="Reds")
                 st.plotly_chart(fig_casse, use_container_width=True)
             else:
                 st.info("📊 Pas assez de données pour afficher le graphique des incidents.")
 
-        # --- Calcul du Revenu Prévisionnel ---
+        # --- NOUVEAU : GESTION DES STOCKS SUR LE DASHBOARD ---
         st.markdown("---")
-        df_loc = df_eleves[df_eleves['statut_ipad'] == 'Location']
-        total_annuel = sum(calculer_mensualite_ipad(row['classe'], 'Location')[1] for _, row in df_loc.iterrows())
+        st.markdown("### 📦 État de l'Inventaire (Magasin)")
+        df_stocks_dash = fetch_table("stocks")
         
-        st.success(f"💶 **Projection Financière :** D'après le parc actuel ({len(df_loc)} iPads en location), le revenu annuel prévisionnel généré par les loyers s'élève à **{total_annuel} €**.")
+        if not df_stocks_dash.empty:
+            critiques = df_stocks_dash[df_stocks_dash['quantite'] <= 5].sort_values('quantite')
+            
+            if not critiques.empty:
+                st.warning(f"⚠️ **Attention :** {len(critiques)} article(s) en stock critique (5 unités ou moins).")
+                col_crit = st.columns(min(len(critiques), 6))
+                for i, (_, row) in enumerate(critiques.head(6).iterrows()):
+                    col_crit[i].metric(row['article'], f"{row['quantite']} restants", delta="Critique", delta_color="inverse")
+            else:
+                st.success("✅ Aucun stock critique détecté. Le magasin est bien rempli.")
+                
+            fig_stock = px.bar(df_stocks_dash.sort_values(['categorie', 'article']), 
+                               x='article', y='quantite', color='categorie', 
+                               title="Niveaux de stocks actuels par catégorie", 
+                               text='quantite')
+            fig_stock.update_traces(textposition='outside')
+            fig_stock.update_layout(xaxis_title="", yaxis_title="Quantité en stock")
+            st.plotly_chart(fig_stock, use_container_width=True)
 
 
 # ==========================================
@@ -806,17 +774,9 @@ elif is_admin and menu == "🪪 Dossier 360°":
 
     if not search_360:
         st.info("👆 Saisissez un nom ou prénom dans la barre ci-dessus pour ouvrir un dossier.")
-        st.markdown("""
-            <div style='text-align: center; margin-top: 40px; margin-bottom: 30px; color: #1e3a5f; opacity: 0.6;'>
-                <h1 style='font-size: 80px;'>🪪</h1>
-                <h3>Vue à 360 degrés</h3>
-                <p>Recherchez un élève pour accéder à l'intégralité de son profil, mettre à jour ses mots de passe, gérer son contrat iPad ou déclarer un incident SAV.</p>
-            </div>
-        """, unsafe_allow_html=True)
         res = pd.DataFrame()
         df_incidents_360 = pd.DataFrame()
     else:
-        # --- OPTIMISATION 5 : Fetch depuis le cache, filtrage local côté Python ---
         df_360 = fetch_table("eleves")
         df_incidents_360 = fetch_table("incidents_ipad")
         search_clean = nettoyeur_identifiant(search_360)
@@ -839,22 +799,16 @@ elif is_admin and menu == "🪪 Dossier 360°":
                 if is_expanded and f"msg_{el['id']}" in st.session_state:
                     st.success(st.session_state.pop(f"msg_{el['id']}"))
 
-                # --- FAUX ONGLETS CUSTOM POUR GARDER LA MÉMOIRE ---
                 tab_key = f"tab_{el['id']}"
-                if tab_key not in st.session_state:
-                    st.session_state[tab_key] = "Profil"
+                if tab_key not in st.session_state: st.session_state[tab_key] = "Profil"
 
                 c_tab1, c_tab2, c_tab3 = st.columns(3)
-                
                 if c_tab1.button("📝 Profil & Scolarité", use_container_width=True, type="primary" if st.session_state[tab_key] == "Profil" else "secondary", key=f"bt1_{el['id']}"):
-                    st.session_state[tab_key] = "Profil"
-                    st.rerun()
+                    st.session_state[tab_key] = "Profil"; st.rerun()
                 if c_tab2.button("🔑 Identifiants", use_container_width=True, type="primary" if st.session_state[tab_key] == "Identifiants" else "secondary", key=f"bt2_{el['id']}"):
-                    st.session_state[tab_key] = "Identifiants"
-                    st.rerun()
+                    st.session_state[tab_key] = "Identifiants"; st.rerun()
                 if c_tab3.button("📱 Matériel & SAV", use_container_width=True, type="primary" if st.session_state[tab_key] == "Materiel" else "secondary", key=f"bt3_{el['id']}"):
-                    st.session_state[tab_key] = "Materiel"
-                    st.rerun()
+                    st.session_state[tab_key] = "Materiel"; st.rerun()
 
                 st.markdown("---")
 
@@ -868,20 +822,12 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         m_classe = c4.text_input("Classe", value=el['classe'])
                         m_pp = c5.text_input("Professeur Principal", value=el['pp'])
                         m_entree = c6.text_input("Date d'entrée", value=el['date_entree'])
-                        m_parti = st.checkbox("🚩 Cet élève a définitivement quitté l'établissement",
-                                              value=bool(el['est_parti']), key=f"f_x_{el['id']}_{el['est_parti']}")
+                        m_parti = st.checkbox("🚩 Cet élève a définitivement quitté l'établissement", value=bool(el['est_parti']), key=f"f_x_{el['id']}_{el['est_parti']}")
 
                         if st.form_submit_button("💾 Enregistrer le profil"):
                             parti_int = 1 if m_parti else 0
-                            if parti_int == 1:
-                                statut_ipad_up = 'Parti'
-                            else:
-                                statut_ipad_up = 'Achat' if el['statut_ipad'] == 'Parti' else (el['statut_ipad'] if el['statut_ipad'] != "" else "Achat")
-                            supabase.table("eleves").update({
-                                "nom": m_nom.upper(), "prenom": m_prenom.capitalize(),
-                                "date_naissance": m_dob, "classe": m_classe, "pp": m_pp,
-                                "date_entree": m_entree, "est_parti": parti_int, "statut_ipad": statut_ipad_up
-                            }).eq("id", el['id']).execute()
+                            statut_ipad_up = 'Parti' if parti_int == 1 else ('Achat' if el['statut_ipad'] == 'Parti' else (el['statut_ipad'] if el['statut_ipad'] != "" else "Achat"))
+                            supabase.table("eleves").update({"nom": m_nom.upper(), "prenom": m_prenom.capitalize(), "date_naissance": m_dob, "classe": m_classe, "pp": m_pp, "date_entree": m_entree, "est_parti": parti_int, "statut_ipad": statut_ipad_up}).eq("id", el['id']).execute()
                             invalidate_cache()
                             st.session_state["open_el_id"] = str(el['id'])
                             st.session_state[f"msg_{el['id']}"] = "✅ Profil et scolarité mis à jour avec succès !"
@@ -908,11 +854,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                         m_mdp_prov = c8.text_input("MDP ED Provisoire", value=el.get('mdp_ed_prov', ''))
 
                         if st.form_submit_button("💾 Enregistrer les identifiants"):
-                            supabase.table("eleves").update({
-                                "id_ed": m_id_ed, "mdp_ed": m_mdp_ed, "id_mail": m_id_mail,
-                                "mdp_mail": m_mdp_mail, "id_pix": m_id_pix, "mdp_pix": m_mdp_pix,
-                                "id_ed_prov": m_id_prov, "mdp_ed_prov": m_mdp_prov
-                            }).eq("id", el['id']).execute()
+                            supabase.table("eleves").update({"id_ed": m_id_ed, "mdp_ed": m_mdp_ed, "id_mail": m_id_mail, "mdp_mail": m_mdp_mail, "id_pix": m_id_pix, "mdp_pix": m_mdp_pix, "id_ed_prov": m_id_prov, "mdp_ed_prov": m_mdp_prov}).eq("id", el['id']).execute()
                             invalidate_cache()
                             st.session_state["open_el_id"] = str(el['id'])
                             st.session_state[f"msg_{el['id']}"] = "✅ Identifiants mis à jour avec succès !"
@@ -929,13 +871,10 @@ elif is_admin and menu == "🪪 Dossier 360°":
                     c_stat, c_mens, c_tot = st.columns(3)
                     statut_actuel = el['statut_ipad'] if el['statut_ipad'] != "" else "Achat"
                     idx = ["Achat", "Location", "Fratrie", "Parti"].index(statut_actuel) if statut_actuel in ["Achat", "Location", "Fratrie", "Parti"] else 0
-                    
                     nouveau_statut = c_stat.selectbox("Statut du matériel", ["Achat", "Location", "Fratrie", "Parti"], index=idx, key=f"s_st_{el['id']}_{statut_actuel}")
                     mens_calc, tot_calc = calculer_mensualite_ipad(el['classe'], nouveau_statut)
-                    
                     c_mens.text_input("Mensualité (€)", value=f"{mens_calc} €", disabled=True, key=f"s_ms_{el['id']}_{statut_actuel}")
                     c_tot.text_input("Total Annuel", value=f"{tot_calc} €", disabled=True, key=f"s_tt_{el['id']}_{statut_actuel}")
-                    
                     rend_box = st.checkbox("L'élève REND l'iPad", key=f"rend_360_{el['id']}")
                     solde_calc = calculer_solde_depart(el['classe'], rend_box, nouveau_statut)
                     st.info(f"💰 **Solde départ : {solde_calc}**")
@@ -950,14 +889,9 @@ elif is_admin and menu == "🪪 Dossier 360°":
 
                     st.markdown("---")
                     
-                    st.markdown("#### ➕ Déclarer un nouvel incident (et ajuster le stock)")
-                    
-                    type_inc = st.selectbox("Nature du sinistre (Général)",
-                        ["Écran de protection (15€)", "Chargeur (25€)", "Câble (25€)", "Coque (25€)",
-                         "iPad cassé (50€/100€)", "Écran HS SAV", "Batterie HS SAV"],
-                        key=f"type_inc_{el['id']}")
+                    st.markdown("#### ➕ Déclarer un incident (Ajuste automatiquement les stocks)")
+                    type_inc = st.selectbox("Nature du sinistre (Général)", ["Écran de protection (15€)", "Chargeur (25€)", "Câble (25€)", "Coque (25€)", "iPad cassé (50€/100€)", "Écran HS SAV", "Batterie HS SAV"], key=f"type_inc_{el['id']}")
                         
-                    # --- NOUVEAUTÉ : SOUS-MENU TECHNIQUE POUR LE STOCK ---
                     detail_article = None
                     if "Écran de protection" in type_inc:
                         detail_article = st.selectbox("Précision technique :", ["Protège-écran 6ème", "Protège-écran 8/9ème", "Protège-écran 10/11"], key=f"det_{el['id']}")
@@ -977,9 +911,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                     if "HS SAV" in type_inc or gratuit:
                         prix_facture = 0
                     else:
-                        prix_facture = 15 if "protection" in type_inc else \
-                                       25 if any(x in type_inc for x in ["Chargeur", "Câble", "Coque"]) else \
-                                       50 if (str(el['classe']).startswith("3") or str(el['classe']).startswith("4")) else 100
+                        prix_facture = 15 if "protection" in type_inc else (25 if any(x in type_inc for x in ["Chargeur", "Câble", "Coque"]) else (50 if (str(el['classe']).startswith("3") or str(el['classe']).startswith("4")) else 100))
                                        
                     st.warning(f"🧾 Facturation Compta : **{prix_facture} €**")
                     
@@ -989,36 +921,16 @@ elif is_admin and menu == "🪪 Dossier 360°":
 
                     if btn_save_only or btn_save_mail:
                         envoye = 1 if btn_save_mail else 0
-                        
-                        # 1. Envoi de l'email Compta (Reste très générique)
                         if btn_save_mail:
                             if prix_facture > 0:
-                                corps_sav = f"""<html><body style="font-family: Arial, sans-serif; color: #1e3a5f;">
-                                    <h2 style="color: #1e3a5f; border-bottom: 2px solid #1e3a5f; padding-bottom: 10px;">📄 Notification de Facturation SAV iPad</h2>
-                                    <p>Bonjour,</p><p>Un nouvel incident a été déclaré sur le parc iPad :</p>
-                                    <table style="width: 100%; border-collapse: collapse;">
-                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Élève :</td><td style="padding: 8px; border: 1px solid #ddd;">{el['nom'].upper()} {el['prenom']}</td></tr>
-                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Classe :</td><td style="padding: 8px; border: 1px solid #ddd;">{el['classe']}</td></tr>
-                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Motif :</td><td style="padding: 8px; border: 1px solid #ddd;">{type_inc}</td></tr>
-                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; color: #d9534f;">Montant :</td><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; color: #d9534f;">{prix_facture} €</td></tr>
-                                    </table>
-                                    <p style="margin-top: 20px;">Enregistré le {datetime.datetime.now().strftime("%d/%m/%Y à %H:%M")}.</p>
-                                    <br><p>Cordialement,<br><b>L'équipe Numérique - Saint Charles</b></p>
-                                </body></html>"""
-                                if envoyer_email_reel(f"SAV iPad - {el['nom'].upper()} ({el['classe']})", corps_sav, EMAIL_TEST_CIBLE):
-                                    envoye = 1
+                                corps_sav = f"""<html><body style="font-family: Arial, sans-serif; color: #1e3a5f;"><h2 style="color: #1e3a5f; border-bottom: 2px solid #1e3a5f; padding-bottom: 10px;">📄 Notification de Facturation SAV iPad</h2><p>Bonjour,</p><p>Un nouvel incident a été déclaré sur le parc iPad :</p><table style="width: 100%; border-collapse: collapse;"><tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Élève :</td><td style="padding: 8px; border: 1px solid #ddd;">{el['nom'].upper()} {el['prenom']}</td></tr><tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Classe :</td><td style="padding: 8px; border: 1px solid #ddd;">{el['classe']}</td></tr><tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Motif :</td><td style="padding: 8px; border: 1px solid #ddd;">{type_inc}</td></tr><tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; color: #d9534f;">Montant :</td><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; color: #d9534f;">{prix_facture} €</td></tr></table><p style="margin-top: 20px;">Enregistré le {datetime.datetime.now().strftime("%d/%m/%Y à %H:%M")}.</p><br><p>Cordialement,<br><b>L'équipe Numérique - Saint Charles</b></p></body></html>"""
+                                if envoyer_email_reel(f"SAV iPad - {el['nom'].upper()} ({el['classe']})", corps_sav, EMAIL_TEST_CIBLE): envoye = 1
                             else:
                                 st.info("💡 Incident gratuit ou SAV matériel : aucun mail envoyé à la compta.")
                                 envoye = 0
 
-                        # 2. Enregistrement en base de l'incident
-                        supabase.table("incidents_ipad").insert({
-                            "eleve_id": el['id'],
-                            "date_incident": datetime.datetime.now().strftime("%d/%m/%Y"),
-                            "type_incident": type_inc, "montant": prix_facture, "envoye_compta": envoye
-                        }).execute()
+                        supabase.table("incidents_ipad").insert({"eleve_id": el['id'], "date_incident": datetime.datetime.now().strftime("%d/%m/%Y"), "type_incident": type_inc, "montant": prix_facture, "envoye_compta": envoye}).execute()
                         
-                        # 3. NOUVEAUTÉ : Mise à jour du stock et Alerte Automatique
                         if detail_article:
                             res_stock = supabase.table("stocks").select("id, quantite").eq("article", detail_article).execute()
                             if res_stock.data:
@@ -1027,14 +939,9 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 nv_qty = qty_actuelle - 1
                                 supabase.table("stocks").update({"quantite": nv_qty}).eq("id", stock_id).execute()
                                 
-                                # Si le stock est à 1 ou 0, on envoie le mail d'alerte spécifique !
                                 if nv_qty <= 1:
                                     sujet_alerte = f"⚠️ ALERTE STOCK CRITIQUE : {detail_article}"
-                                    corps_alerte = f"""<html><body style="font-family: Arial, sans-serif;">
-                                        <h2 style="color: #e74c3c;">⚠️ Alerte Stock Numérique</h2>
-                                        <p>Attention, suite à une intervention SAV, le stock pour l'article <b>{detail_article}</b> vient de tomber à <b style="color: #e74c3c; font-size: 18px;">{nv_qty} unité(s)</b>.</p>
-                                        <p>Il est temps de repasser commande pour cet équipement !</p>
-                                    </body></html>"""
+                                    corps_alerte = f"""<html><body style="font-family: Arial, sans-serif;"><h2 style="color: #e74c3c;">⚠️ Alerte Stock Numérique</h2><p>Attention, suite à une intervention SAV, le stock pour l'article <b>{detail_article}</b> vient de tomber à <b style="color: #e74c3c; font-size: 18px;">{nv_qty} unité(s)</b>.</p><p>Il est temps de repasser commande pour cet équipement !</p></body></html>"""
                                     try:
                                         msg_stock = MIMEMultipart()
                                         msg_stock['From'] = f"Alerte Numérique <{SMTP_USER}>"
@@ -1159,7 +1066,6 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                 </div>""", unsafe_allow_html=True)
             res = pd.DataFrame()
         else:
-            # --- OPTIMISATION 6 : Filtrage local sur les données en cache ---
             df = fetch_table("eleves", eq_col="est_parti", eq_val=0)
             if not df.empty:
                 search_clean = nettoyeur_identifiant(recherche)
@@ -1184,10 +1090,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                     with st.form(f"form_ticket_prof_{el['id']}"):
                         email_prof = st.text_input("Votre e-mail :", key=f"prof_{el['id']}")
                         plateforme = st.selectbox("Plateforme concernée :", ["Ecole Directe", "Compte Drive", "Pix"], key=f"plat_{el['id']}")
-                        
-                        # --- NOUVEAUTÉ : Checkbox obligatoire ---
                         a_ete_teste = st.checkbox("✅ Je certifie avoir testé ce mot de passe avec l'élève et il ne fonctionne pas.", key=f"check_{el['id']}")
-                        
                         if st.form_submit_button("Envoyer la demande à l'Admin"):
                             if not a_ete_teste:
                                 st.error("❌ Vous devez certifier avoir testé le code avant d'envoyer la demande.")
@@ -1215,7 +1118,6 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                                         st.success("✅ Demande envoyée ! L'administration a été prévenue.")
 
     with tab_masse:
-        # --- OPTIMISATION 7 : Liste des classes depuis le cache élèves déjà chargé ---
         df_all_actifs = fetch_table("eleves", eq_col="est_parti", eq_val=0)
         classes_disponibles = sorted(df_all_actifs['classe'].dropna().unique().tolist()) if not df_all_actifs.empty else []
         classe_choisie = st.selectbox("Classe :", options=["--"] + classes_disponibles)
@@ -1254,9 +1156,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
 
             st.markdown("---")
             st.markdown("### 🖨️ Impression des identifiants de la classe")
-            st.markdown("**Quels documents inclure ?**")
-            print_convention = st.checkbox("📄 Inclure la Convention de prêt iPad officielle (1 page A4 par élève)", value=False, key="masse_p_conv")
-            st.markdown("**Quels identifiants inclure sur la fiche secrète ?**")
+            print_convention = st.checkbox("📄 Inclure la Convention de prêt iPad", value=False, key="masse_p_conv")
             col_ed, col_dr, col_px, col_prov, col_ipad = st.columns(5)
             print_ed = col_ed.checkbox("🔵 ED (Définitifs)", value=True, key="p_ed")
             print_dr = col_dr.checkbox("🟡 Drive", value=True, key="p_dr")
@@ -1291,9 +1191,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
         with st.form("form_panne_salle"):
             salle_concernee = st.selectbox("Sélectionnez la salle :", options=liste_salles)
             equipement = st.selectbox("Équipement concerné :", ["📺 Apple TV", "📽️ Vidéoprojecteur", "🔌 Connectique (HDMI / VGA)", "🔊 Son / Enceintes", "💻 Autre"])
-            
             desc = st.text_area("Description du problème (soyez précis) :", height=120, placeholder="Ex: Le son de l'Apple TV grésille ou l'image saute toutes les 2 minutes...")
-            
             email_sign = st.text_input("Votre e-mail :")
             
             if st.form_submit_button("🚀 Envoyer le signalement"):
@@ -1308,7 +1206,6 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                         "statut": "En attente",
                         "date_signalement": datetime.datetime.now().strftime("%d/%m/%Y à %H:%M")
                     }).execute()
-                    
                     corps_alerte = f"""<html><body>
                         <h2 style="color: #e74c3c;">🚨 Panne Matérielle Signalée</h2>
                         <p><b>Salle :</b> {salle_concernee}</p>
@@ -1317,9 +1214,9 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                         <p><b>Détails :</b> {desc}</p>
                     </body></html>"""
                     envoyer_email_reel(f"🚨 Panne {salle_concernee} - {equipement}", corps_alerte, EMAIL_ADMIN)
-                    
                     invalidate_cache()
                     st.success("✅ Signalement envoyé avec succès ! L'administration a été prévenue.")
+
 
 # ==========================================
 # 🛎️ TICKETS (ADMIN)
@@ -1362,10 +1259,8 @@ elif is_admin and menu == "🛎️ Codes (Tickets)":
                     new_mdp_pix = c6.text_input("MDP Pix", value=req['mdp_pix'], key=f"t_mp_{req['id_demande']}")
 
                     if st.form_submit_button("💾 Enregistrer & Envoyer les codes au professeur"):
-                        codes_envoyes = new_mdp_ed if req['plateforme'] == "Ecole Directe" else \
-                                        new_mdp_mail if "Drive" in req['plateforme'] else new_mdp_pix
-                        ident_envoyes = new_id_ed if req['plateforme'] == "Ecole Directe" else \
-                                        new_id_mail if "Drive" in req['plateforme'] else new_id_pix
+                        codes_envoyes = new_mdp_ed if req['plateforme'] == "Ecole Directe" else new_mdp_mail if "Drive" in req['plateforme'] else new_mdp_pix
+                        ident_envoyes = new_id_ed if req['plateforme'] == "Ecole Directe" else new_id_mail if "Drive" in req['plateforme'] else new_id_pix
                         corps_mdp = f"""<html><body style="font-family: Arial, sans-serif; color: #1e3a5f;">
                             <h2>🔑 Nouveaux identifiants numériques</h2>
                             <p>Le mot de passe <b>{req['plateforme']}</b> a été réinitialisé :</p>
@@ -1378,10 +1273,7 @@ elif is_admin and menu == "🛎️ Codes (Tickets)":
                             <br><p>Cordialement,<br><b>L'équipe Numérique - Saint Charles</b></p>
                         </body></html>"""
                         if envoyer_email_reel(f"Codes {req['plateforme']} - {req['nom'].upper()}", corps_mdp, req['prof']):
-                            supabase.table("eleves").update({
-                                "id_ed": new_id_ed, "mdp_ed": new_mdp_ed, "id_mail": new_id_mail,
-                                "mdp_mail": new_mdp_mail, "id_pix": new_id_pix, "mdp_pix": new_mdp_pix
-                            }).eq("id", req['eleve_id']).execute()
+                            supabase.table("eleves").update({"id_ed": new_id_ed, "mdp_ed": new_mdp_ed, "id_mail": new_id_mail, "mdp_mail": new_mdp_mail, "id_pix": new_id_pix, "mdp_pix": new_mdp_pix}).eq("id", req['eleve_id']).execute()
                             supabase.table("demandes").update({"statut": "Traité"}).eq("id", req['id_demande']).execute()
                             invalidate_cache()
                             st.rerun()
@@ -1444,7 +1336,6 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
             st.download_button("📥 Exporter l'annuaire complet (CSV)", df_all.to_csv(index=False).encode('utf-8'), "annuaire_eleves.csv")
 
     with tab_impr:
-        # --- NOUVEAU : Message de succès après validation ---
         if "msg_integration" in st.session_state:
             st.success(st.session_state.pop("msg_integration"))
             
@@ -1455,8 +1346,6 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
 
         df_print = pd.DataFrame()
         cible = ""
-
-        # --- OPTIMISATION 8 : Réutilisation du cache élèves plutôt que nouvelles requêtes ---
         df_actifs_print = fetch_table("eleves", eq_col="est_parti", eq_val=0)
 
         if type_impression == "Une classe complète":
@@ -1501,28 +1390,21 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                 href = f'<a href="data:text/html;base64,{b64}" download="Identifiants_{cible.replace(" ", "_")}.html" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #2ecc71; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; margin-top: 10px;">👉 Ouvrir la fiche pour l\'impression PDF</a>'
                 st.markdown(href, unsafe_allow_html=True)
 
-        # --- AJOUT : Bouton de validation (Uniquement pour le mode Nouveaux) ---
         if type_impression == "✨ Tous les NOUVEAUX élèves (Rentrée)" and not df_print.empty:
             st.markdown("---")
             st.warning("⚠️ **Action de fin de traitement :**")
             st.write("Si vous avez terminé d'imprimer vos fiches, cliquez sur le bouton ci-dessous. Cela enlèvera le marqueur 'Nouveau' de ces élèves pour qu'ils ne polluent plus vos prochains exports.")
-            
             if st.button("✅ Valider l'intégration des nouveaux (Remise à zéro)"):
                 with st.spinner("Mise à jour des dossiers en cours..."):
-                    # Récupère la liste des IDs affichés
                     ids_a_valider = df_print['id'].tolist()
-                    # Met à jour est_nouveau à 0 pour chacun
                     for eid in ids_a_valider:
                         supabase.table("eleves").update({"est_nouveau": 0}).eq("id", eid).execute()
-                
                 invalidate_cache()
                 st.session_state["msg_integration"] = f"✨ Terminé ! {len(ids_a_valider)} élèves sont maintenant intégrés officiellement."
                 st.rerun()
 
     with tab_masse:
         st.markdown("### 📝 Édition Masse (Statut Matériel & Restitution)")
-        
-        # --- NOUVEAU : Affichage persistant du message après le rerun ---
         if "msg_masse" in st.session_state:
             st.success(st.session_state.pop("msg_masse"))
             
@@ -1562,11 +1444,78 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                             modifs_count += 1
                 if modifs_count > 0:
                     invalidate_cache()
-                    # --- NOUVEAU : On stocke le message avant de recharger ---
                     st.session_state["msg_masse"] = f"✅ {modifs_count} compte(s) mis à jour avec succès !"
-                    st.rerun()  # Plus besoin de time.sleep, le rerun est immédiat
+                    st.rerun()
                 else:
                     st.info("Aucune modification détectée.")
+
+
+# ==========================================
+# 📦 INVENTAIRE ET STOCKS (NOUVEAU DESIGN)
+# ==========================================
+elif is_admin and menu == "📦 Inventaire & Stocks":
+    st.title("📦 Magasin & Inventaire Matériel")
+    st.info("💡 Les retraits sont automatiques lors des déclarations SAV. Utilisez cette page visuelle pour rajouter du stock après une livraison.")
+    
+    df_stocks = fetch_table("stocks")
+    
+    if not df_stocks.empty:
+        # Trier l'affichage dans un ordre logique
+        cat_order = ['iPad', 'Vitres', 'Coques', 'Chargeurs', 'Câbles']
+        df_stocks['categorie'] = pd.Categorical(df_stocks['categorie'], categories=cat_order, ordered=True)
+        df_stocks = df_stocks.sort_values(['categorie', 'article'])
+        
+        with st.form("form_stocks_grid"):
+            nouveaux_stocks = {}
+            # Parcourir chaque catégorie existante
+            for cat in df_stocks['categorie'].dropna().unique():
+                st.markdown(f"### 🏷️ {cat}")
+                articles_cat = df_stocks[df_stocks['categorie'] == cat]
+                
+                # Création d'une belle grille (4 colonnes max)
+                cols = st.columns(4)
+                for i, (_, row) in enumerate(articles_cat.iterrows()):
+                    with cols[i % 4]:
+                        # Affiche le nom de l'article dans un joli cadre
+                        st.markdown(f"""
+                            <div style='background-color: white; padding: 10px; border-radius: 8px 8px 0 0; border: 1px solid #cbd5e1; border-bottom: none; text-align: center;'>
+                                <p style='color: #1e3a5f; font-weight: bold; font-size: 13px; margin: 0; min-height: 35px;'>{row['article']}</p>
+                            </div>
+                        """, unsafe_allow_html=True)
+                        # Affiche la zone de saisie collée juste en dessous
+                        nouveaux_stocks[row['id']] = st.number_input(
+                            "Quantité :", 
+                            min_value=0, 
+                            value=int(row['quantite']), 
+                            step=1,
+                            key=f"stk_{row['id']}",
+                            label_visibility="collapsed"
+                        )
+                st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Bouton de sauvegarde centré et bien visible
+            st.markdown("---")
+            col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+            with col_btn2:
+                submitted = st.form_submit_button("💾 Enregistrer l'inventaire complet", type="primary", use_container_width=True)
+                
+            if submitted:
+                modifs = 0
+                with st.spinner("Enregistrement en cours..."):
+                    for row_id, new_val in nouveaux_stocks.items():
+                        old_val = df_stocks[df_stocks['id'] == row_id]['quantite'].values[0]
+                        if new_val != old_val:
+                            supabase.table("stocks").update({"quantite": int(new_val)}).eq("id", row_id).execute()
+                            modifs += 1
+                if modifs > 0:
+                    invalidate_cache()
+                    st.success(f"✅ {modifs} articles mis à jour avec succès !")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.info("Aucune modification détectée.")
+    else:
+        st.warning("⚠️ La table des stocks est vide ou introuvable. Avez-vous bien lancé le code SQL ?")
 
 
 # ==========================================
@@ -1583,8 +1532,6 @@ elif is_admin and menu == "🚛 Vue Logistique Totale":
         st.warning("Aucun élève dans la base.")
     else:
         df_bilan = calculer_bilan_logistique(df_e, df_i)
-        
-        # Formatage pour l'affichage
         df_disp = df_bilan.rename(columns={
             'nom': 'Nom', 'prenom': 'Prénom', 'classe': 'Classe', 
             'statut_ipad': 'Contrat', 'nb_incidents': 'Nb Incidents',
@@ -1592,14 +1539,10 @@ elif is_admin and menu == "🚛 Vue Logistique Totale":
             'dette_totale': 'Dette Totale (€)',
             'modele_ipad': 'Modèle', 'serie_ipad': 'N° Série'
         })
-        
         st.dataframe(df_disp.drop(columns=['id']), use_container_width=True, hide_index=True)
-        
         st.markdown("---")
         st.markdown("### 📥 Export Logistique")
         st.write("Utilisez cet export pour avoir une vision globale de la facturation par élève.")
-        
-        # Export avec point-virgule pour Excel
         csv_data = df_disp.to_csv(index=False, sep=';').encode('utf-8')
         st.download_button("📥 Exporter le Bilan Logistique (CSV)", csv_data, "bilan_logistique_complet.csv")
 
@@ -1656,46 +1599,6 @@ elif (is_admin or is_compta) and menu == "📦 Restitutions (Fin d'année)":
         st.dataframe(df_rest[cols_to_show], use_container_width=True, hide_index=True)
         st.download_button("📥 Exporter la liste de fin d'année", df_rest[df_rest['statut_ipad'] == 'Location'][['nom', 'prenom', 'classe']].to_csv(index=False).encode('utf-8'), "actions_ipads_3eme.csv")
 
-# ==========================================
-# 📦 INVENTAIRE ET STOCKS
-# ==========================================
-elif is_admin and menu == "📦 Inventaire & Stocks":
-    st.title("📦 Magasin & Inventaire Matériel")
-    st.info("💡 Les retraits sont automatiques lors des déclarations SAV. Utilisez ce tableau uniquement pour mettre à jour les quantités suite à une nouvelle livraison.")
-    
-    df_stocks = fetch_table("stocks", order_col="categorie")
-    if not df_stocks.empty:
-        # On va trier un peu pour que ce soit joli
-        df_stocks = df_stocks.sort_values(['categorie', 'article'])
-        
-        edited_stocks = st.data_editor(
-            df_stocks[['id', 'categorie', 'article', 'quantite']],
-            column_config={
-                "id": None,
-                "categorie": st.column_config.TextColumn("Catégorie", disabled=True),
-                "article": st.column_config.TextColumn("Article", disabled=True),
-                "quantite": st.column_config.NumberColumn("Quantité en stock", min_value=0, step=1)
-            },
-            hide_index=True, use_container_width=True
-        )
-        
-        if st.button("💾 Enregistrer les livraisons (Mettre à jour les stocks)", type="primary"):
-            modifs = 0
-            with st.spinner("Enregistrement en cours..."):
-                for i, row in edited_stocks.iterrows():
-                    orig_qty = df_stocks.iloc[i]['quantite']
-                    if row['quantite'] != orig_qty:
-                        supabase.table("stocks").update({"quantite": int(row['quantite'])}).eq("id", row['id']).execute()
-                        modifs += 1
-            if modifs > 0:
-                invalidate_cache()
-                st.success(f"✅ {modifs} articles mis à jour avec succès !")
-                time.sleep(1)
-                st.rerun()
-            else:
-                st.info("Aucune modification détectée.")
-    else:
-        st.warning("⚠️ La table des stocks est vide ou introuvable. Avez-vous bien lancé le code SQL ?")
 
 # ==========================================
 # 🛠️ HISTORIQUE SAV GLOBAL
@@ -1759,21 +1662,9 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
         st.markdown("""
         ### 📝 Instructions d'importation Annuaire (Charlemagne)
         **Format du fichier attendu (.csv avec séparateur `;`).**
-        Le fichier doit contenir **exactement 8 colonnes** dans cet ordre précis, avec ces intitulés :
-        1. **Classe** *(ex: 6G1)*
-        2. **Nom** *(ex: DUPONT)*
-        3. **Prénom** *(ex: Jean)*
-        4. **Date de Naissance** *(ex: 15/05/2012)*
-        5. **Professeur Principal** *(ex: M. MARTIN)*
-        6. **Date d'entrée** *(ex: 02/09/2026)*
-        7. **ID ED Provisoire** *(ex: dupont.j)*
-        8. **MDP ED Provisoire** *(ex: XyZ789)*
-
-        **Modes de fonctionnement :**
-        - **Mode Standard (Décoché) :** Ajoute uniquement les nouveaux élèves trouvés dans le fichier.
-        - **Mode Rentrée (Coché) :** Ajoute les nouveaux, met à jour la classe des anciens, et archive les élèves absents du fichier en 'Parti'.
+        Le fichier doit contenir **exactement 8 colonnes** dans cet ordre précis :
+        1. Classe | 2. Nom | 3. Prénom | 4. Date Naissance | 5. PP | 6. Date entrée | 7. ID Prov | 8. MDP Prov
         """)
-        st.markdown("---")
         mode_rentree = st.checkbox("🎓 Activer le Mode Rentrée")
         up = st.file_uploader("Fichier CSV", type="csv", key="up_import_eleve")
 
@@ -1782,19 +1673,15 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
             eleves_presents_csv = []
             nb_total = len(df_new)
             nb_nouveaux = 0
-            repartition = {}
-
             res_all = supabase.table("eleves").select("id, nom, prenom").execute()
             existing_eleves = {(nettoyeur_identifiant(r['nom']), nettoyeur_identifiant(r['prenom'])): r['id'] for r in res_all.data} if res_all.data else {}
 
             if mode_rentree and res_all.data:
-                for r in res_all.data:
-                    supabase.table("eleves").update({"est_nouveau": 0}).eq("id", r['id']).execute()
+                for r in res_all.data: supabase.table("eleves").update({"est_nouveau": 0}).eq("id", r['id']).execute()
 
-            with st.spinner("Importation en cours, veuillez patienter..."):
+            with st.spinner("Importation en cours..."):
                 for _, row in df_new.iterrows():
-                    if len(row) < 3:
-                        continue
+                    if len(row) < 3: continue
                     cl = str(row.iloc[0]).strip() if pd.notna(row.iloc[0]) else ""
                     n = str(row.iloc[1]).strip().upper() if pd.notna(row.iloc[1]) else ""
                     p = str(row.iloc[2]).strip().capitalize() if pd.notna(row.iloc[2]) else ""
@@ -1803,10 +1690,7 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                     entree_val = str(row.iloc[5]).strip() if len(row) > 5 and pd.notna(row.iloc[5]) else ""
                     id_prov = str(row.iloc[6]).strip() if len(row) > 6 and pd.notna(row.iloc[6]) else ""
                     mdp_prov = str(row.iloc[7]).strip() if len(row) > 7 and pd.notna(row.iloc[7]) else ""
-
-                    repartition[cl] = repartition.get(cl, 0) + 1
-                    n_clean = nettoyeur_identifiant(n)
-                    p_clean = nettoyeur_identifiant(p)
+                    n_clean, p_clean = nettoyeur_identifiant(n), nettoyeur_identifiant(p)
 
                     if (n_clean, p_clean) not in existing_eleves:
                         id_ed, id_mail, id_pix = generer_identifiants(p, n, dob, cl)
@@ -1814,183 +1698,106 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                             "nom": n, "prenom": p, "classe": cl, "date_naissance": dob, "pp": pp_val,
                             "date_entree": entree_val, "id_ed": id_ed, "mdp_ed": MDP_DEFAUT,
                             "id_mail": id_mail, "mdp_mail": MDP_DEFAUT, "id_pix": id_pix, "mdp_pix": MDP_DEFAUT,
-                            "id_ed_prov": id_prov, "mdp_ed_prov": mdp_prov,
-                            "statut_ipad": 'Achat', "est_parti": 0, "est_nouveau": 1
+                            "id_ed_prov": id_prov, "mdp_ed_prov": mdp_prov, "statut_ipad": 'Achat', "est_parti": 0, "est_nouveau": 1
                         }).execute()
-                        if res_ins.data:
-                            eleves_presents_csv.append(res_ins.data[0]['id'])
+                        if res_ins.data: eleves_presents_csv.append(res_ins.data[0]['id'])
                         nb_nouveaux += 1
                     else:
                         eleve_id = existing_eleves[(n_clean, p_clean)]
                         eleves_presents_csv.append(eleve_id)
                         supabase.table("eleves").update({"id_ed_prov": id_prov, "mdp_ed_prov": mdp_prov}).eq("id", eleve_id).execute()
-                        if mode_rentree:
-                            supabase.table("eleves").update({"classe": cl, "pp": pp_val, "date_entree": entree_val}).eq("id", eleve_id).execute()
+                        if mode_rentree: supabase.table("eleves").update({"classe": cl, "pp": pp_val, "date_entree": entree_val}).eq("id", eleve_id).execute()
 
             if mode_rentree and eleves_presents_csv:
                 res_active = supabase.table("eleves").select("id").eq("est_parti", 0).execute()
                 if res_active.data:
                     active_ids = [r['id'] for r in res_active.data]
-                    ids_to_mark = [aid for aid in active_ids if aid not in eleves_presents_csv]
-                    for aid in ids_to_mark:
+                    for aid in [aid for aid in active_ids if aid not in eleves_presents_csv]:
                         supabase.table("eleves").update({"est_parti": 1, "statut_ipad": 'Parti'}).eq("id", aid).execute()
 
             invalidate_cache()
-            st.success("✅ Importation terminée avec succès !")
-            st.markdown("### 📊 Bilan")
-            c_tot, c_new = st.columns(2)
-            c_tot.metric("Total élèves lus", nb_total)
-            c_new.metric("Vrais nouveaux détectés", nb_nouveaux)
-            df_rep = pd.DataFrame(list(repartition.items()), columns=['Classe', "Nb élèves"]).sort_values('Classe')
-            st.dataframe(df_rep, hide_index=True, use_container_width=True)
+            st.success(f"✅ Importation terminée : {nb_nouveaux} nouveaux détectés !")
 
     with tab_import_sav:
-        st.markdown("""
-        ### 📥 Instructions d'importation Historique SAV
-        **Format du fichier attendu (.csv avec séparateur `;`).**
-        Le fichier doit contenir **exactement 5 colonnes** dans cet ordre précis :
-        1. **Nom** de l'élève
-        2. **Prénom** de l'élève
-        3. **Date** de l'incident *(ex: 12/10/2025)*
-        4. **Type d'incident** *(ex: Écran cassé)*
-        5. **Montant** *(ex: 50 - mettre uniquement des chiffres entiers)*
-        """)
-        st.markdown("---")
+        st.markdown("### 📥 Import SAV (Nom;Prénom;Date;Type;Montant)")
         up_sav = st.file_uploader("Fichier CSV (SAV)", type="csv", key="up_sav_import")
-        if up_sav and st.button("🚀 Lancer l'Import SAV vers Supabase"):
+        if up_sav and st.button("🚀 Lancer l'Import SAV"):
             df_sav_new = pd.read_csv(io.StringIO(up_sav.getvalue().decode('utf-8')), sep=None, engine='python')
             res_el = supabase.table("eleves").select("id, nom, prenom").execute()
             map_el = {(nettoyeur_identifiant(r['nom']), nettoyeur_identifiant(r['prenom'])): r['id'] for r in res_el.data} if res_el.data else {}
             count = 0
-            with st.spinner("Importation SAV en cours..."):
+            with st.spinner("Importation..."):
                 for _, row in df_sav_new.iterrows():
-                    if len(row) < 5:
-                        continue
-                    n_clean = nettoyeur_identifiant(row.iloc[0])
-                    p_clean = nettoyeur_identifiant(row.iloc[1])
+                    n_clean, p_clean = nettoyeur_identifiant(row.iloc[0]), nettoyeur_identifiant(row.iloc[1])
                     if (n_clean, p_clean) in map_el:
                         try:
-                            supabase.table("incidents_ipad").insert({
-                                "eleve_id": map_el[(n_clean, p_clean)],
-                                "date_incident": str(row.iloc[2]).strip(),
-                                "type_incident": str(row.iloc[3]).strip(),
-                                "montant": int(row.iloc[4]), "envoye_compta": 1
-                            }).execute()
+                            supabase.table("incidents_ipad").insert({"eleve_id": map_el[(n_clean, p_clean)], "date_incident": str(row.iloc[2]).strip(), "type_incident": str(row.iloc[3]).strip(), "montant": int(row.iloc[4]), "envoye_compta": 1}).execute()
                             count += 1
-                        except Exception:
-                            pass
+                        except: pass
             invalidate_cache()
             st.success(f"✅ {count} incidents SAV importés !")
 
     with tab_import_ipad:
-        st.markdown("""
-        ### 📥 Instructions d'importation Statut iPad
-        **Format du fichier attendu (.csv avec séparateur `;`).**
-        Le fichier doit contenir **exactement 3 colonnes** dans cet ordre précis :
-        1. **Nom** de l'élève
-        2. **Prénom** de l'élève
-        3. **Statut iPad** *(Valeurs obligatoires : Achat, Location, Fratrie, Parti)*
-        """)
-        st.markdown("---")
+        st.markdown("### 📥 Import Statut iPad (Nom;Prénom;Statut)")
         up_ipad = st.file_uploader("Fichier CSV (Statut iPad)", type="csv", key="up_ipad_import")
-        if up_ipad and st.button("🚀 Lancer la mise à jour des statuts iPad"):
+        if up_ipad and st.button("🚀 Mettre à jour les statuts"):
             df_ipad_new = pd.read_csv(io.StringIO(up_ipad.getvalue().decode('utf-8')), sep=None, engine='python')
             res_el = supabase.table("eleves").select("id, nom, prenom").execute()
             map_el = {(nettoyeur_identifiant(r['nom']), nettoyeur_identifiant(r['prenom'])): r['id'] for r in res_el.data} if res_el.data else {}
             count = 0
-            with st.spinner("Mise à jour des statuts en cours..."):
-                for _, row in df_ipad_new.iterrows():
-                    if len(row) < 3:
-                        continue
-                    n_clean = nettoyeur_identifiant(row.iloc[0])
-                    p_clean = nettoyeur_identifiant(row.iloc[1])
-                    statut_brut = str(row.iloc[2]).strip().capitalize()
-                    statut = "Achat"
-                    if "Location" in statut_brut:
-                        statut = "Location"
-                    elif "Fratrie" in statut_brut:
-                        statut = "Fratrie"
-                    elif "Parti" in statut_brut:
-                        statut = "Parti"
-                    if (n_clean, p_clean) in map_el:
-                        try:
-                            parti_int = 1 if statut == 'Parti' else 0
-                            supabase.table("eleves").update({"statut_ipad": statut, "est_parti": parti_int}).eq("id", map_el[(n_clean, p_clean)]).execute()
-                            count += 1
-                        except Exception:
-                            pass
+            for _, row in df_ipad_new.iterrows():
+                n_clean, p_clean = nettoyeur_identifiant(row.iloc[0]), nettoyeur_identifiant(row.iloc[1])
+                statut_brut = str(row.iloc[2]).strip().capitalize()
+                statut = "Location" if "Location" in statut_brut else ("Fratrie" if "Fratrie" in statut_brut else ("Parti" if "Parti" in statut_brut else "Achat"))
+                if (n_clean, p_clean) in map_el:
+                    supabase.table("eleves").update({"statut_ipad": statut, "est_parti": 1 if statut == 'Parti' else 0}).eq("id", map_el[(n_clean, p_clean)]).execute()
+                    count += 1
             invalidate_cache()
-            st.success(f"✅ {count} statuts iPad mis à jour !")
+            st.success(f"✅ {count} statuts mis à jour !")
 
     with tab_import_jamf:
-        st.markdown("""
-        ### 📥 Importation des Numéros de Série (Jamf School)
-        **Format attendu (.csv avec séparateur `;`).**
-        Le fichier CSV généré par Jamf School doit contenir (au moins) ces 4 colonnes, peu importe l'ordre :
-        `Model`, `OwnerFirstName`, `OwnerLastName`, `SerialNumber`.
-        """)
-        st.markdown("---")
+        st.markdown("### 📥 Import Jamf (Model;OwnerFirstName;OwnerLastName;SerialNumber)")
         up_jamf = st.file_uploader("Fichier CSV Jamf", type="csv", key="up_jamf")
-        if up_jamf and st.button("🚀 Mettre à jour les numéros de série"):
+        if up_jamf and st.button("🚀 Mettre à jour Séries"):
             df_jamf = pd.read_csv(io.StringIO(up_jamf.getvalue().decode('utf-8')), sep=";")
             res_el = supabase.table("eleves").select("id, nom, prenom").execute()
             map_el = {(nettoyeur_identifiant(r['nom']), nettoyeur_identifiant(r['prenom'])): r['id'] for r in res_el.data} if res_el.data else {}
             count = 0
-            with st.spinner("Mise à jour en cours..."):
-                for _, row in df_jamf.iterrows():
-                    n_raw = str(row.get('OwnerLastName', ''))
-                    n_clean = nettoyeur_identifiant(n_raw)
-                    
-                    if n_clean == "davout":
-                        n_clean = "d'avout"
-                        
-                    p_clean = nettoyeur_identifiant(row.get('OwnerFirstName', ''))
-                    mod = str(row.get('Model', '')).strip()
-                    ser = str(row.get('SerialNumber', '')).strip()
-                    
-                    if (n_clean, p_clean) in map_el and ser:
-                        try:
-                            supabase.table("eleves").update({
-                                "modele_ipad": mod,
-                                "serie_ipad": ser
-                            }).eq("id", map_el[(n_clean, p_clean)]).execute()
-                            count += 1
-                        except Exception:
-                            pass
+            for _, row in df_jamf.iterrows():
+                n_clean = nettoyeur_identifiant(str(row.get('OwnerLastName', '')))
+                if n_clean == "davout": n_clean = "d'avout"
+                p_clean = nettoyeur_identifiant(row.get('OwnerFirstName', ''))
+                ser = str(row.get('SerialNumber', '')).strip()
+                if (n_clean, p_clean) in map_el and ser:
+                    supabase.table("eleves").update({"modele_ipad": str(row.get('Model', '')).strip(), "serie_ipad": ser}).eq("id", map_el[(n_clean, p_clean)]).execute()
+                    count += 1
             invalidate_cache()
-            st.success(f"✅ {count} fiches élèves mises à jour avec les numéros de série !")
+            st.success(f"✅ {count} numéros de série mis à jour !")
 
     with tab_nettoyage:
-        st.warning("⚠️ **ZONE DE DANGER :** Suppression définitive de tous les élèves marqués 'Partis' (tickets et SAV inclus).")
-        if st.button("🗑️ Supprimer définitivement TOUS les élèves partis", type="primary"):
+        st.warning("⚠️ **ZONE DE DANGER :** Suppression définitive des élèves 'Partis'.")
+        if st.button("🗑️ Supprimer les élèves partis", type="primary"):
             res_partis = supabase.table("eleves").select("id").eq("est_parti", 1).execute()
-            nb_suppr = len(res_partis.data) if res_partis.data else 0
-            if nb_suppr > 0:
-                ids = [r['id'] for r in res_partis.data]
-                for pid in ids:
+            if res_partis.data:
+                for pid in [r['id'] for r in res_partis.data]:
                     supabase.table("incidents_ipad").delete().eq("eleve_id", pid).execute()
                     supabase.table("demandes").delete().eq("eleve_id", pid).execute()
                     supabase.table("eleves").delete().eq("id", pid).execute()
                 invalidate_cache()
-                st.success(f"✅ {nb_suppr} élève(s) supprimés définitivement !")
-            else:
-                st.info("💡 Aucun élève marqué comme 'Parti'. La base est propre.")
-            time.sleep(2.5)
-            st.rerun()
-
+                st.success(f"✅ {len(res_partis.data)} élève(s) supprimés !")
+                time.sleep(2); st.rerun()
+            else: st.info("Aucun élève 'Parti'.")
+        
         st.markdown("---")
-        st.error("🧨 **RESET TOTAL :** Efface la totalité des élèves, tickets et SAV.")
-        if st.button("🧨 Vider l'intégralité de la base de données", type="primary"):
+        st.error("🧨 **RESET TOTAL :** Efface la totalité de la base.")
+        if st.button("🧨 Vider la base", type="primary"):
             res_all = supabase.table("eleves").select("id").execute()
             if res_all.data:
-                ids = [r['id'] for r in res_all.data]
-                for pid in ids:
+                for pid in [r['id'] for r in res_all.data]:
                     supabase.table("incidents_ipad").delete().eq("eleve_id", pid).execute()
                     supabase.table("demandes").delete().eq("eleve_id", pid).execute()
                     supabase.table("eleves").delete().eq("id", pid).execute()
                 invalidate_cache()
-                st.success(f"✅ Base vidée : {len(res_all.data)} élèves supprimés !")
-            else:
-                st.info("La base est déjà vide.")
-            time.sleep(2.5)
-            st.rerun()
+                st.success(f"✅ Base vidée !")
+                time.sleep(2); st.rerun()
+            else: st.info("Déjà vide.")
