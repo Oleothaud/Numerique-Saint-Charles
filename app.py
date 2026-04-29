@@ -42,6 +42,7 @@ SMTP_PASSWORD = st.secrets["SMTP_PASSWORD"]
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
+# L'adresse corrigée pour te mettre en copie :
 EMAIL_ADMIN = "o.leothaud@saintcharles71.fr"
 EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"
 
@@ -689,15 +690,15 @@ if is_admin:
         st.sidebar.info("✅ Aucune alerte (MdP ou Salle).")
         
     st.sidebar.markdown("---")
-    sections = ["📊 Tableau de bord", "👤 Dossier Élève", "🧑‍🏫 Gestion MdP", "📱 Gestion iPad", "🏢 Matériel Salles", "⚙️ Base de Données"]
+    sections = ["📊 Tableau de bord", "👤 Dossier Élève", "Assistance et tickets profs", "📱 Gestion iPad", "⚙️ Base de Données"]
     
     if st.session_state.jump_ticket:
-        st.session_state.side_sec = "🧑‍🏫 Gestion MdP"
-        st.session_state.side_opt_mdp = "🛎️ Tickets"
+        st.session_state.side_sec = "Assistance et tickets profs"
+        st.session_state.side_opt_at = "🛎️ Codes (Tickets)"
         st.session_state.jump_ticket = False
     if st.session_state.jump_pannes:
-        st.session_state.side_sec = "🏢 Matériel Salles"
-        st.session_state.side_opt_salles = "🚨 Suivi des pannes"
+        st.session_state.side_sec = "Assistance et tickets profs"
+        st.session_state.side_opt_at = "🚨 Pannes Salles (Tickets)"
         st.session_state.jump_pannes = False
         
     section = st.sidebar.selectbox("📂 Catégorie d'outils :", sections, key="side_sec")
@@ -706,13 +707,11 @@ if is_admin:
         menu = "📊 Tableau de Bord"
     elif section == "👤 Dossier Élève":
         menu = st.sidebar.radio("Option :", ["🪪 Dossier 360°", "➕ Nouvel Arrivant"], key="side_opt_eleve")
-    elif section == "🧑‍🏫 Gestion MdP":
-        menu = st.sidebar.radio("Option :", ["👩‍🏫 Portail Profs", "🛎️ Tickets", "🗄️ Historique des MdP"], key="side_opt_mdp")
+    elif section == "Assistance et tickets profs":
+        menu = st.sidebar.radio("Option :", ["👩‍🏫 Portail Profs", "🛎️ Codes (Tickets)", "🚨 Pannes Salles (Tickets)", "🗄️ Historique des MdP"], key="side_opt_at")
     elif section == "📱 Gestion iPad":
         options_ipad = ["🚛 Vue Logistique Totale", "💰 Espace Compta & Logistique", "🛠️ Historique SAV iPad", "📦 Restitutions (Fin d'année)"]
         menu = st.sidebar.radio("Option :", options_ipad, key="side_opt_ipad")
-    elif section == "🏢 Matériel Salles":
-        menu = st.sidebar.radio("Option :", ["🚨 Suivi des pannes"], key="side_opt_salles")
     elif section == "⚙️ Base de Données":
         menu = st.sidebar.radio("Option :", ["👥 Annuaire, Édition & PDF", "⚙️ Maintenance & Nettoyage"], key="side_opt_db")
 
@@ -919,6 +918,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                     c_ser.text_input("N° de Série", value=el.get('serie_ipad', ''), disabled=True, key=f"ser_{el['id']}")
                     st.markdown("---")
                     
+                    # Plus de "st.form" ici pour que le calcul soit INSTANTANÉ !
                     st.markdown("#### 📄 Contrat & Solde")
                     c_stat, c_mens, c_tot = st.columns(3)
                     statut_actuel = el['statut_ipad'] if el['statut_ipad'] != "" else "Achat"
@@ -1048,7 +1048,7 @@ elif is_admin and menu == "➕ Nouvel Arrivant":
 # ==========================================
 # 🚨 SUIVI DES PANNES SALLES (ADMIN)
 # ==========================================
-elif is_admin and menu == "🚨 Suivi des pannes":
+elif is_admin and menu == "🚨 Pannes Salles (Tickets)":
     st.title("🚨 Suivi des Pannes Matérielles (Salles)")
     df_pannes = fetch_table("signalements_salles", order_col="id")
     df_pannes = df_pannes.sort_values("id", ascending=False) if not df_pannes.empty else df_pannes
@@ -1266,7 +1266,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
 # ==========================================
 # 🛎️ TICKETS (ADMIN)
 # ==========================================
-elif is_admin and menu == "🛎️ Tickets":
+elif is_admin and menu == "🛎️ Codes (Tickets)":
     st.title("🛎️ Tickets de réinitialisation")
 
     df_d = fetch_table("demandes", eq_col="statut", eq_val="En attente", select_cols="*, eleves(*)")
@@ -1843,7 +1843,7 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                     n_raw = str(row.get('OwnerLastName', ''))
                     n_clean = nettoyeur_identifiant(n_raw)
                     
-                    # 💡 Cas spécifique : "davout" correspond à "d'août" dans ta base
+                    # 💡 Cas spécifique : "davout" correspond à "d'avout" dans ta base
                     if n_clean == "davout":
                         n_clean = "d'avout"
                         
