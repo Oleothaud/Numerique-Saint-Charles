@@ -26,7 +26,6 @@ DOSSIER_COURANT = os.path.dirname(os.path.abspath(__file__))
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
-# --- OPTIMISATION 1 : Client Supabase en singleton ---
 @st.cache_resource
 def get_supabase_client() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -42,10 +41,8 @@ SMTP_PASSWORD = st.secrets["SMTP_PASSWORD"]
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
-# Adresses Email
 EMAIL_ADMIN = "o.leothaud@saintcharles71.fr"
 EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"
-# Adresses dédiées pour les alertes de stocks critiques
 EMAIL_STOCK_PRINCIPAL = "o.leothaud@gmail.com"
 EMAIL_STOCK_COPIE = "o.leothaud2@saintcharles71.fr"
 
@@ -54,12 +51,9 @@ PASSWORD_COMPTA = st.secrets["PASSWORD_COMPTA"]
 PASSWORD_PROF = st.secrets["PASSWORD_PROF"]
 MDP_DEFAUT = st.secrets["MDP_DEFAUT"]
 
-
 # ==========================================
-# 🛡️ FONCTIONS DATA SUPABASE AVEC CACHE
+# 🛡️ FONCTIONS DATA SUPABASE
 # ==========================================
-
-# --- OPTIMISATION 2 : Cache avec TTL court ---
 @st.cache_data(ttl=60, show_spinner=False)
 def fetch_table(table_name, eq_col=None, eq_val=None, order_col=None, select_cols="*"):
     query = get_supabase_client().table(table_name).select(select_cols)
@@ -87,11 +81,8 @@ def fetch_table(table_name, eq_col=None, eq_val=None, order_col=None, select_col
         df = pd.DataFrame(columns=schemas.get(table_name, []))
     return df.fillna("")
 
-
 def invalidate_cache():
-    """Vide le cache de données après toute écriture Supabase."""
     fetch_table.clear()
-
 
 # ==========================================
 # 🎨 STYLE FINAL ST CHARLES
@@ -153,7 +144,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-
 # ==========================================
 # 📧 EMAIL
 # ==========================================
@@ -177,79 +167,55 @@ def envoyer_email_reel(sujet, corps_html, destinataire=EMAIL_TEST_CIBLE):
         st.error(f"❌ Erreur technique email : {e}")
         return False
 
-
 # ==========================================
 # 🧠 LOGIQUE CALCULS & GÉNÉRATION
 # ==========================================
 def nettoyeur_identifiant(texte):
-    if pd.isna(texte) or str(texte).strip() == "":
-        return ""
+    if pd.isna(texte) or str(texte).strip() == "": return ""
     s = ''.join(c for c in unicodedata.normalize('NFD', str(texte)) if unicodedata.category(c) != 'Mn')
     return s.lower().replace(' ', '').replace('-', '')
-
 
 def generer_identifiants(prenom, nom, date_naiss, classe):
     p_clean = nettoyeur_identifiant(prenom)
     n_clean = nettoyeur_identifiant(nom)
-    try:
-        jjmm = "".join(str(date_naiss).split('/')[:2]).zfill(4)
-    except Exception:
-        jjmm = "0000"
+    try: jjmm = "".join(str(date_naiss).split('/')[:2]).zfill(4)
+    except: jjmm = "0000"
     mail = f"{p_clean}.{n_clean}@saintcharles71.fr"
-    if "6G" in str(classe).upper():
-        return f"{p_clean}.{n_clean}", mail, mail
+    if "6G" in str(classe).upper(): return f"{p_clean}.{n_clean}", mail, mail
     return f"{p_clean.capitalize()[:2]}.{n_clean.capitalize()}", mail, f"{p_clean}.{n_clean}{jjmm}"
-
 
 def calculer_code_ipad(date_naiss):
     try:
         parts = str(date_naiss).split('/')
-        jjmm = parts[0].zfill(2) + parts[1].zfill(2)
-        return f"{jjmm}71"
-    except Exception:
-        return "000071"
-
+        return f"{parts[0].zfill(2)}{parts[1].zfill(2)}71"
+    except: return "000071"
 
 def calculer_mensualite_ipad(classe, statut):
-    if statut == "Parti":
-        return 0, 0
-    if statut == "Fratrie":
-        return 0, 15
+    if statut == "Parti": return 0, 0
+    if statut == "Fratrie": return 0, 15
     mensualite = 14 if str(classe).strip().startswith("3") else 16
     return mensualite, mensualite * 10
 
 def calculer_solde_depart(classe, rend_ipad, statut):
-    if statut == "Parti":
-        return "0 €"
-    if statut == "Fratrie":
-        return "N/A (Garde l'iPad)" if rend_ipad else "16 € (Soulte MDM)"
+    if statut == "Parti": return "0 €"
+    if statut == "Fratrie": return "N/A (Garde l'iPad)" if rend_ipad else "16 € (Soulte MDM)"
     mois_actuel = datetime.datetime.now().month
-    if 9 <= mois_actuel <= 12:
-        mois_restants = 10 - (mois_actuel - 9)
-    elif 1 <= mois_actuel <= 6:
-        mois_restants = 6 - mois_actuel + 1
-    else:
-        mois_restants = 0
+    if 9 <= mois_actuel <= 12: mois_restants = 10 - (mois_actuel - 9)
+    elif 1 <= mois_actuel <= 6: mois_restants = 6 - mois_actuel + 1
+    else: mois_restants = 0
     classe_str = str(classe).strip()
     mensualite = 14 if classe_str.startswith("3") else 16
     solde_annee_courante = mois_restants * mensualite
-    if rend_ipad:
-        return f"{solde_annee_courante} €"
+    if rend_ipad: return f"{solde_annee_courante} €"
     annees_suivantes = 0
-    if classe_str.startswith("6"):
-        annees_suivantes = 160 + 160 + 140
-    elif classe_str.startswith("5"):
-        annees_suivantes = 160 + 140
-    elif classe_str.startswith("4"):
-        annees_suivantes = 140
+    if classe_str.startswith("6"): annees_suivantes = 160 + 160 + 140
+    elif classe_str.startswith("5"): annees_suivantes = 160 + 140
+    elif classe_str.startswith("4"): annees_suivantes = 140
     return f"{solde_annee_courante + annees_suivantes + 16} €"
 
 def calculer_bilan_logistique(df_eleves, df_incidents):
-    if df_eleves.empty:
-        return pd.DataFrame()
-    
+    if df_eleves.empty: return pd.DataFrame()
     bilan = df_eleves[['id', 'nom', 'prenom', 'classe', 'statut_ipad', 'modele_ipad', 'serie_ipad']].copy()
-    
     if not df_incidents.empty:
         sav_stats = df_incidents.groupby('eleve_id')['montant'].agg(['count', 'sum']).reset_index()
         sav_stats.columns = ['id', 'nb_incidents', 'total_sav']
@@ -257,18 +223,10 @@ def calculer_bilan_logistique(df_eleves, df_incidents):
     else:
         bilan['nb_incidents'] = 0
         bilan['total_sav'] = 0
-        
     bilan = bilan.fillna(0)
-    
-    def get_loyer(row):
-        mens, annuel = calculer_mensualite_ipad(row['classe'], row['statut_ipad'])
-        return annuel
-    
-    bilan['loyer_annuel'] = bilan.apply(get_loyer, axis=1)
+    bilan['loyer_annuel'] = bilan.apply(lambda r: calculer_mensualite_ipad(r['classe'], r['statut_ipad'])[1], axis=1)
     bilan['dette_totale'] = bilan['total_sav'] + bilan['loyer_annuel']
-    
     return bilan.sort_values(['classe', 'nom'])
-
 
 # ==========================================
 # 📄 GÉNÉRATEUR PDF HTML
@@ -291,69 +249,30 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
     <html><head><meta charset="utf-8">
     <title>Documents - {cible_titre}</title>
     <style>
-        @media print {{
-            .page-break {{ page-break-after: always; }}
-            .no-print {{ display: none; }}
-            body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
-        }}
+        @media print {{ .page-break {{ page-break-after: always; }} .no-print {{ display: none; }} body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }} }}
         body {{ font-family: "Segoe UI", Arial, sans-serif; color: #2c3e50; margin: 0; padding: 0; line-height: 1.2; font-size: 9px; }}
         .convention-page {{ padding: 20px 30px; position: relative; }}
-        
         .header-flex {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }}
         .header-text {{ text-align: right; }}
         .title {{ font-weight: bold; font-size: 13px; color: #1e3a5f; margin-bottom: 3px; text-transform: uppercase; }}
         .subtitle {{ font-weight: bold; font-size: 11px; color: #e74c3c; }}
-
-        .info-box {{
-            border: 2px solid #1e3a5f;
-            border-radius: 12px;
-            background-color: #f8fafc;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }}
+        .info-box {{ border: 2px solid #1e3a5f; border-radius: 12px; background-color: #f8fafc; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }}
         .info-grid {{ width: 100%; border-collapse: separate; border-spacing: 5px; font-size: 11px; }}
         .info-grid td {{ vertical-align: top; padding: 4px; }}
         .info-label {{ font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }}
         .info-val {{ font-size: 12px; font-weight: bold; color: #0f172a; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; display: inline-block; width: 90%; }}
-
-        h3 {{ 
-            font-size: 10px; 
-            margin-top: 10px; 
-            margin-bottom: 4px; 
-            color: #fff; 
-            background-color: #1e3a5f; 
-            padding: 4px 8px; 
-            border-radius: 4px;
-            font-weight: bold; 
-            text-transform: uppercase; 
-            display: inline-block;
-        }}
-        
+        h3 {{ font-size: 10px; margin-top: 10px; margin-bottom: 4px; color: #fff; background-color: #1e3a5f; padding: 4px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; display: inline-block; }}
         p, li {{ text-align: justify; margin: 2px 0; font-size: 9px; }}
         ul {{ margin: 2px 0; padding-left: 15px; }}
-
-        .styled-table {{ 
-            width: 100%; 
-            border-collapse: separate; 
-            border-spacing: 0; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 8px; 
-            overflow: hidden; 
-            margin: 8px 0; 
-            font-size: 9px; 
-        }}
+        .styled-table {{ width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; margin: 8px 0; font-size: 9px; }}
         .styled-table th {{ background-color: #e2e8f0; color: #1e3a5f; padding: 5px; font-weight: bold; text-align: center; border-bottom: 1px solid #cbd5e1; }}
         .styled-table td {{ padding: 5px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; text-align: center; }}
         .styled-table td:last-child {{ border-right: none; }}
         .styled-table tr:last-child td {{ border-bottom: none; }}
         .styled-table.left-align td {{ text-align: left; vertical-align: top; }}
-
         .warning-text {{ font-weight: bold; color: #e74c3c; margin-top: 5px; display: block; font-size: 9px; background-color: #fef2f2; padding: 5px; border-left: 3px solid #e74c3c; border-radius: 0 4px 4px 0; }}
-
         .footer-sigs {{ margin-top: 15px; width: 100%; border-collapse: separate; border-spacing: 10px 0; }}
         .footer-sigs td {{ width: 33.33%; height: 60px; vertical-align: top; padding: 8px; font-size: 9px; border: 1px solid #1e3a5f; border-radius: 8px; background-color: #fff; text-align: center; }}
-        
         .card {{ border: 2px solid #1e3a5f; border-radius: 12px; padding: 20px; margin: 20px 40px; page-break-inside: avoid; background-color: #f9fbfd; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }}
         .card-header {{ font-size: 16px; font-weight: bold; border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; margin-bottom: 15px; color: #1e3a5f; }}
         .cred-row {{ margin: 8px 0; padding: 10px; background: #fff; border-radius: 6px; border-left: 4px solid; color: #1e3a5f; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
@@ -372,14 +291,8 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
         classe = str(row['classe']).upper()
         nom = str(row['nom']).upper()
         prenom = str(row['prenom']).capitalize()
-        date_entree = str(row.get('date_entree', ''))
-        if not date_entree: 
-            date_entree = "Septembre 2025"
-            
-        serie_ipad = str(row.get('serie_ipad', '')).strip()
-        if not serie_ipad:
-            serie_ipad = "........................"
-            
+        date_entree = str(row.get('date_entree', 'Septembre 2025')) if row.get('date_entree', '') else "Septembre 2025"
+        serie_ipad = str(row.get('serie_ipad', '')).strip() if row.get('serie_ipad', '').strip() else "........................"
         code_ipad = calculer_code_ipad(row['date_naissance'])
 
         if print_convention:
@@ -740,7 +653,6 @@ if menu == "📊 Tableau de Bord":
             else:
                 st.info("📊 Pas assez de données pour afficher le graphique des incidents.")
 
-        # --- NOUVEAU : GESTION DES STOCKS SUR LE DASHBOARD ---
         st.markdown("---")
         st.markdown("### 📦 État de l'Inventaire (Magasin)")
         df_stocks_dash = fetch_table("stocks")
@@ -1049,135 +961,157 @@ elif is_admin and menu == "🚨 Pannes Salles (Tickets)":
 
 
 # ==========================================
-# 👩‍🏫 PORTAIL PROFESSEURS
+# 👩‍🏫 PORTAIL PROFESSEURS (MODIFIÉ)
 # ==========================================
 elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail Profs":
     st.title("👩‍🏫 Portail Enseignants")
-    tab_recherche, tab_masse, tab_salles = st.tabs(["🔍 Recherche", "👁️ Vue Classe", "🚨 Signaler une panne (Salle)"])
+    
+    if "onglet_prof" not in st.session_state:
+        st.session_state["onglet_prof"] = "Codes"
 
-    with tab_recherche:
-        recherche = st.text_input("🔍 Rechercher les identifiants d'un élève (Nom ou Prénom) :")
-        if not recherche:
-            st.info("👆 Saisissez le nom ou le prénom d'un élève pour trouver ses codes.")
-            st.markdown("""
-                <div style='text-align: center; margin-top: 20px; margin-bottom: 30px; color: #1e3a5f; opacity: 0.6;'>
-                    <h1 style='font-size: 60px;'>🧑‍🎓</h1><h3>Dossiers Individuels</h3>
-                    <p>Consultez les mots de passe d'un élève spécifique et demandez rapidement une réinitialisation en cas de problème.</p>
-                </div>""", unsafe_allow_html=True)
-            res = pd.DataFrame()
-        else:
-            df = fetch_table("eleves", eq_col="est_parti", eq_val=0)
-            if not df.empty:
-                search_clean = nettoyeur_identifiant(recherche)
-                res = df[
-                    df['nom'].apply(nettoyeur_identifiant).str.contains(search_clean, na=False) |
-                    df['prenom'].apply(nettoyeur_identifiant).str.contains(search_clean, na=False)
-                ]
-            else:
+    # -- Faux onglets principaux pour la séparation claire --
+    col_p1, col_p2 = st.columns(2)
+    if col_p1.button("🔑 Codes & Identifiants Élèves", use_container_width=True, type="primary" if st.session_state["onglet_prof"] == "Codes" else "secondary"):
+        st.session_state["onglet_prof"] = "Codes"
+        st.rerun()
+    if col_p2.button("🚨 Signaler une Panne (Salles)", use_container_width=True, type="primary" if st.session_state["onglet_prof"] == "Salles" else "secondary"):
+        st.session_state["onglet_prof"] = "Salles"
+        st.rerun()
+
+    st.markdown("---")
+
+    # ---------------------------------------------
+    # SECTION 1 : GESTION DES CODES ÉLÈVES
+    # ---------------------------------------------
+    if st.session_state["onglet_prof"] == "Codes":
+        tab_recherche, tab_masse = st.tabs(["🔍 Recherche & Réinitialisation", "🖨️ Vue Classe & Impression"])
+
+        with tab_recherche:
+            recherche = st.text_input("🔍 Rechercher les identifiants d'un élève (Nom ou Prénom) :")
+            if not recherche:
+                st.info("👆 Saisissez le nom ou le prénom d'un élève pour trouver ses codes.")
+                st.markdown("""
+                    <div style='text-align: center; margin-top: 20px; margin-bottom: 30px; color: #1e3a5f; opacity: 0.6;'>
+                        <h1 style='font-size: 60px;'>🧑‍🎓</h1><h3>Dossiers Individuels</h3>
+                        <p>Consultez les mots de passe d'un élève spécifique et demandez rapidement une réinitialisation en cas de problème.</p>
+                    </div>""", unsafe_allow_html=True)
                 res = pd.DataFrame()
-
-        if res.empty and recherche:
-            st.warning("Aucun élève trouvé à ce nom.")
-        else:
-            for _, el in res.iterrows():
-                with st.expander(f"🎓 {el['nom']} {el['prenom']} ({el['classe']})", expanded=False):
-                    st.markdown(f":blue[**ED :**] `{el['id_ed']}` / `{el['mdp_ed']}`")
-                    st.markdown(f":yellow[**Drive :**] `{el['id_mail']}` / `{el['mdp_mail']}`")
-                    st.markdown(f":violet[**Pix :**] `{el['id_pix']}` / `{el['mdp_pix']}`")
-                    st.markdown(f":green[**Code iPad :**] `{calculer_code_ipad(el['date_naissance'])}`")
-                    st.markdown("---")
-                    st.markdown("**🛎️ Signaler un problème de mot de passe**")
-                    with st.form(f"form_ticket_prof_{el['id']}"):
-                        email_prof = st.text_input("Votre e-mail :", key=f"prof_{el['id']}")
-                        plateforme = st.selectbox("Plateforme concernée :", ["Ecole Directe", "Compte Drive", "Pix"], key=f"plat_{el['id']}")
-                        a_ete_teste = st.checkbox("✅ Je certifie avoir testé ce mot de passe avec l'élève et il ne fonctionne pas.", key=f"check_{el['id']}")
-                        if st.form_submit_button("Envoyer la demande à l'Admin"):
-                            if not a_ete_teste:
-                                st.error("❌ Vous devez certifier avoir testé le code avant d'envoyer la demande.")
-                            elif not email_prof or "@" not in email_prof:
-                                st.error("❌ Veuillez saisir une adresse e-mail valide.")
-                            else:
-                                df_verif = fetch_table("demandes", eq_col="eleve_id", eq_val=el['id'])
-                                if not df_verif.empty:
-                                    df_verif = df_verif[(df_verif['plateforme'] == plateforme) & (df_verif['statut'] == 'En attente')]
-                                if not df_verif.empty:
-                                    st.warning(f"⚠️ Une réinitialisation est déjà en cours pour {plateforme}.")
-                                else:
-                                    corps_alerte = f"""<html><body style="font-family: Arial, sans-serif;">
-                                        <h2 style="color: #d9534f;">🚨 Nouveau Ticket MdP à traiter</h2>
-                                        <p>Bonjour Olivier,</p>
-                                        <ul>
-                                            <li><b>Email Professeur :</b> {email_prof}</li>
-                                            <li><b>Élève :</b> {el['nom']} {el['prenom']} ({el['classe']})</li>
-                                            <li><b>Plateforme :</b> {plateforme}</li>
-                                        </ul>
-                                    </body></html>"""
-                                    if envoyer_email_reel(f"🚨 ALERTE : Nouveau ticket de {email_prof}", corps_alerte, EMAIL_ADMIN):
-                                        supabase.table("demandes").insert({"eleve_id": el['id'], "prof": email_prof, "plateforme": plateforme}).execute()
-                                        invalidate_cache()
-                                        st.success("✅ Demande envoyée ! L'administration a été prévenue.")
-
-    with tab_masse:
-        df_all_actifs = fetch_table("eleves", eq_col="est_parti", eq_val=0)
-        classes_disponibles = sorted(df_all_actifs['classe'].dropna().unique().tolist()) if not df_all_actifs.empty else []
-        classe_choisie = st.selectbox("Classe :", options=["--"] + classes_disponibles)
-
-        if classe_choisie != "--":
-            cacher_mdp = st.toggle("👁️ Cacher les mots de passe", value=True)
-            cols = "nom, prenom, date_naissance, id_ed, mdp_ed, id_mail, mdp_mail, id_pix, mdp_pix, id_ed_prov, mdp_ed_prov, est_parti"
-            df_c = fetch_table("eleves", eq_col="classe", eq_val=classe_choisie, order_col="nom", select_cols=cols)
-            df_c = df_c[df_c['est_parti'] == 0] if not df_c.empty else df_c
-
-            df_print = df_c.copy()
-            if not df_print.empty:
-                df_print['classe'] = classe_choisie
-
-            c_eff1, c_eff2 = st.columns([1, 3])
-            c_eff1.metric("Effectif de la classe", len(df_c))
-            with c_eff2:
-                st.info(f"💡 Identifiants pour la **{classe_choisie}**.")
-
-            if not df_c.empty:
-                df_c = df_c.drop(columns=[c for c in ['id_ed_prov', 'mdp_ed_prov', 'est_parti'] if c in df_c.columns])
-                df_c.insert(3, 'Code iPad', df_c['date_naissance'].apply(calculer_code_ipad))
-
-                if cacher_mdp:
-                    for col in ['mdp_ed', 'mdp_mail', 'mdp_pix', 'Code iPad']:
-                        df_c[col] = "••••••••"
-
-                df_c = df_c.drop(columns=['date_naissance']).rename(columns={
-                    'nom': 'Nom', 'prenom': 'Prénom', 'Code iPad': '📱 Code iPad',
-                    'id_ed': '🔵 ID ED', 'mdp_ed': '🔵 MDP ED',
-                    'id_mail': '🟡 ID Drive', 'mdp_mail': '🟡 MDP Drive',
-                    'id_pix': '🟣 ID Pix', 'mdp_pix': '🟣 MDP Pix'
-                })
-                df_c.index = [""] * len(df_c)
-                st.table(df_c)
-
-            st.markdown("---")
-            st.markdown("### 🖨️ Impression des identifiants de la classe")
-            print_convention = st.checkbox("📄 Inclure la Convention de prêt iPad", value=False, key="masse_p_conv")
-            col_ed, col_dr, col_px, col_prov, col_ipad = st.columns(5)
-            print_ed = col_ed.checkbox("🔵 ED (Définitifs)", value=True, key="p_ed")
-            print_dr = col_dr.checkbox("🟡 Drive", value=True, key="p_dr")
-            print_px = col_px.checkbox("🟣 Pix", value=True, key="p_px")
-            print_prov = col_prov.checkbox("🟠 ED (Provisoires - Rentrée)", value=False, key="p_prov")
-            print_ipad = col_ipad.checkbox("📱 Code iPad", value=True, key="p_ipad")
-
-            if st.button(f"📄 Générer la fiche d'impression pour les {classe_choisie}", type="primary"):
-                if not print_convention and not print_ed and not print_dr and not print_px and not print_prov and not print_ipad:
-                    st.error("❌ Sélectionnez au moins un élément à imprimer.")
+            else:
+                df = fetch_table("eleves", eq_col="est_parti", eq_val=0)
+                if not df.empty:
+                    search_clean = nettoyeur_identifiant(recherche)
+                    res = df[
+                        df['nom'].apply(nettoyeur_identifiant).str.contains(search_clean, na=False) |
+                        df['prenom'].apply(nettoyeur_identifiant).str.contains(search_clean, na=False)
+                    ]
                 else:
-                    html_content = generer_pdf_html(classe_choisie, df_print, print_ed, print_dr, print_px, print_prov, print_ipad, print_convention)
-                    b64 = base64.b64encode(html_content.encode('utf-8')).decode('utf-8')
-                    href = f'<a href="data:text/html;base64,{b64}" download="Identifiants_{classe_choisie}.html" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #2ecc71; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; margin-top: 10px;">👉 Ouvrir la fiche pour l\'impression PDF</a>'
-                    st.markdown(href, unsafe_allow_html=True)
-        else:
-            st.info("👆 Sélectionnez une classe dans le menu déroulant ci-dessus.")
+                    res = pd.DataFrame()
 
-    with tab_salles:
+            if res.empty and recherche:
+                st.warning("Aucun élève trouvé à ce nom.")
+            else:
+                for _, el in res.iterrows():
+                    with st.expander(f"🎓 {el['nom']} {el['prenom']} ({el['classe']})", expanded=False):
+                        st.markdown(f":blue[**ED :**] `{el['id_ed']}` / `{el['mdp_ed']}`")
+                        st.markdown(f":yellow[**Drive :**] `{el['id_mail']}` / `{el['mdp_mail']}`")
+                        st.markdown(f":violet[**Pix :**] `{el['id_pix']}` / `{el['mdp_pix']}`")
+                        st.markdown(f":green[**Code iPad :**] `{calculer_code_ipad(el['date_naissance'])}`")
+                        st.markdown("---")
+                        st.markdown("**🛎️ Signaler un problème de mot de passe**")
+                        with st.form(f"form_ticket_prof_{el['id']}"):
+                            email_prof = st.text_input("Votre e-mail :", key=f"prof_{el['id']}")
+                            plateforme = st.selectbox("Plateforme concernée :", ["Ecole Directe", "Compte Drive", "Pix"], key=f"plat_{el['id']}")
+                            a_ete_teste = st.checkbox("✅ Je certifie avoir testé ce mot de passe avec l'élève et il ne fonctionne pas.", key=f"check_{el['id']}")
+                            if st.form_submit_button("Envoyer la demande à l'Admin"):
+                                if not a_ete_teste:
+                                    st.error("❌ Vous devez certifier avoir testé le code avant d'envoyer la demande.")
+                                elif not email_prof or "@" not in email_prof:
+                                    st.error("❌ Veuillez saisir une adresse e-mail valide.")
+                                else:
+                                    df_verif = fetch_table("demandes", eq_col="eleve_id", eq_val=el['id'])
+                                    if not df_verif.empty:
+                                        df_verif = df_verif[(df_verif['plateforme'] == plateforme) & (df_verif['statut'] == 'En attente')]
+                                    if not df_verif.empty:
+                                        st.warning(f"⚠️ Une réinitialisation est déjà en cours pour {plateforme}.")
+                                    else:
+                                        corps_alerte = f"""<html><body style="font-family: Arial, sans-serif;">
+                                            <h2 style="color: #d9534f;">🚨 Nouveau Ticket MdP à traiter</h2>
+                                            <p>Bonjour Olivier,</p>
+                                            <ul>
+                                                <li><b>Email Professeur :</b> {email_prof}</li>
+                                                <li><b>Élève :</b> {el['nom']} {el['prenom']} ({el['classe']})</li>
+                                                <li><b>Plateforme :</b> {plateforme}</li>
+                                            </ul>
+                                        </body></html>"""
+                                        if envoyer_email_reel(f"🚨 ALERTE : Nouveau ticket de {email_prof}", corps_alerte, EMAIL_ADMIN):
+                                            supabase.table("demandes").insert({"eleve_id": el['id'], "prof": email_prof, "plateforme": plateforme}).execute()
+                                            invalidate_cache()
+                                            st.success("✅ Demande envoyée ! L'administration a été prévenue.")
+
+        with tab_masse:
+            df_all_actifs = fetch_table("eleves", eq_col="est_parti", eq_val=0)
+            classes_disponibles = sorted(df_all_actifs['classe'].dropna().unique().tolist()) if not df_all_actifs.empty else []
+            classe_choisie = st.selectbox("Classe :", options=["--"] + classes_disponibles)
+
+            if classe_choisie != "--":
+                cacher_mdp = st.toggle("👁️ Cacher les mots de passe", value=True)
+                cols = "nom, prenom, date_naissance, id_ed, mdp_ed, id_mail, mdp_mail, id_pix, mdp_pix, id_ed_prov, mdp_ed_prov, est_parti"
+                df_c = fetch_table("eleves", eq_col="classe", eq_val=classe_choisie, order_col="nom", select_cols=cols)
+                df_c = df_c[df_c['est_parti'] == 0] if not df_c.empty else df_c
+
+                df_print = df_c.copy()
+                if not df_print.empty:
+                    df_print['classe'] = classe_choisie
+
+                c_eff1, c_eff2 = st.columns([1, 3])
+                c_eff1.metric("Effectif de la classe", len(df_c))
+                with c_eff2:
+                    st.info(f"💡 Identifiants pour la **{classe_choisie}**.")
+
+                if not df_c.empty:
+                    df_c = df_c.drop(columns=[c for c in ['id_ed_prov', 'mdp_ed_prov', 'est_parti'] if c in df_c.columns])
+                    df_c.insert(3, 'Code iPad', df_c['date_naissance'].apply(calculer_code_ipad))
+
+                    if cacher_mdp:
+                        for col in ['mdp_ed', 'mdp_mail', 'mdp_pix', 'Code iPad']:
+                            df_c[col] = "••••••••"
+
+                    df_c = df_c.drop(columns=['date_naissance']).rename(columns={
+                        'nom': 'Nom', 'prenom': 'Prénom', 'Code iPad': '📱 Code iPad',
+                        'id_ed': '🔵 ID ED', 'mdp_ed': '🔵 MDP ED',
+                        'id_mail': '🟡 ID Drive', 'mdp_mail': '🟡 MDP Drive',
+                        'id_pix': '🟣 ID Pix', 'mdp_pix': '🟣 MDP Pix'
+                    })
+                    df_c.index = [""] * len(df_c)
+                    st.table(df_c)
+
+                st.markdown("---")
+                st.markdown("### 🖨️ Impression des identifiants de la classe")
+                print_convention = st.checkbox("📄 Inclure la Convention de prêt iPad officielle (1 page A4 par élève)", value=False, key="masse_p_conv")
+                col_ed, col_dr, col_px, col_prov, col_ipad = st.columns(5)
+                print_ed = col_ed.checkbox("🔵 ED (Définitifs)", value=True, key="p_ed")
+                print_dr = col_dr.checkbox("🟡 Drive", value=True, key="p_dr")
+                print_px = col_px.checkbox("🟣 Pix", value=True, key="p_px")
+                print_prov = col_prov.checkbox("🟠 ED (Provisoires - Rentrée)", value=False, key="p_prov")
+                print_ipad = col_ipad.checkbox("📱 Code iPad", value=True, key="p_ipad")
+
+                if st.button(f"📄 Générer la fiche d'impression pour les {classe_choisie}", type="primary"):
+                    if not print_convention and not print_ed and not print_dr and not print_px and not print_prov and not print_ipad:
+                        st.error("❌ Sélectionnez au moins un élément à imprimer.")
+                    else:
+                        html_content = generer_pdf_html(classe_choisie, df_print, print_ed, print_dr, print_px, print_prov, print_ipad, print_convention)
+                        b64 = base64.b64encode(html_content.encode('utf-8')).decode('utf-8')
+                        href = f'<a href="data:text/html;base64,{b64}" download="Identifiants_{classe_choisie}.html" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #2ecc71; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; margin-top: 10px;">👉 Ouvrir la fiche pour l\'impression PDF</a>'
+                        st.markdown(href, unsafe_allow_html=True)
+            else:
+                st.info("👆 Sélectionnez une classe dans le menu déroulant ci-dessus.")
+
+    # ---------------------------------------------
+    # SECTION 2 : SIGNALEMENT DE PANNES
+    # ---------------------------------------------
+    elif st.session_state["onglet_prof"] == "Salles":
         st.markdown("### 🛠️ Signaler un dysfonctionnement matériel")
-        st.info("Utilisez ce formulaire pour signaler une panne sur le matériel de la salle de cours.")
+        st.info("Utilisez ce formulaire pour signaler une panne sur le matériel d'une salle de cours.")
         
         liste_salles = [
             "Salle 3°1", "Salle 3°2", "Salle 3°3", "Salle 3°4",
@@ -1216,7 +1150,6 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                     envoyer_email_reel(f"🚨 Panne {salle_concernee} - {equipement}", corps_alerte, EMAIL_ADMIN)
                     invalidate_cache()
                     st.success("✅ Signalement envoyé avec succès ! L'administration a été prévenue.")
-
 
 # ==========================================
 # 🛎️ TICKETS (ADMIN)
@@ -1346,6 +1279,7 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
 
         df_print = pd.DataFrame()
         cible = ""
+
         df_actifs_print = fetch_table("eleves", eq_col="est_parti", eq_val=0)
 
         if type_impression == "Une classe complète":
@@ -1394,6 +1328,7 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
             st.markdown("---")
             st.warning("⚠️ **Action de fin de traitement :**")
             st.write("Si vous avez terminé d'imprimer vos fiches, cliquez sur le bouton ci-dessous. Cela enlèvera le marqueur 'Nouveau' de ces élèves pour qu'ils ne polluent plus vos prochains exports.")
+            
             if st.button("✅ Valider l'intégration des nouveaux (Remise à zéro)"):
                 with st.spinner("Mise à jour des dossiers en cours..."):
                     ids_a_valider = df_print['id'].tolist()
@@ -1460,40 +1395,40 @@ elif is_admin and menu == "📦 Inventaire & Stocks":
     df_stocks = fetch_table("stocks")
     
     if not df_stocks.empty:
-        # Trier l'affichage dans un ordre logique
         cat_order = ['iPad', 'Vitres', 'Coques', 'Chargeurs', 'Câbles']
         df_stocks['categorie'] = pd.Categorical(df_stocks['categorie'], categories=cat_order, ordered=True)
         df_stocks = df_stocks.sort_values(['categorie', 'article'])
         
         with st.form("form_stocks_grid"):
             nouveaux_stocks = {}
-            # Parcourir chaque catégorie existante
             for cat in df_stocks['categorie'].dropna().unique():
                 st.markdown(f"### 🏷️ {cat}")
                 articles_cat = df_stocks[df_stocks['categorie'] == cat]
                 
-                # Création d'une belle grille (4 colonnes max)
                 cols = st.columns(4)
                 for i, (_, row) in enumerate(articles_cat.iterrows()):
                     with cols[i % 4]:
-                        # Affiche le nom de l'article dans un joli cadre
                         st.markdown(f"""
                             <div style='background-color: white; padding: 10px; border-radius: 8px 8px 0 0; border: 1px solid #cbd5e1; border-bottom: none; text-align: center;'>
                                 <p style='color: #1e3a5f; font-weight: bold; font-size: 13px; margin: 0; min-height: 35px;'>{row['article']}</p>
                             </div>
                         """, unsafe_allow_html=True)
-                        # Affiche la zone de saisie collée juste en dessous
+                        
+                        # CORRECTION DU BUG - On s'assure que la valeur n'est jamais négative pour éviter l'erreur !
+                        valeur_stock_initial = int(row.get('quantite', 0))
+                        if valeur_stock_initial < 0:
+                            valeur_stock_initial = 0
+                            
                         nouveaux_stocks[row['id']] = st.number_input(
                             "Quantité :", 
                             min_value=0, 
-                            value=int(row['quantite']), 
+                            value=valeur_stock_initial, 
                             step=1,
                             key=f"stk_{row['id']}",
                             label_visibility="collapsed"
                         )
                 st.markdown("<br>", unsafe_allow_html=True)
             
-            # Bouton de sauvegarde centré et bien visible
             st.markdown("---")
             col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
             with col_btn2:
@@ -1663,8 +1598,13 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
         ### 📝 Instructions d'importation Annuaire (Charlemagne)
         **Format du fichier attendu (.csv avec séparateur `;`).**
         Le fichier doit contenir **exactement 8 colonnes** dans cet ordre précis :
-        1. Classe | 2. Nom | 3. Prénom | 4. Date Naissance | 5. PP | 6. Date entrée | 7. ID Prov | 8. MDP Prov
+        1. `Classe` | 2. `Nom` | 3. `Prénom` | 4. `Date Naissance` | 5. `PP` | 6. `Date entrée` | 7. `ID Prov` | 8. `MDP Prov`
+        
+        **Modes de fonctionnement :**
+        - **Mode Standard (Décoché) :** Ajoute uniquement les nouveaux élèves trouvés dans le fichier.
+        - **Mode Rentrée (Coché) :** Ajoute les nouveaux, met à jour la classe des anciens, et archive les élèves absents du fichier en 'Parti'.
         """)
+        st.markdown("---")
         mode_rentree = st.checkbox("🎓 Activer le Mode Rentrée")
         up = st.file_uploader("Fichier CSV", type="csv", key="up_import_eleve")
 
@@ -1673,13 +1613,16 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
             eleves_presents_csv = []
             nb_total = len(df_new)
             nb_nouveaux = 0
+            repartition = {}
+
             res_all = supabase.table("eleves").select("id, nom, prenom").execute()
             existing_eleves = {(nettoyeur_identifiant(r['nom']), nettoyeur_identifiant(r['prenom'])): r['id'] for r in res_all.data} if res_all.data else {}
 
             if mode_rentree and res_all.data:
-                for r in res_all.data: supabase.table("eleves").update({"est_nouveau": 0}).eq("id", r['id']).execute()
+                for r in res_all.data:
+                    supabase.table("eleves").update({"est_nouveau": 0}).eq("id", r['id']).execute()
 
-            with st.spinner("Importation en cours..."):
+            with st.spinner("Importation en cours, veuillez patienter..."):
                 for _, row in df_new.iterrows():
                     if len(row) < 3: continue
                     cl = str(row.iloc[0]).strip() if pd.notna(row.iloc[0]) else ""
@@ -1690,6 +1633,7 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                     entree_val = str(row.iloc[5]).strip() if len(row) > 5 and pd.notna(row.iloc[5]) else ""
                     id_prov = str(row.iloc[6]).strip() if len(row) > 6 and pd.notna(row.iloc[6]) else ""
                     mdp_prov = str(row.iloc[7]).strip() if len(row) > 7 and pd.notna(row.iloc[7]) else ""
+                    repartition[cl] = repartition.get(cl, 0) + 1
                     n_clean, p_clean = nettoyeur_identifiant(n), nettoyeur_identifiant(p)
 
                     if (n_clean, p_clean) not in existing_eleves:
@@ -1716,18 +1660,31 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                         supabase.table("eleves").update({"est_parti": 1, "statut_ipad": 'Parti'}).eq("id", aid).execute()
 
             invalidate_cache()
-            st.success(f"✅ Importation terminée : {nb_nouveaux} nouveaux détectés !")
+            st.success("✅ Importation terminée avec succès !")
+            st.markdown("### 📊 Bilan")
+            c_tot, c_new = st.columns(2)
+            c_tot.metric("Total élèves lus", nb_total)
+            c_new.metric("Vrais nouveaux détectés", nb_nouveaux)
+            df_rep = pd.DataFrame(list(repartition.items()), columns=['Classe', "Nb élèves"]).sort_values('Classe')
+            st.dataframe(df_rep, hide_index=True, use_container_width=True)
 
     with tab_import_sav:
-        st.markdown("### 📥 Import SAV (Nom;Prénom;Date;Type;Montant)")
+        st.markdown("""
+        ### 📥 Instructions d'importation Historique SAV
+        **Format du fichier attendu (.csv avec séparateur `;`).**
+        Le fichier doit contenir **exactement 5 colonnes** dans cet ordre précis :
+        1. `Nom` | 2. `Prénom` | 3. `Date (ex: 12/10/2025)` | 4. `Type d'incident` | 5. `Montant (chiffre entier)`
+        """)
+        st.markdown("---")
         up_sav = st.file_uploader("Fichier CSV (SAV)", type="csv", key="up_sav_import")
-        if up_sav and st.button("🚀 Lancer l'Import SAV"):
+        if up_sav and st.button("🚀 Lancer l'Import SAV vers Supabase"):
             df_sav_new = pd.read_csv(io.StringIO(up_sav.getvalue().decode('utf-8')), sep=None, engine='python')
             res_el = supabase.table("eleves").select("id, nom, prenom").execute()
             map_el = {(nettoyeur_identifiant(r['nom']), nettoyeur_identifiant(r['prenom'])): r['id'] for r in res_el.data} if res_el.data else {}
             count = 0
-            with st.spinner("Importation..."):
+            with st.spinner("Importation SAV en cours..."):
                 for _, row in df_sav_new.iterrows():
+                    if len(row) < 5: continue
                     n_clean, p_clean = nettoyeur_identifiant(row.iloc[0]), nettoyeur_identifiant(row.iloc[1])
                     if (n_clean, p_clean) in map_el:
                         try:
@@ -1738,45 +1695,65 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
             st.success(f"✅ {count} incidents SAV importés !")
 
     with tab_import_ipad:
-        st.markdown("### 📥 Import Statut iPad (Nom;Prénom;Statut)")
+        st.markdown("""
+        ### 📥 Instructions d'importation Statut iPad
+        **Format du fichier attendu (.csv avec séparateur `;`).**
+        Le fichier doit contenir **exactement 3 colonnes** dans cet ordre précis :
+        1. `Nom` | 2. `Prénom` | 3. `Statut iPad (Achat, Location, Fratrie, Parti)`
+        """)
+        st.markdown("---")
         up_ipad = st.file_uploader("Fichier CSV (Statut iPad)", type="csv", key="up_ipad_import")
-        if up_ipad and st.button("🚀 Mettre à jour les statuts"):
+        if up_ipad and st.button("🚀 Lancer la mise à jour des statuts iPad"):
             df_ipad_new = pd.read_csv(io.StringIO(up_ipad.getvalue().decode('utf-8')), sep=None, engine='python')
             res_el = supabase.table("eleves").select("id, nom, prenom").execute()
             map_el = {(nettoyeur_identifiant(r['nom']), nettoyeur_identifiant(r['prenom'])): r['id'] for r in res_el.data} if res_el.data else {}
             count = 0
-            for _, row in df_ipad_new.iterrows():
-                n_clean, p_clean = nettoyeur_identifiant(row.iloc[0]), nettoyeur_identifiant(row.iloc[1])
-                statut_brut = str(row.iloc[2]).strip().capitalize()
-                statut = "Location" if "Location" in statut_brut else ("Fratrie" if "Fratrie" in statut_brut else ("Parti" if "Parti" in statut_brut else "Achat"))
-                if (n_clean, p_clean) in map_el:
-                    supabase.table("eleves").update({"statut_ipad": statut, "est_parti": 1 if statut == 'Parti' else 0}).eq("id", map_el[(n_clean, p_clean)]).execute()
-                    count += 1
+            with st.spinner("Mise à jour des statuts en cours..."):
+                for _, row in df_ipad_new.iterrows():
+                    if len(row) < 3: continue
+                    n_clean, p_clean = nettoyeur_identifiant(row.iloc[0]), nettoyeur_identifiant(row.iloc[1])
+                    statut_brut = str(row.iloc[2]).strip().capitalize()
+                    statut = "Location" if "Location" in statut_brut else ("Fratrie" if "Fratrie" in statut_brut else ("Parti" if "Parti" in statut_brut else "Achat"))
+                    if (n_clean, p_clean) in map_el:
+                        try:
+                            supabase.table("eleves").update({"statut_ipad": statut, "est_parti": 1 if statut == 'Parti' else 0}).eq("id", map_el[(n_clean, p_clean)]).execute()
+                            count += 1
+                        except: pass
             invalidate_cache()
-            st.success(f"✅ {count} statuts mis à jour !")
+            st.success(f"✅ {count} statuts iPad mis à jour !")
 
     with tab_import_jamf:
-        st.markdown("### 📥 Import Jamf (Model;OwnerFirstName;OwnerLastName;SerialNumber)")
+        st.markdown("""
+        ### 📥 Importation des Numéros de Série (Jamf School)
+        **Format du fichier attendu (.csv avec séparateur `;`).**
+        Le fichier doit contenir au moins ces 4 colonnes (peu importe l'ordre) :
+        `Model` | `OwnerFirstName` | `OwnerLastName` | `SerialNumber`
+        """)
+        st.markdown("---")
         up_jamf = st.file_uploader("Fichier CSV Jamf", type="csv", key="up_jamf")
-        if up_jamf and st.button("🚀 Mettre à jour Séries"):
+        if up_jamf and st.button("🚀 Mettre à jour les numéros de série"):
             df_jamf = pd.read_csv(io.StringIO(up_jamf.getvalue().decode('utf-8')), sep=";")
             res_el = supabase.table("eleves").select("id, nom, prenom").execute()
             map_el = {(nettoyeur_identifiant(r['nom']), nettoyeur_identifiant(r['prenom'])): r['id'] for r in res_el.data} if res_el.data else {}
             count = 0
-            for _, row in df_jamf.iterrows():
-                n_clean = nettoyeur_identifiant(str(row.get('OwnerLastName', '')))
-                if n_clean == "davout": n_clean = "d'avout"
-                p_clean = nettoyeur_identifiant(row.get('OwnerFirstName', ''))
-                ser = str(row.get('SerialNumber', '')).strip()
-                if (n_clean, p_clean) in map_el and ser:
-                    supabase.table("eleves").update({"modele_ipad": str(row.get('Model', '')).strip(), "serie_ipad": ser}).eq("id", map_el[(n_clean, p_clean)]).execute()
-                    count += 1
+            with st.spinner("Mise à jour en cours..."):
+                for _, row in df_jamf.iterrows():
+                    n_clean = nettoyeur_identifiant(str(row.get('OwnerLastName', '')))
+                    if n_clean == "davout": n_clean = "d'avout"
+                    p_clean = nettoyeur_identifiant(row.get('OwnerFirstName', ''))
+                    mod = str(row.get('Model', '')).strip()
+                    ser = str(row.get('SerialNumber', '')).strip()
+                    if (n_clean, p_clean) in map_el and ser:
+                        try:
+                            supabase.table("eleves").update({"modele_ipad": mod, "serie_ipad": ser}).eq("id", map_el[(n_clean, p_clean)]).execute()
+                            count += 1
+                        except: pass
             invalidate_cache()
-            st.success(f"✅ {count} numéros de série mis à jour !")
+            st.success(f"✅ {count} fiches élèves mises à jour avec les numéros de série !")
 
     with tab_nettoyage:
-        st.warning("⚠️ **ZONE DE DANGER :** Suppression définitive des élèves 'Partis'.")
-        if st.button("🗑️ Supprimer les élèves partis", type="primary"):
+        st.warning("⚠️ **ZONE DE DANGER :** Suppression définitive de tous les élèves marqués 'Partis' (tickets et SAV inclus).")
+        if st.button("🗑️ Supprimer définitivement TOUS les élèves partis", type="primary"):
             res_partis = supabase.table("eleves").select("id").eq("est_parti", 1).execute()
             if res_partis.data:
                 for pid in [r['id'] for r in res_partis.data]:
@@ -1784,13 +1761,13 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                     supabase.table("demandes").delete().eq("eleve_id", pid).execute()
                     supabase.table("eleves").delete().eq("id", pid).execute()
                 invalidate_cache()
-                st.success(f"✅ {len(res_partis.data)} élève(s) supprimés !")
-                time.sleep(2); st.rerun()
-            else: st.info("Aucun élève 'Parti'.")
-        
+                st.success(f"✅ {len(res_partis.data)} élève(s) supprimés définitivement !")
+            else: st.info("💡 Aucun élève marqué comme 'Parti'. La base est propre.")
+            time.sleep(2.5); st.rerun()
+
         st.markdown("---")
-        st.error("🧨 **RESET TOTAL :** Efface la totalité de la base.")
-        if st.button("🧨 Vider la base", type="primary"):
+        st.error("🧨 **RESET TOTAL :** Efface la totalité des élèves, tickets et SAV.")
+        if st.button("🧨 Vider l'intégralité de la base de données", type="primary"):
             res_all = supabase.table("eleves").select("id").execute()
             if res_all.data:
                 for pid in [r['id'] for r in res_all.data]:
@@ -1798,6 +1775,6 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                     supabase.table("demandes").delete().eq("eleve_id", pid).execute()
                     supabase.table("eleves").delete().eq("id", pid).execute()
                 invalidate_cache()
-                st.success(f"✅ Base vidée !")
-                time.sleep(2); st.rerun()
-            else: st.info("Déjà vide.")
+                st.success(f"✅ Base vidée : {len(res_all.data)} élèves supprimés !")
+            else: st.info("La base est déjà vide.")
+            time.sleep(2.5); st.rerun()
