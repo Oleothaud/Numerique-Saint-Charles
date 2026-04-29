@@ -112,10 +112,14 @@ st.markdown("""
         h1, h2, h3, [data-testid="stHeader"] { color: #1e3a5f !important; }
         [data-testid="stMarkdownContainer"] h1, [data-testid="stMarkdownContainer"] h2,
         [data-testid="stMarkdownContainer"] h3 { color: #1e3a5f !important; }
-        input, select, div[data-baseweb="select"] > div {
+        
+        /* CORRECTION : On inclut textarea pour qu'il soit bien visible et encadré */
+        input, select, textarea, div[data-baseweb="select"] > div {
             color: #1e3a5f !important;
             background-color: #ffffff !important;
             -webkit-text-fill-color: #1e3a5f !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 6px !important;
         }
         div[role="listbox"] { background-color: #ffffff !important; color: #1e3a5f !important; }
         label p { color: #1e3a5f !important; }
@@ -123,7 +127,7 @@ st.markdown("""
             display: none !important; opacity: 0 !important; visibility: hidden !important;
         }
         
-        /* --- NOUVEAU : STYLE DES BOUTONS (ONGLTES) --- */
+        /* --- STYLE DES BOUTONS (ONGLETS) --- */
         button[kind="primary"] {
             background-color: #e74c3c !important; 
             color: white !important; 
@@ -1235,7 +1239,10 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
         with st.form("form_panne_salle"):
             salle_concernee = st.selectbox("Sélectionnez la salle :", options=liste_salles)
             equipement = st.selectbox("Équipement concerné :", ["📺 Apple TV", "📽️ Vidéoprojecteur", "🔌 Connectique (HDMI / VGA)", "🔊 Son / Enceintes", "💻 Autre"])
-            desc = st.text_area("Description du problème (soyez précis) :")
+            
+            # --- CORRECTION : Zone de texte plus grande avec texte d'exemple ---
+            desc = st.text_area("Description du problème (soyez précis) :", height=120, placeholder="Ex: Le son de l'Apple TV grésille ou l'image saute toutes les 2 minutes...")
+            
             email_sign = st.text_input("Votre e-mail :")
             
             if st.form_submit_button("🚀 Envoyer le signalement"):
@@ -1843,8 +1850,9 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                     n_raw = str(row.get('OwnerLastName', ''))
                     n_clean = nettoyeur_identifiant(n_raw)
                     
+                    # 💡 Cas spécifique : "davout" correspond à "d'avout" dans ta base
                     if n_clean == "davout":
-                        n_clean = "daout"
+                        n_clean = "d'avout"
                         
                     p_clean = nettoyeur_identifiant(row.get('OwnerFirstName', ''))
                     mod = str(row.get('Model', '')).strip()
