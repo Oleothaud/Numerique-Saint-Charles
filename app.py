@@ -26,7 +26,7 @@ DOSSIER_COURANT = os.path.dirname(os.path.abspath(__file__))
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
-# --- OPTIMISATION 1 : Client Supabase en singleton (une seule connexion pour toute la session) ---
+# --- OPTIMISATION 1 : Client Supabase en singleton ---
 @st.cache_resource
 def get_supabase_client() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -42,9 +42,12 @@ SMTP_PASSWORD = st.secrets["SMTP_PASSWORD"]
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
-# L'adresse corrigée pour te mettre en copie :
+# Adresses Email
 EMAIL_ADMIN = "o.leothaud@saintcharles71.fr"
 EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"
+# Adresses dédiées pour les alertes de stocks critiques
+EMAIL_STOCK_PRINCIPAL = "o.leothaud@gmail.com"
+EMAIL_STOCK_COPIE = "o.leothaud2@saintcharles71.fr"
 
 PASSWORD_ADMIN = st.secrets["PASSWORD_ADMIN"]
 PASSWORD_COMPTA = st.secrets["PASSWORD_COMPTA"]
@@ -56,7 +59,7 @@ MDP_DEFAUT = st.secrets["MDP_DEFAUT"]
 # 🛡️ FONCTIONS DATA SUPABASE AVEC CACHE
 # ==========================================
 
-# --- OPTIMISATION 2 : Cache avec TTL court pour les lectures fréquentes ---
+# --- OPTIMISATION 2 : Cache avec TTL court ---
 @st.cache_data(ttl=60, show_spinner=False)
 def fetch_table(table_name, eq_col=None, eq_val=None, order_col=None, select_cols="*"):
     query = get_supabase_client().table(table_name).select(select_cols)
@@ -78,7 +81,8 @@ def fetch_table(table_name, eq_col=None, eq_val=None, order_col=None, select_col
                        "id_ed_prov", "mdp_ed_prov", "est_nouveau", "modele_ipad", "serie_ipad"],
             "incidents_ipad": ["id", "eleve_id", "date_incident", "type_incident", "montant", "envoye_compta"],
             "demandes": ["id", "eleve_id", "prof", "plateforme", "statut", "date_demande"],
-            "signalements_salles": ["id", "salle", "equipement", "description", "prof", "statut", "date_signalement"]
+            "signalements_salles": ["id", "salle", "equipement", "description", "prof", "statut", "date_signalement"],
+            "stocks": ["id", "article", "categorie", "quantite"]
         }
         df = pd.DataFrame(columns=schemas.get(table_name, []))
     return df.fillna("")
@@ -271,7 +275,6 @@ def calculer_bilan_logistique(df_eleves, df_incidents):
 # 📄 GÉNÉRATEUR PDF HTML
 # ==========================================
 def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_prov, print_ipad, print_convention=False):
-    # 1. Tenter de charger le logo en base64 pour l'en-tête
     logo_b64 = ""
     chemins_logo_possibles = [
         os.path.join(DOSSIER_COURANT, "Logo Collège St Charles (1).jpeg"),
@@ -714,7 +717,7 @@ if is_admin:
     elif section == "📟 Assistance & tickets profs":
         menu = st.sidebar.radio("Option :", ["👩‍🏫 Portail Profs", "🛎️ Codes (Tickets)", "🚨 Pannes Salles (Tickets)", "🗄️ Historique des MdP"], key="side_opt_at")
     elif section == "📱 Gestion iPad":
-        options_ipad = ["🚛 Vue Logistique Totale", "💰 Espace Compta & Logistique", "🛠️ Historique SAV iPad", "📦 Restitutions (Fin d'année)"]
+        options_ipad = ["🚛 Vue Logistique Totale", "💰 Espace Compta & Logistique", "🛠️ Historique SAV iPad", "📦 Inventaire & Stocks", "📦 Restitutions (Fin d'année)"]
         menu = st.sidebar.radio("Option :", options_ipad, key="side_opt_ipad")
     elif section == "⚙️ Base de Données":
         menu = st.sidebar.radio("Option :", ["👥 Annuaire, Édition & PDF", "⚙️ Maintenance & Nettoyage"], key="side_opt_db")
@@ -922,7 +925,6 @@ elif is_admin and menu == "🪪 Dossier 360°":
                     c_ser.text_input("N° de Série", value=el.get('serie_ipad', ''), disabled=True, key=f"ser_{el['id']}")
                     st.markdown("---")
                     
-                    # Plus de "st.form" ici pour que le calcul soit INSTANTANÉ !
                     st.markdown("#### 📄 Contrat & Solde")
                     c_stat, c_mens, c_tot = st.columns(3)
                     statut_actuel = el['statut_ipad'] if el['statut_ipad'] != "" else "Achat"
@@ -948,12 +950,27 @@ elif is_admin and menu == "🪪 Dossier 360°":
 
                     st.markdown("---")
                     
-                    st.markdown("#### ➕ Déclarer un nouvel incident")
+                    st.markdown("#### ➕ Déclarer un nouvel incident (et ajuster le stock)")
                     
-                    type_inc = st.selectbox("Nature du sinistre",
+                    type_inc = st.selectbox("Nature du sinistre (Général)",
                         ["Écran de protection (15€)", "Chargeur (25€)", "Câble (25€)", "Coque (25€)",
                          "iPad cassé (50€/100€)", "Écran HS SAV", "Batterie HS SAV"],
                         key=f"type_inc_{el['id']}")
+                        
+                    # --- NOUVEAUTÉ : SOUS-MENU TECHNIQUE POUR LE STOCK ---
+                    detail_article = None
+                    if "Écran de protection" in type_inc:
+                        detail_article = st.selectbox("Précision technique :", ["Protège-écran 6ème", "Protège-écran 8/9ème", "Protège-écran 10/11"], key=f"det_{el['id']}")
+                    elif "Chargeur" in type_inc:
+                        detail_article = st.selectbox("Précision technique :", ["Chargeur USB", "Chargeur USB-C"], key=f"det_{el['id']}")
+                    elif "Câble" in type_inc:
+                        detail_article = st.selectbox("Précision technique :", ["Câble USB vers Lightning", "Câble USB-C vers Lightning"], key=f"det_{el['id']}")
+                    elif "Coque" in type_inc:
+                        detail_article = st.selectbox("Précision technique :", ["Coque iPad 6ème", "Coque iPad 8/9ème", "Coque iPad 10", "Coque iPad 11"], key=f"det_{el['id']}")
+                    elif "iPad cassé" in type_inc:
+                        remplacement = st.checkbox("🔄 Un iPad de remplacement a été fourni", key=f"remp_{el['id']}")
+                        if remplacement:
+                            detail_article = st.selectbox("Lequel ? :", ["iPad 6ème", "iPad 8ème", "iPad 9ème", "iPad 10", "iPad 11"], key=f"det_{el['id']}")
                     
                     gratuit = st.checkbox("🎁 Remplacement gratuit (Ne pas facturer)", key=f"gratuit_{el['id']}")
                     
@@ -964,15 +981,16 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                        25 if any(x in type_inc for x in ["Chargeur", "Câble", "Coque"]) else \
                                        50 if (str(el['classe']).startswith("3") or str(el['classe']).startswith("4")) else 100
                                        
-                    st.warning(f"🧾 Facturation : **{prix_facture} €**")
+                    st.warning(f"🧾 Facturation Compta : **{prix_facture} €**")
                     
                     col_b1, col_b2 = st.columns(2)
-                    btn_save_only = col_b1.button("💾 Enregistrer uniquement", key=f"btn_save_only_{el['id']}")
+                    btn_save_only = col_b1.button("💾 Enregistrer (Mettre à jour le stock)", key=f"btn_save_only_{el['id']}")
                     btn_save_mail = col_b2.button("📧 Enregistrer & Envoyer Compta", type="primary", key=f"btn_save_mail_{el['id']}")
 
                     if btn_save_only or btn_save_mail:
                         envoye = 1 if btn_save_mail else 0
                         
+                        # 1. Envoi de l'email Compta (Reste très générique)
                         if btn_save_mail:
                             if prix_facture > 0:
                                 corps_sav = f"""<html><body style="font-family: Arial, sans-serif; color: #1e3a5f;">
@@ -993,14 +1011,48 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 st.info("💡 Incident gratuit ou SAV matériel : aucun mail envoyé à la compta.")
                                 envoye = 0
 
+                        # 2. Enregistrement en base de l'incident
                         supabase.table("incidents_ipad").insert({
                             "eleve_id": el['id'],
                             "date_incident": datetime.datetime.now().strftime("%d/%m/%Y"),
                             "type_incident": type_inc, "montant": prix_facture, "envoye_compta": envoye
                         }).execute()
+                        
+                        # 3. NOUVEAUTÉ : Mise à jour du stock et Alerte Automatique
+                        if detail_article:
+                            res_stock = supabase.table("stocks").select("id, quantite").eq("article", detail_article).execute()
+                            if res_stock.data:
+                                stock_id = res_stock.data[0]['id']
+                                qty_actuelle = res_stock.data[0]['quantite']
+                                nv_qty = qty_actuelle - 1
+                                supabase.table("stocks").update({"quantite": nv_qty}).eq("id", stock_id).execute()
+                                
+                                # Si le stock est à 1 ou 0, on envoie le mail d'alerte spécifique !
+                                if nv_qty <= 1:
+                                    sujet_alerte = f"⚠️ ALERTE STOCK CRITIQUE : {detail_article}"
+                                    corps_alerte = f"""<html><body style="font-family: Arial, sans-serif;">
+                                        <h2 style="color: #e74c3c;">⚠️ Alerte Stock Numérique</h2>
+                                        <p>Attention, suite à une intervention SAV, le stock pour l'article <b>{detail_article}</b> vient de tomber à <b style="color: #e74c3c; font-size: 18px;">{nv_qty} unité(s)</b>.</p>
+                                        <p>Il est temps de repasser commande pour cet équipement !</p>
+                                    </body></html>"""
+                                    try:
+                                        msg_stock = MIMEMultipart()
+                                        msg_stock['From'] = f"Alerte Numérique <{SMTP_USER}>"
+                                        msg_stock['To'] = EMAIL_STOCK_PRINCIPAL
+                                        msg_stock['Cc'] = EMAIL_STOCK_COPIE
+                                        msg_stock['Subject'] = sujet_alerte
+                                        msg_stock.attach(MIMEText(corps_alerte, 'html'))
+                                        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+                                        server.starttls()
+                                        server.login(SMTP_USER, SMTP_PASSWORD)
+                                        server.sendmail(SMTP_USER, [EMAIL_STOCK_PRINCIPAL, EMAIL_STOCK_COPIE], msg_stock.as_string())
+                                        server.quit()
+                                    except Exception as e:
+                                        st.error(f"Erreur envoi alerte stock: {e}")
+
                         invalidate_cache()
                         st.session_state["open_el_id"] = str(el['id'])
-                        st.session_state[f"msg_{el['id']}"] = f"✅ Incident déclaré ({prix_facture}€) !"
+                        st.session_state[f"msg_{el['id']}"] = f"✅ Incident déclaré et inventaire mis à jour !"
                         time.sleep(1)
                         st.rerun()
 
@@ -1240,7 +1292,6 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
             salle_concernee = st.selectbox("Sélectionnez la salle :", options=liste_salles)
             equipement = st.selectbox("Équipement concerné :", ["📺 Apple TV", "📽️ Vidéoprojecteur", "🔌 Connectique (HDMI / VGA)", "🔊 Son / Enceintes", "💻 Autre"])
             
-            # --- CORRECTION : Zone de texte plus grande avec texte d'exemple ---
             desc = st.text_area("Description du problème (soyez précis) :", height=120, placeholder="Ex: Le son de l'Apple TV grésille ou l'image saute toutes les 2 minutes...")
             
             email_sign = st.text_input("Votre e-mail :")
@@ -1605,6 +1656,46 @@ elif (is_admin or is_compta) and menu == "📦 Restitutions (Fin d'année)":
         st.dataframe(df_rest[cols_to_show], use_container_width=True, hide_index=True)
         st.download_button("📥 Exporter la liste de fin d'année", df_rest[df_rest['statut_ipad'] == 'Location'][['nom', 'prenom', 'classe']].to_csv(index=False).encode('utf-8'), "actions_ipads_3eme.csv")
 
+# ==========================================
+# 📦 INVENTAIRE ET STOCKS
+# ==========================================
+elif is_admin and menu == "📦 Inventaire & Stocks":
+    st.title("📦 Magasin & Inventaire Matériel")
+    st.info("💡 Les retraits sont automatiques lors des déclarations SAV. Utilisez ce tableau uniquement pour mettre à jour les quantités suite à une nouvelle livraison.")
+    
+    df_stocks = fetch_table("stocks", order_col="categorie")
+    if not df_stocks.empty:
+        # On va trier un peu pour que ce soit joli
+        df_stocks = df_stocks.sort_values(['categorie', 'article'])
+        
+        edited_stocks = st.data_editor(
+            df_stocks[['id', 'categorie', 'article', 'quantite']],
+            column_config={
+                "id": None,
+                "categorie": st.column_config.TextColumn("Catégorie", disabled=True),
+                "article": st.column_config.TextColumn("Article", disabled=True),
+                "quantite": st.column_config.NumberColumn("Quantité en stock", min_value=0, step=1)
+            },
+            hide_index=True, use_container_width=True
+        )
+        
+        if st.button("💾 Enregistrer les livraisons (Mettre à jour les stocks)", type="primary"):
+            modifs = 0
+            with st.spinner("Enregistrement en cours..."):
+                for i, row in edited_stocks.iterrows():
+                    orig_qty = df_stocks.iloc[i]['quantite']
+                    if row['quantite'] != orig_qty:
+                        supabase.table("stocks").update({"quantite": int(row['quantite'])}).eq("id", row['id']).execute()
+                        modifs += 1
+            if modifs > 0:
+                invalidate_cache()
+                st.success(f"✅ {modifs} articles mis à jour avec succès !")
+                time.sleep(1)
+                st.rerun()
+            else:
+                st.info("Aucune modification détectée.")
+    else:
+        st.warning("⚠️ La table des stocks est vide ou introuvable. Avez-vous bien lancé le code SQL ?")
 
 # ==========================================
 # 🛠️ HISTORIQUE SAV GLOBAL
@@ -1850,7 +1941,6 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                     n_raw = str(row.get('OwnerLastName', ''))
                     n_clean = nettoyeur_identifiant(n_raw)
                     
-                    # 💡 Cas spécifique : "davout" correspond à "d'avout" dans ta base
                     if n_clean == "davout":
                         n_clean = "d'avout"
                         
