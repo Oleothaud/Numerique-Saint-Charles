@@ -42,7 +42,6 @@ SMTP_PASSWORD = st.secrets["SMTP_PASSWORD"]
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
-# L'adresse corrigée pour te mettre en copie :
 EMAIL_ADMIN = "o.leothaud@saintcharles71.fr"
 EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"
 
@@ -78,6 +77,7 @@ def fetch_table(table_name, eq_col=None, eq_val=None, order_col=None, select_col
                        "id_ed_prov", "mdp_ed_prov", "est_nouveau", "modele_ipad", "serie_ipad"],
             "incidents_ipad": ["id", "eleve_id", "date_incident", "type_incident", "montant", "envoye_compta"],
             "demandes": ["id", "eleve_id", "prof", "plateforme", "statut", "date_demande"],
+            "signalements_salles": ["id", "salle", "equipement", "description", "prof", "statut", "date_signalement"]
         }
         df = pd.DataFrame(columns=schemas.get(table_name, []))
     return df.fillna("")
@@ -606,6 +606,14 @@ def get_nb_demandes_en_attente():
     except Exception:
         return 0
 
+@st.cache_data(ttl=30, show_spinner=False)
+def get_nb_pannes_salles():
+    try:
+        res = get_supabase_client().table("signalements_salles").select("id", count="exact").eq("statut", "En attente").execute()
+        return res.count or 0
+    except Exception:
+        return 0
+
 
 pwd_input = st.sidebar.text_input("🔑 Code d'accès (Prof / Admin / Compta)", type="password")
 is_admin = (pwd_input == PASSWORD_ADMIN)
@@ -654,26 +662,46 @@ menu = "👩‍🏫 Portail Professeurs"
 
 if "jump_ticket" not in st.session_state:
     st.session_state.jump_ticket = False
+if "jump_pannes" not in st.session_state:
+    st.session_state.jump_pannes = False
 
 
 def trigger_jump():
     st.session_state.jump_ticket = True
 
+def trigger_jump_pannes():
+    st.session_state.jump_pannes = True
+
 
 if is_admin:
     st.sidebar.success("Mode Admin activé (Cloud)")
+    
+    # Alertes dynamiques
     nb_demandes = get_nb_demandes_en_attente()
-    if nb_demandes > 0:
-        st.sidebar.button(f"🚨 {nb_demandes} ticket(s) en attente !", on_click=trigger_jump, type="primary", use_container_width=True)
+    nb_pannes = get_nb_pannes_salles()
+    
+    if nb_demandes > 0 or nb_pannes > 0:
+        if nb_demandes > 0:
+            st.sidebar.button(f"🚨 {nb_demandes} ticket(s) MdP en attente !", on_click=trigger_jump, type="primary", use_container_width=True)
+        if nb_pannes > 0:
+            st.sidebar.button(f"🛠️ {nb_pannes} panne(s) salle signalée(s) !", on_click=trigger_jump_pannes, type="primary", use_container_width=True)
     else:
-        st.sidebar.info("✅ Aucun ticket en attente.")
+        st.sidebar.info("✅ Aucune alerte (MdP ou Salle).")
+        
     st.sidebar.markdown("---")
-    sections = ["📊 Tableau de bord", "👤 Dossier Élève", "🧑‍🏫 Gestion MdP", "📱 Gestion iPad", "⚙️ Base de Données"]
+    sections = ["📊 Tableau de bord", "👤 Dossier Élève", "🧑‍🏫 Gestion MdP", "📱 Gestion iPad", "🏢 Matériel Salles", "⚙️ Base de Données"]
+    
     if st.session_state.jump_ticket:
         st.session_state.side_sec = "🧑‍🏫 Gestion MdP"
         st.session_state.side_opt_mdp = "🛎️ Tickets"
         st.session_state.jump_ticket = False
+    if st.session_state.jump_pannes:
+        st.session_state.side_sec = "🏢 Matériel Salles"
+        st.session_state.side_opt_salles = "🚨 Suivi des pannes"
+        st.session_state.jump_pannes = False
+        
     section = st.sidebar.selectbox("📂 Catégorie d'outils :", sections, key="side_sec")
+    
     if section == "📊 Tableau de bord":
         menu = "📊 Tableau de Bord"
     elif section == "👤 Dossier Élève":
@@ -683,6 +711,8 @@ if is_admin:
     elif section == "📱 Gestion iPad":
         options_ipad = ["🚛 Vue Logistique Totale", "💰 Espace Compta & Logistique", "🛠️ Historique SAV iPad", "📦 Restitutions (Fin d'année)"]
         menu = st.sidebar.radio("Option :", options_ipad, key="side_opt_ipad")
+    elif section == "🏢 Matériel Salles":
+        menu = st.sidebar.radio("Option :", ["🚨 Suivi des pannes"], key="side_opt_salles")
     elif section == "⚙️ Base de Données":
         menu = st.sidebar.radio("Option :", ["👥 Annuaire, Édition & PDF", "⚙️ Maintenance & Nettoyage"], key="side_opt_db")
 
@@ -803,7 +833,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                 if is_expanded and f"msg_{el['id']}" in st.session_state:
                     st.success(st.session_state.pop(f"msg_{el['id']}"))
 
-                # --- NOUVEAUTÉ : FAUX ONGLETS CUSTOM POUR GARDER LA MÉMOIRE ---
+                # --- FAUX ONGLETS CUSTOM POUR GARDER LA MÉMOIRE ---
                 tab_key = f"tab_{el['id']}"
                 if tab_key not in st.session_state:
                     st.session_state[tab_key] = "Profil"
@@ -889,7 +919,6 @@ elif is_admin and menu == "🪪 Dossier 360°":
                     c_ser.text_input("N° de Série", value=el.get('serie_ipad', ''), disabled=True, key=f"ser_{el['id']}")
                     st.markdown("---")
                     
-                    # Plus de "st.form" ici pour que le calcul soit INSTANTANÉ !
                     st.markdown("#### 📄 Contrat & Solde")
                     c_stat, c_mens, c_tot = st.columns(3)
                     statut_actuel = el['statut_ipad'] if el['statut_ipad'] != "" else "Achat"
@@ -1017,11 +1046,51 @@ elif is_admin and menu == "➕ Nouvel Arrivant":
 
 
 # ==========================================
+# 🚨 SUIVI DES PANNES SALLES (ADMIN)
+# ==========================================
+elif is_admin and menu == "🚨 Suivi des pannes":
+    st.title("🚨 Suivi des Pannes Matérielles (Salles)")
+    df_pannes = fetch_table("signalements_salles", order_col="id")
+    df_pannes = df_pannes.sort_values("id", ascending=False) if not df_pannes.empty else df_pannes
+
+    if df_pannes.empty:
+        st.success("✅ Aucune panne signalée. Tout fonctionne parfaitement !")
+    else:
+        en_attente = df_pannes[df_pannes['statut'] == 'En attente']
+        traites = df_pannes[df_pannes['statut'] == 'Traité']
+        
+        st.markdown("### 🛠️ Pannes en cours")
+        if en_attente.empty:
+            st.info("Aucune panne en cours.")
+        else:
+            for _, p in en_attente.iterrows():
+                with st.expander(f"🔴 {p['salle']} - {p['equipement']} (Signalé par {p['prof']})", expanded=True):
+                    st.write(f"**Date :** {p['date_signalement']}")
+                    st.write(f"**Description :** {p['description']}")
+                    col1, col2 = st.columns([1, 4])
+                    if col1.button("✅ Marquer comme Traité", key=f"traite_{p['id']}", type="primary"):
+                        supabase.table("signalements_salles").update({"statut": "Traité"}).eq("id", p['id']).execute()
+                        invalidate_cache()
+                        st.rerun()
+
+        st.markdown("### 🧹 Historique des réparations")
+        if not traites.empty:
+            st.dataframe(traites[['date_signalement', 'salle', 'equipement', 'description', 'prof']], hide_index=True, use_container_width=True)
+            if st.button("🗑️ Vider l'historique des réparations"):
+                for tid in traites['id']:
+                    supabase.table("signalements_salles").delete().eq("id", tid).execute()
+                invalidate_cache()
+                st.success("Historique vidé.")
+                time.sleep(1)
+                st.rerun()
+
+
+# ==========================================
 # 👩‍🏫 PORTAIL PROFESSEURS
 # ==========================================
 elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail Profs":
     st.title("👩‍🏫 Portail Enseignants")
-    tab_recherche, tab_masse = st.tabs(["🔍 Recherche", "👁️ Vue Classe"])
+    tab_recherche, tab_masse, tab_salles = st.tabs(["🔍 Recherche", "👁️ Vue Classe", "🚨 Signaler une panne (Salle)"])
 
     with tab_recherche:
         recherche = st.text_input("🔍 Rechercher les identifiants d'un élève (Nom ou Prénom) :")
@@ -1150,6 +1219,49 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
         else:
             st.info("👆 Sélectionnez une classe dans le menu déroulant ci-dessus.")
 
+    with tab_salles:
+        st.markdown("### 🛠️ Signaler un dysfonctionnement matériel")
+        st.info("Utilisez ce formulaire pour signaler une panne sur le matériel de la salle de cours.")
+        
+        liste_salles = [
+            "Salle 3°1", "Salle 3°2", "Salle 3°3", "Salle 3°4",
+            "Salle 4°1", "Salle 4°2", "Salle 4°3", "Salle 4°4",
+            "Salle 5°1", "Salle 5°2", "Salle 5°3", "Salle 5°4",
+            "Salle 6°1", "Salle 6°2", "Salle 6°3", "Salle 6°4", "Salle 6°5",
+            "Salle de musique", "Salle Arts Pla.", "Salle E. Badet", "Salle EPS",
+            "Salle d'étude STDo", "Salle St Dominique", "Salle Techno"
+        ]
+        
+        with st.form("form_panne_salle"):
+            salle_concernee = st.selectbox("Sélectionnez la salle :", options=liste_salles)
+            equipement = st.selectbox("Équipement concerné :", ["📺 Apple TV", "📽️ Vidéoprojecteur", "🔌 Connectique (HDMI / VGA)", "🔊 Son / Enceintes", "💻 Autre"])
+            desc = st.text_area("Description du problème (soyez précis) :")
+            email_sign = st.text_input("Votre e-mail :")
+            
+            if st.form_submit_button("🚀 Envoyer le signalement"):
+                if not desc or not email_sign:
+                    st.error("❌ Veuillez remplir la description et votre e-mail.")
+                else:
+                    supabase.table("signalements_salles").insert({
+                        "salle": salle_concernee,
+                        "equipement": equipement,
+                        "description": desc,
+                        "prof": email_sign,
+                        "statut": "En attente",
+                        "date_signalement": datetime.datetime.now().strftime("%d/%m/%Y à %H:%M")
+                    }).execute()
+                    
+                    corps_alerte = f"""<html><body>
+                        <h2 style="color: #e74c3c;">🚨 Panne Matérielle Signalée</h2>
+                        <p><b>Salle :</b> {salle_concernee}</p>
+                        <p><b>Équipement :</b> {equipement}</p>
+                        <p><b>Professeur :</b> {email_sign}</p>
+                        <p><b>Détails :</b> {desc}</p>
+                    </body></html>"""
+                    envoyer_email_reel(f"🚨 Panne {salle_concernee} - {equipement}", corps_alerte, EMAIL_ADMIN)
+                    
+                    invalidate_cache()
+                    st.success("✅ Signalement envoyé avec succès ! L'administration a été prévenue.")
 
 # ==========================================
 # 🛎️ TICKETS (ADMIN)
@@ -1731,7 +1843,7 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                     n_raw = str(row.get('OwnerLastName', ''))
                     n_clean = nettoyeur_identifiant(n_raw)
                     
-                    # 💡 Cas spécifique : "davout" sur Jamf correspond à "d'avout" dans la base
+                    # 💡 Cas spécifique : "davout" correspond à "d'août" dans ta base
                     if n_clean == "davout":
                         n_clean = "d'avout"
                         
