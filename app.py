@@ -690,14 +690,14 @@ if is_admin:
         st.sidebar.info("✅ Aucune alerte (MdP ou Salle).")
         
     st.sidebar.markdown("---")
-    sections = ["📊 Tableau de bord", "👤 Dossier Élève", "Assistance et tickets profs", "📱 Gestion iPad", "⚙️ Base de Données"]
+    sections = ["📊 Tableau de bord", "👤 Dossier Élève", "📟 Assistance & tickets profs", "📱 Gestion iPad", "⚙️ Base de Données"]
     
     if st.session_state.jump_ticket:
-        st.session_state.side_sec = "Assistance et tickets profs"
+        st.session_state.side_sec = "📟 Assistance & tickets profs"
         st.session_state.side_opt_at = "🛎️ Codes (Tickets)"
         st.session_state.jump_ticket = False
     if st.session_state.jump_pannes:
-        st.session_state.side_sec = "Assistance et tickets profs"
+        st.session_state.side_sec = "📟 Assistance & tickets profs"
         st.session_state.side_opt_at = "🚨 Pannes Salles (Tickets)"
         st.session_state.jump_pannes = False
         
@@ -707,7 +707,7 @@ if is_admin:
         menu = "📊 Tableau de Bord"
     elif section == "👤 Dossier Élève":
         menu = st.sidebar.radio("Option :", ["🪪 Dossier 360°", "➕ Nouvel Arrivant"], key="side_opt_eleve")
-    elif section == "Assistance et tickets profs":
+    elif section == "📟 Assistance & tickets profs":
         menu = st.sidebar.radio("Option :", ["👩‍🏫 Portail Profs", "🛎️ Codes (Tickets)", "🚨 Pannes Salles (Tickets)", "🗄️ Historique des MdP"], key="side_opt_at")
     elif section == "📱 Gestion iPad":
         options_ipad = ["🚛 Vue Logistique Totale", "💰 Espace Compta & Logistique", "🛠️ Historique SAV iPad", "📦 Restitutions (Fin d'année)"]
@@ -1843,9 +1843,8 @@ elif is_admin and menu == "⚙️ Maintenance & Nettoyage":
                     n_raw = str(row.get('OwnerLastName', ''))
                     n_clean = nettoyeur_identifiant(n_raw)
                     
-                    # 💡 Cas spécifique : "davout" correspond à "d'avout" dans ta base
                     if n_clean == "davout":
-                        n_clean = "d'avout"
+                        n_clean = "daout"
                         
                     p_clean = nettoyeur_identifiant(row.get('OwnerFirstName', ''))
                     mod = str(row.get('Model', '')).strip()
