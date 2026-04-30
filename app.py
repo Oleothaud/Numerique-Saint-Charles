@@ -141,6 +141,19 @@ st.markdown("""
             border-color: #2c5282 !important; 
             color: white !important;
         }
+        
+        /* Fix global input/select cursor bar issue and focus effects, per user image request */
+        input:focus, textarea:focus, select:focus, div[data-baseweb="select"]:focus-within, div[role="combobox"]:focus-within {
+            outline: none !important;
+            box-shadow: none !important;
+            border-color: #1e3a5f !important;
+        }
+        div[data-baseweb="input"] > div:after, div[data-baseweb="select"] > div:after, div[role="combobox"] > div:after {
+            display: none !important;
+        }
+        div[data-baseweb="input"]:focus-within {
+            box-shadow: none !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -585,7 +598,7 @@ if is_admin:
     
     if section == "📊 Tableau de bord": menu = "📊 Tableau de Bord"
     elif section == "👤 Dossier Élève": menu = st.sidebar.radio("Option :", ["🪪 Dossier 360°", "➕ Nouvel Arrivant"], key="side_opt_eleve")
-    elif section == "📟 Assistance & tickets profs": menu = st.sidebar.radio("Option :", ["👩‍🏫 Portail Profs", "🛎️ Codes (Tickets)", "🚨 Pannes Salles (Tickets)", "🗄️ Historique des MdP"], key="side_opt_at")
+    elif section == "📟 Assistance & tickets profs": menu = st.sidebar.radio("Option :", ["👩‍🏫 Portail Profs", "🛎️ Codes (Tickets)", "🚨 Pannes Salles (Tickets)", "𗄮 Historique des MdP"], key="side_opt_at")
     elif section == "📱 Gestion iPad": menu = st.sidebar.radio("Option :", ["🚛 Vue Logistique Totale", "💰 Espace Compta & Logistique", "🛠️ Historique SAV iPad", "📦 Inventaire & Stocks", "📦 Restitutions (Fin d'année)"], key="side_opt_ipad")
     elif section == "⚙️ Base de Données": menu = st.sidebar.radio("Option :", ["👥 Annuaire, Édition & PDF", "⚙️ Maintenance & Nettoyage"], key="side_opt_db")
 
@@ -704,19 +717,35 @@ elif is_admin and menu == "🪪 Dossier 360°":
                     st.success(st.session_state.pop(f"msg_{el['id']}"))
 
                 tab_key = f"tab_{el['id']}"
-                if tab_key not in st.session_state: st.session_state[tab_key] = "Profil"
+                # Mapping labels internes vers labels pilules
+                option_labels_360 = {
+                    "📝 Profil & Scolarité": "Profil",
+                    "🔑 Identifiants": "Identifiants",
+                    "📱 Matériel & SAV": "Materiel"
+                }
+                
+                # Récupérer l'onglet courant depuis session state ou par défaut
+                current_tab_internal_name = st.session_state.get(tab_key, "Profil")
+                # Trouver le label de pilule correspondant au nom interne courant
+                default_pill_label = next((k for k, v in option_labels_360.items() if v == current_tab_internal_name), "📝 Profil & Scolarité")
 
-                c_tab1, c_tab2, c_tab3 = st.columns(3)
-                if c_tab1.button("📝 Profil & Scolarité", use_container_width=True, type="primary" if st.session_state[tab_key] == "Profil" else "secondary", key=f"bt1_{el['id']}"):
-                    st.session_state[tab_key] = "Profil"; st.rerun()
-                if c_tab2.button("🔑 Identifiants", use_container_width=True, type="primary" if st.session_state[tab_key] == "Identifiants" else "secondary", key=f"bt2_{el['id']}"):
-                    st.session_state[tab_key] = "Identifiants"; st.rerun()
-                if c_tab3.button("📱 Matériel & SAV", use_container_width=True, type="primary" if st.session_state[tab_key] == "Materiel" else "secondary", key=f"bt3_{el['id']}"):
-                    st.session_state[tab_key] = "Materiel"; st.rerun()
+                # Remplacement des faux boutons par st.pills
+                choix_360_pilule = st.pills(
+                    "", # Pas de label pour les pilules dans le header de l'expander pour gagner de la place
+                    options=list(option_labels_360.keys()),
+                    default=default_pill_label,
+                    key=f"pill_360_{el['id']}" # Clé unique par élève
+                )
+                
+                # Mise à jour du session state interne si un choix est fait
+                if choix_360_pilule:
+                    st.session_state[tab_key] = option_labels_360.get(choix_360_pilule)
 
                 st.markdown("---")
 
-                if st.session_state[tab_key] == "Profil":
+                current_section = st.session_state[tab_key]
+
+                if current_section == "Profil":
                     with st.form(f"form_profil_{el['id']}"):
                         c1, c2, c3 = st.columns(3)
                         m_nom = c1.text_input("Nom", value=el['nom'])
@@ -737,7 +766,7 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             st.session_state[f"msg_{el['id']}"] = "✅ Profil et scolarité mis à jour avec succès !"
                             st.rerun()
 
-                elif st.session_state[tab_key] == "Identifiants":
+                elif current_section == "Identifiants":
                     with st.form(f"form_mdp_{el['id']}"):
                         st.markdown("**Identifiants Actifs**")
                         c1, c2 = st.columns(2)
@@ -764,9 +793,10 @@ elif is_admin and menu == "🪪 Dossier 360°":
                             st.session_state[f"msg_{el['id']}"] = "✅ Identifiants mis à jour avec succès !"
                             st.rerun()
 
-                elif st.session_state[tab_key] == "Materiel":
+                elif current_section == "Materiel":
                     st.markdown("#### 📱 Informations Appareil")
                     c_mod, c_ser = st.columns(2)
+                    # DEVERROUILLAGE DES CASES MODELE ET SERIE
                     nv_modele = c_mod.text_input("Modèle iPad", value=el.get('modele_ipad', ''), key=f"mod_{el['id']}")
                     nv_serie = c_ser.text_input("N° de Série", value=el.get('serie_ipad', ''), key=f"ser_{el['id']}")
                     st.markdown("---")
@@ -968,21 +998,36 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
     st.title("👩‍🏫 Portail Enseignants")
     
     # Navigation ultra moderne avec st.pills
-    choix_prof = st.pills(
+    option_labels_prof = {
+        "🔑 Codes & Identifiants Élèves": "Codes",
+        "🚨 Signaler une Panne (Salles)": "Salles"
+    }
+    
+    # Récupérer l'onglet courant pour les pilules par défaut, ou mettre la première option
+    if "prof_tab_pill" not in st.session_state:
+        st.session_state["prof_tab_pill"] = "🔑 Codes & Identifiants Élèves"
+    
+    # Rendu des pilules de navigation
+    choix_prof_pilule = st.pills(
         "👉 Que souhaitez-vous faire ?", 
-        options=["🔑 Codes & Identifiants Élèves", "🚨 Signaler une Panne (Salles)"], 
-        default="🔑 Codes & Identifiants Élèves"
+        options=list(option_labels_prof.keys()), 
+        default=st.session_state["prof_tab_pill"],
+        key="prof_tab_pill"
     )
     
-    # Sécurité au cas où l'utilisateur décoche la pilule (pour éviter une page blanche)
-    onglet_actif = choix_prof if choix_prof else "🔑 Codes & Identifiants Élèves"
-
+    # Robustesse au cas où l'utilisateur parviendrait à dé-cliquer (clique de nouveau sur la sélection)
+    # Dans Streamlit pills, si default est défini, une sélection est toujours forcée, mais c'est une bonne sécurité
+    choix_final = choix_prof_pilule if choix_prof_pilule else "🔑 Codes & Identifiants Élèves"
+    
+    # Mapper le label pilule vers le label interne de logique
+    onglet_actif = option_labels_prof.get(choix_final)
+    
     st.markdown("---")
 
     # ---------------------------------------------
     # SECTION 1 : GESTION DES CODES ÉLÈVES
     # ---------------------------------------------
-    if onglet_actif == "🔑 Codes & Identifiants Élèves":
+    if onglet_actif == "Codes":
         tab_recherche, tab_masse = st.tabs(["🔍 Recherche & Réinitialisation", "🖨️ Vue Classe & Impression"])
 
         with tab_recherche:
@@ -1035,7 +1080,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                                     else:
                                         corps_alerte = f"""<html><body style="font-family: Arial, sans-serif;">
                                             <h2 style="color: #d9534f;">🚨 Nouveau Ticket MdP à traiter</h2>
-                                            <p>Bonjour Olivier,</p>
+                                            <p>BonjourOlivier,</p>
                                             <ul>
                                                 <li><b>Email Professeur :</b> {email_prof}</li>
                                                 <li><b>Élève :</b> {el['nom']} {el['prenom']} ({el['classe']})</li>
@@ -1108,7 +1153,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
     # ---------------------------------------------
     # SECTION 2 : SIGNALEMENT DE PANNES
     # ---------------------------------------------
-    elif onglet_actif == "🚨 Signaler une Panne (Salles)":
+    elif onglet_actif == "Salles":
         st.markdown("### 🛠️ Signaler un dysfonctionnement matériel")
         st.info("Utilisez ce formulaire pour signaler une panne sur le matériel d'une salle de cours.")
         
@@ -1131,6 +1176,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                 if not desc or not email_sign:
                     st.error("❌ Veuillez remplir la description et votre e-mail.")
                 else:
+                    # VERIFICATION DES DOUBLONS
                     df_verif_salle = fetch_table("signalements_salles", eq_col="salle", eq_val=salle_concernee)
                     doublon = False
                     if not df_verif_salle.empty:
