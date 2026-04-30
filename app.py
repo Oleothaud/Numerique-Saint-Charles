@@ -41,6 +41,7 @@ SMTP_PASSWORD = st.secrets["SMTP_PASSWORD"]
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
+# Adresses Email
 EMAIL_ADMIN = "o.leothaud@saintcharles71.fr"
 EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"
 EMAIL_STOCK_PRINCIPAL = "o.leothaud@gmail.com"
@@ -121,7 +122,6 @@ st.markdown("""
             display: none !important; opacity: 0 !important; visibility: hidden !important;
         }
         
-        /* --- STYLE DES BOUTONS (ONGLETS) --- */
         button[kind="primary"] {
             background-color: #e74c3c !important; 
             color: white !important; 
@@ -301,7 +301,6 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
                 duree = "4 ans" if classe.startswith("6") else "3 ans"
                 nb_mois = "40" if classe.startswith("6") else "30"
                 cout_total = "640 €" if classe.startswith("6") else "480 €"
-                
                 art8_texte = f"""
                 <p>La tablette est financée sur la durée de la scolarité selon le cycle.</p>
                 {"<p>Un élève arrivant en cours de cycle se verra attribuer une tablette d’occasion.</p>" if classe.startswith("5") else ""}
@@ -321,7 +320,6 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
                 duree = "2 ans" if classe.startswith("4") else "1 an"
                 nb_mois = "20" if classe.startswith("4") else "10"
                 loyer_montant = "16 €" if classe.startswith("4") else "14 €"
-                
                 art8_texte = f"""
                 <p>La tablette numérique est en location sur la durée {"des deux années scolaires" if classe.startswith("4") else "d'une année scolaire"}.<br>
                 L'élève arrivant en classe de {niveau.lower()} se verra attribuer une tablette d'occasion.<br>
@@ -494,7 +492,6 @@ def generer_pdf_html(cible_titre, df_print, print_ed, print_dr, print_px, print_
     html_content += "<script>setTimeout(function() { window.print(); }, 500);</script></body></html>"
     return html_content
 
-
 # ==========================================
 # 🧭 BARRE LATÉRALE & SÉCURITÉ
 # ==========================================
@@ -597,7 +594,6 @@ elif is_compta:
     st.sidebar.success("Mode Comptabilité activé (Cloud)")
     menu = st.sidebar.radio("Navigation :", ["📊 Tableau de Bord", "💰 Espace Compta & Logistique", "📦 Restitutions (Fin d'année)"])
 
-
 # ==========================================
 # 📊 TABLEAU DE BORD
 # ==========================================
@@ -638,7 +634,6 @@ if menu == "📊 Tableau de Bord":
         st.markdown("### 📈 Pilotage Financier & Matériel")
         
         col_chart1, col_chart2 = st.columns(2)
-        
         with col_chart1:
             fig_parc = px.pie(df_eleves, names='statut_ipad', hole=0.4, title="Répartition des Contrats iPad")
             st.plotly_chart(fig_parc, use_container_width=True)
@@ -659,7 +654,6 @@ if menu == "📊 Tableau de Bord":
         
         if not df_stocks_dash.empty:
             critiques = df_stocks_dash[df_stocks_dash['quantite'] <= 5].sort_values('quantite')
-            
             if not critiques.empty:
                 st.warning(f"⚠️ **Attention :** {len(critiques)} article(s) en stock critique (5 unités ou moins).")
                 col_crit = st.columns(min(len(critiques), 6))
@@ -675,7 +669,6 @@ if menu == "📊 Tableau de Bord":
             fig_stock.update_traces(textposition='outside')
             fig_stock.update_layout(xaxis_title="", yaxis_title="Quantité en stock")
             st.plotly_chart(fig_stock, use_container_width=True)
-
 
 # ==========================================
 # 🪪 DOSSIER 360° (ADMIN SEUL)
@@ -775,8 +768,9 @@ elif is_admin and menu == "🪪 Dossier 360°":
                 elif st.session_state[tab_key] == "Materiel":
                     st.markdown("#### 📱 Informations Appareil")
                     c_mod, c_ser = st.columns(2)
-                    c_mod.text_input("Modèle iPad", value=el.get('modele_ipad', ''), disabled=True, key=f"mod_{el['id']}")
-                    c_ser.text_input("N° de Série", value=el.get('serie_ipad', ''), disabled=True, key=f"ser_{el['id']}")
+                    # DEVERROUILLAGE DES CASES MODELE ET SERIE
+                    nv_modele = c_mod.text_input("Modèle iPad", value=el.get('modele_ipad', ''), key=f"mod_{el['id']}")
+                    nv_serie = c_ser.text_input("N° de Série", value=el.get('serie_ipad', ''), key=f"ser_{el['id']}")
                     st.markdown("---")
                     
                     st.markdown("#### 📄 Contrat & Solde")
@@ -791,12 +785,17 @@ elif is_admin and menu == "🪪 Dossier 360°":
                     solde_calc = calculer_solde_depart(el['classe'], rend_box, nouveau_statut)
                     st.info(f"💰 **Solde départ : {solde_calc}**")
 
-                    if st.button("💾 Mettre à jour le contrat", key=f"btn_upd_contrat_{el['id']}"):
+                    if st.button("💾 Mettre à jour le contrat et le matériel", key=f"btn_upd_contrat_{el['id']}"):
                         parti_int = 1 if nouveau_statut == 'Parti' else (0 if el['est_parti'] == 1 else el['est_parti'])
-                        supabase.table("eleves").update({"statut_ipad": nouveau_statut, "est_parti": parti_int}).eq("id", el['id']).execute()
+                        supabase.table("eleves").update({
+                            "statut_ipad": nouveau_statut, 
+                            "est_parti": parti_int,
+                            "modele_ipad": nv_modele,
+                            "serie_ipad": nv_serie
+                        }).eq("id", el['id']).execute()
                         invalidate_cache()
                         st.session_state["open_el_id"] = str(el['id'])
-                        st.session_state[f"msg_{el['id']}"] = "✅ Contrat mis à jour !"
+                        st.session_state[f"msg_{el['id']}"] = "✅ Contrat et informations matériel mis à jour !"
                         st.rerun()
 
                     st.markdown("---")
@@ -851,9 +850,17 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 nv_qty = qty_actuelle - 1
                                 supabase.table("stocks").update({"quantite": nv_qty}).eq("id", stock_id).execute()
                                 
+                                # MAIL MODIFIE POUR JEAN-DENIS
                                 if nv_qty <= 1:
                                     sujet_alerte = f"⚠️ ALERTE STOCK CRITIQUE : {detail_article}"
-                                    corps_alerte = f"""<html><body style="font-family: Arial, sans-serif;"><h2 style="color: #e74c3c;">⚠️ Alerte Stock Numérique</h2><p>Attention, suite à une intervention SAV, le stock pour l'article <b>{detail_article}</b> vient de tomber à <b style="color: #e74c3c; font-size: 18px;">{nv_qty} unité(s)</b>.</p><p>Il est temps de repasser commande pour cet équipement !</p></body></html>"""
+                                    corps_alerte = f"""<html><body style="font-family: Arial, sans-serif; color: #1e3a5f;">
+                                        <h2>⚠️ Alerte Stock Numérique - Saint Dominique</h2>
+                                        <p>Salut Jean-Denis,</p>
+                                        <p>Petit message automatique pour te prévenir qu'on arrive sur la fin du stock pour l'article <b>{detail_article}</b> sur le site Saint Dominique.</p>
+                                        <p>Il ne nous en reste plus que <b style="color: #e74c3c; font-size: 18px;">{nv_qty}</b> unité(s).</p>
+                                        <p>Est-ce que tu pourrais me préparer un réassort s'il te plaît ?</p>
+                                        <br><p>Merci beaucoup !</p>
+                                    </body></html>"""
                                     try:
                                         msg_stock = MIMEMultipart()
                                         msg_stock['From'] = f"Alerte Numérique <{SMTP_USER}>"
@@ -895,7 +902,6 @@ elif is_admin and menu == "🪪 Dossier 360°":
                     else:
                         st.success("Aucun incident.")
 
-
 # ==========================================
 # ➕ NOUVEL ARRIVANT
 # ==========================================
@@ -918,7 +924,6 @@ elif is_admin and menu == "➕ Nouvel Arrivant":
             }).execute()
             invalidate_cache()
             st.success("Ajouté !")
-
 
 # ==========================================
 # 🚨 SUIVI DES PANNES SALLES (ADMIN)
@@ -959,7 +964,6 @@ elif is_admin and menu == "🚨 Pannes Salles (Tickets)":
                 time.sleep(1)
                 st.rerun()
 
-
 # ==========================================
 # 👩‍🏫 PORTAIL PROFESSEURS (MODIFIÉ)
 # ==========================================
@@ -969,12 +973,16 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
     if "onglet_prof" not in st.session_state:
         st.session_state["onglet_prof"] = "Codes"
 
-    # -- Faux onglets principaux pour la séparation claire --
+    # -- Faux onglets modifiés pour être TRÈS VISIBLES --
     col_p1, col_p2 = st.columns(2)
-    if col_p1.button("🔑 Codes & Identifiants Élèves", use_container_width=True, type="primary" if st.session_state["onglet_prof"] == "Codes" else "secondary"):
+    
+    label_codes = "🔴 👉 CODES & IDENTIFIANTS (Sélectionné)" if st.session_state["onglet_prof"] == "Codes" else "⚪ 📁 Codes & Identifiants"
+    if col_p1.button(label_codes, use_container_width=True, type="primary" if st.session_state["onglet_prof"] == "Codes" else "secondary"):
         st.session_state["onglet_prof"] = "Codes"
         st.rerun()
-    if col_p2.button("🚨 Signaler une Panne (Salles)", use_container_width=True, type="primary" if st.session_state["onglet_prof"] == "Salles" else "secondary"):
+        
+    label_salles = "🔴 👉 SIGNALER UNE PANNE SALLE (Sélectionné)" if st.session_state["onglet_prof"] == "Salles" else "⚪ 🛠️ Signaler une panne salle"
+    if col_p2.button(label_salles, use_container_width=True, type="primary" if st.session_state["onglet_prof"] == "Salles" else "secondary"):
         st.session_state["onglet_prof"] = "Salles"
         st.rerun()
 
@@ -1132,24 +1140,35 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                 if not desc or not email_sign:
                     st.error("❌ Veuillez remplir la description et votre e-mail.")
                 else:
-                    supabase.table("signalements_salles").insert({
-                        "salle": salle_concernee,
-                        "equipement": equipement,
-                        "description": desc,
-                        "prof": email_sign,
-                        "statut": "En attente",
-                        "date_signalement": datetime.datetime.now().strftime("%d/%m/%Y à %H:%M")
-                    }).execute()
-                    corps_alerte = f"""<html><body>
-                        <h2 style="color: #e74c3c;">🚨 Panne Matérielle Signalée</h2>
-                        <p><b>Salle :</b> {salle_concernee}</p>
-                        <p><b>Équipement :</b> {equipement}</p>
-                        <p><b>Professeur :</b> {email_sign}</p>
-                        <p><b>Détails :</b> {desc}</p>
-                    </body></html>"""
-                    envoyer_email_reel(f"🚨 Panne {salle_concernee} - {equipement}", corps_alerte, EMAIL_ADMIN)
-                    invalidate_cache()
-                    st.success("✅ Signalement envoyé avec succès ! L'administration a été prévenue.")
+                    # VERIFICATION DES DOUBLONS
+                    df_verif_salle = fetch_table("signalements_salles", eq_col="salle", eq_val=salle_concernee)
+                    doublon = False
+                    if not df_verif_salle.empty:
+                        df_doublon = df_verif_salle[(df_verif_salle['equipement'] == equipement) & (df_verif_salle['statut'] == 'En attente')]
+                        if not df_doublon.empty:
+                            doublon = True
+
+                    if doublon:
+                        st.warning(f"⚠️ Cette panne ({equipement} en {salle_concernee}) a déjà été signalée par un collègue et est en cours de traitement par l'informatique.")
+                    else:
+                        supabase.table("signalements_salles").insert({
+                            "salle": salle_concernee,
+                            "equipement": equipement,
+                            "description": desc,
+                            "prof": email_sign,
+                            "statut": "En attente",
+                            "date_signalement": datetime.datetime.now().strftime("%d/%m/%Y à %H:%M")
+                        }).execute()
+                        corps_alerte = f"""<html><body>
+                            <h2 style="color: #e74c3c;">🚨 Panne Matérielle Signalée</h2>
+                            <p><b>Salle :</b> {salle_concernee}</p>
+                            <p><b>Équipement :</b> {equipement}</p>
+                            <p><b>Professeur :</b> {email_sign}</p>
+                            <p><b>Détails :</b> {desc}</p>
+                        </body></html>"""
+                        envoyer_email_reel(f"🚨 Panne {salle_concernee} - {equipement}", corps_alerte, EMAIL_ADMIN)
+                        invalidate_cache()
+                        st.success("✅ Signalement envoyé avec succès ! L'administration a été prévenue.")
 
 # ==========================================
 # 🛎️ TICKETS (ADMIN)
@@ -1211,7 +1230,6 @@ elif is_admin and menu == "🛎️ Codes (Tickets)":
                             invalidate_cache()
                             st.rerun()
 
-
 # ==========================================
 # 🗄️ HISTORIQUE MDP
 # ==========================================
@@ -1248,7 +1266,6 @@ elif is_admin and menu == "🗄️ Historique des MdP":
                 st.rerun()
     else:
         st.success("L'historique est vide.")
-
 
 # ==========================================
 # 👥 ANNUAIRE, ÉDITION & PDF (ADMIN)
@@ -1384,7 +1401,6 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                 else:
                     st.info("Aucune modification détectée.")
 
-
 # ==========================================
 # 📦 INVENTAIRE ET STOCKS (NOUVEAU DESIGN)
 # ==========================================
@@ -1414,19 +1430,10 @@ elif is_admin and menu == "📦 Inventaire & Stocks":
                             </div>
                         """, unsafe_allow_html=True)
                         
-                        # CORRECTION DU BUG - On s'assure que la valeur n'est jamais négative pour éviter l'erreur !
                         valeur_stock_initial = int(row.get('quantite', 0))
-                        if valeur_stock_initial < 0:
-                            valeur_stock_initial = 0
+                        if valeur_stock_initial < 0: valeur_stock_initial = 0
                             
-                        nouveaux_stocks[row['id']] = st.number_input(
-                            "Quantité :", 
-                            min_value=0, 
-                            value=valeur_stock_initial, 
-                            step=1,
-                            key=f"stk_{row['id']}",
-                            label_visibility="collapsed"
-                        )
+                        nouveaux_stocks[row['id']] = st.number_input("Quantité :", min_value=0, value=valeur_stock_initial, step=1, key=f"stk_{row['id']}", label_visibility="collapsed")
                 st.markdown("<br>", unsafe_allow_html=True)
             
             st.markdown("---")
@@ -1451,7 +1458,6 @@ elif is_admin and menu == "📦 Inventaire & Stocks":
                     st.info("Aucune modification détectée.")
     else:
         st.warning("⚠️ La table des stocks est vide ou introuvable. Avez-vous bien lancé le code SQL ?")
-
 
 # ==========================================
 # 🚛 VUE LOGISTIQUE TOTALE (ADMIN SEUL)
@@ -1481,7 +1487,6 @@ elif is_admin and menu == "🚛 Vue Logistique Totale":
         csv_data = df_disp.to_csv(index=False, sep=';').encode('utf-8')
         st.download_button("📥 Exporter le Bilan Logistique (CSV)", csv_data, "bilan_logistique_complet.csv")
 
-
 # ==========================================
 # 💰 COMPTA
 # ==========================================
@@ -1509,7 +1514,6 @@ elif (is_admin or is_compta) and menu == "💰 Espace Compta & Logistique":
         st.dataframe(df_c[cols_to_show], use_container_width=True, hide_index=True)
         st.download_button("📥 Exporter le tableau", df_c[cols_to_show].to_csv(index=False).encode('utf-8'), "compta_ipads.csv")
 
-
 # ==========================================
 # 📦 RESTITUTIONS (FIN D'ANNÉE)
 # ==========================================
@@ -1533,7 +1537,6 @@ elif (is_admin or is_compta) and menu == "📦 Restitutions (Fin d'année)":
         cols_to_show = ["nom", "prenom", "classe", "statut_ipad", "Action Requise"]
         st.dataframe(df_rest[cols_to_show], use_container_width=True, hide_index=True)
         st.download_button("📥 Exporter la liste de fin d'année", df_rest[df_rest['statut_ipad'] == 'Location'][['nom', 'prenom', 'classe']].to_csv(index=False).encode('utf-8'), "actions_ipads_3eme.csv")
-
 
 # ==========================================
 # 🛠️ HISTORIQUE SAV GLOBAL
@@ -1582,7 +1585,6 @@ elif is_admin and menu == "🛠️ Historique SAV iPad":
                 st.rerun()
     else:
         st.success("L'historique est vide.")
-
 
 # ==========================================
 # ⚙️ MAINTENANCE & NETTOYAGE (ADMIN)
