@@ -41,7 +41,7 @@ SMTP_PASSWORD = st.secrets["SMTP_PASSWORD"]
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
-# Adresses Email - CORRIGÉES
+# Adresses Email
 EMAIL_ADMIN = "o.leothaud2@saintcharles71.fr"
 EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"
 EMAIL_STOCK_PRINCIPAL = "o.leothaud@gmail.com"
@@ -142,7 +142,22 @@ st.markdown("""
             color: white !important;
         }
         
-        /* Fix global input/select cursor bar issue and focus effects, per user image request */
+        /* Cacher la barre clignotante dans les selectbox */
+        div[data-baseweb="select"] input {
+            caret-color: transparent !important;
+        }
+        
+        /* Agrandir considérablement les pilules (st.pills) */
+        div[data-testid="stPills"] button {
+            font-size: 16px !important;
+            padding: 12px 24px !important;
+            min-height: 45px !important;
+        }
+        div[data-testid="stPills"] p {
+            font-size: 16px !important;
+            margin: 0 !important;
+        }
+        
         input:focus, textarea:focus, select:focus, div[data-baseweb="select"]:focus-within, div[role="combobox"]:focus-within {
             outline: none !important;
             box-shadow: none !important;
@@ -150,9 +165,6 @@ st.markdown("""
         }
         div[data-baseweb="input"] > div:after, div[data-baseweb="select"] > div:after, div[role="combobox"] > div:after {
             display: none !important;
-        }
-        div[data-baseweb="input"]:focus-within {
-            box-shadow: none !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -598,7 +610,7 @@ if is_admin:
     
     if section == "📊 Tableau de bord": menu = "📊 Tableau de Bord"
     elif section == "👤 Dossier Élève": menu = st.sidebar.radio("Option :", ["🪪 Dossier 360°", "➕ Nouvel Arrivant"], key="side_opt_eleve")
-    elif section == "📟 Assistance & tickets profs": menu = st.sidebar.radio("Option :", ["👩‍🏫 Portail Profs", "🛎️ Codes (Tickets)", "🚨 Pannes Salles (Tickets)", "𗄮 Historique des MdP"], key="side_opt_at")
+    elif section == "📟 Assistance & tickets profs": menu = st.sidebar.radio("Option :", ["👩‍🏫 Portail Profs", "🛎️ Codes (Tickets)", "🚨 Pannes Salles (Tickets)", "🗄️ Historique des MdP"], key="side_opt_at")
     elif section == "📱 Gestion iPad": menu = st.sidebar.radio("Option :", ["🚛 Vue Logistique Totale", "💰 Espace Compta & Logistique", "🛠️ Historique SAV iPad", "📦 Inventaire & Stocks", "📦 Restitutions (Fin d'année)"], key="side_opt_ipad")
     elif section == "⚙️ Base de Données": menu = st.sidebar.radio("Option :", ["👥 Annuaire, Édition & PDF", "⚙️ Maintenance & Nettoyage"], key="side_opt_db")
 
@@ -717,27 +729,22 @@ elif is_admin and menu == "🪪 Dossier 360°":
                     st.success(st.session_state.pop(f"msg_{el['id']}"))
 
                 tab_key = f"tab_{el['id']}"
-                # Mapping labels internes vers labels pilules
                 option_labels_360 = {
                     "📝 Profil & Scolarité": "Profil",
                     "🔑 Identifiants": "Identifiants",
                     "📱 Matériel & SAV": "Materiel"
                 }
                 
-                # Récupérer l'onglet courant depuis session state ou par défaut
                 current_tab_internal_name = st.session_state.get(tab_key, "Profil")
-                # Trouver le label de pilule correspondant au nom interne courant
                 default_pill_label = next((k for k, v in option_labels_360.items() if v == current_tab_internal_name), "📝 Profil & Scolarité")
 
-                # Remplacement des faux boutons par st.pills
                 choix_360_pilule = st.pills(
-                    "", # Pas de label pour les pilules dans le header de l'expander pour gagner de la place
+                    "",
                     options=list(option_labels_360.keys()),
                     default=default_pill_label,
-                    key=f"pill_360_{el['id']}" # Clé unique par élève
+                    key=f"pill_360_{el['id']}"
                 )
                 
-                # Mise à jour du session state interne si un choix est fait
                 if choix_360_pilule:
                     st.session_state[tab_key] = option_labels_360.get(choix_360_pilule)
 
@@ -796,7 +803,6 @@ elif is_admin and menu == "🪪 Dossier 360°":
                 elif current_section == "Materiel":
                     st.markdown("#### 📱 Informations Appareil")
                     c_mod, c_ser = st.columns(2)
-                    # DEVERROUILLAGE DES CASES MODELE ET SERIE
                     nv_modele = c_mod.text_input("Modèle iPad", value=el.get('modele_ipad', ''), key=f"mod_{el['id']}")
                     nv_serie = c_ser.text_input("N° de Série", value=el.get('serie_ipad', ''), key=f"ser_{el['id']}")
                     st.markdown("---")
@@ -992,22 +998,19 @@ elif is_admin and menu == "🚨 Pannes Salles (Tickets)":
                 st.rerun()
 
 # ==========================================
-# 👩‍🏫 PORTAIL PROFESSEURS (MODIFIÉ AVEC PILLS)
+# 👩‍🏫 PORTAIL PROFESSEURS
 # ==========================================
 elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail Profs":
     st.title("👩‍🏫 Portail Enseignants")
     
-    # Navigation ultra moderne avec st.pills
     option_labels_prof = {
         "🔑 Codes & Identifiants Élèves": "Codes",
         "🚨 Signaler une Panne (Salles)": "Salles"
     }
     
-    # Récupérer l'onglet courant pour les pilules par défaut, ou mettre la première option
     if "prof_tab_pill" not in st.session_state:
         st.session_state["prof_tab_pill"] = "🔑 Codes & Identifiants Élèves"
     
-    # Rendu des pilules de navigation
     choix_prof_pilule = st.pills(
         "👉 Que souhaitez-vous faire ?", 
         options=list(option_labels_prof.keys()), 
@@ -1015,11 +1018,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
         key="prof_tab_pill"
     )
     
-    # Robustesse au cas où l'utilisateur parviendrait à dé-cliquer (clique de nouveau sur la sélection)
-    # Dans Streamlit pills, si default est défini, une sélection est toujours forcée, mais c'est une bonne sécurité
     choix_final = choix_prof_pilule if choix_prof_pilule else "🔑 Codes & Identifiants Élèves"
-    
-    # Mapper le label pilule vers le label interne de logique
     onglet_actif = option_labels_prof.get(choix_final)
     
     st.markdown("---")
@@ -1080,7 +1079,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                                     else:
                                         corps_alerte = f"""<html><body style="font-family: Arial, sans-serif;">
                                             <h2 style="color: #d9534f;">🚨 Nouveau Ticket MdP à traiter</h2>
-                                            <p>BonjourOlivier,</p>
+                                            <p>Bonjour Olivier,</p>
                                             <ul>
                                                 <li><b>Email Professeur :</b> {email_prof}</li>
                                                 <li><b>Élève :</b> {el['nom']} {el['prenom']} ({el['classe']})</li>
@@ -1176,7 +1175,6 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                 if not desc or not email_sign:
                     st.error("❌ Veuillez remplir la description et votre e-mail.")
                 else:
-                    # VERIFICATION DES DOUBLONS
                     df_verif_salle = fetch_table("signalements_salles", eq_col="salle", eq_val=salle_concernee)
                     doublon = False
                     if not df_verif_salle.empty:
