@@ -41,8 +41,8 @@ SMTP_PASSWORD = st.secrets["SMTP_PASSWORD"]
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
-# Adresses Email
-EMAIL_ADMIN = "o.leothaud@saintcharles71.fr"
+# Adresses Email - CORRIGÉES
+EMAIL_ADMIN = "o.leothaud2@saintcharles71.fr"
 EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"
 EMAIL_STOCK_PRINCIPAL = "o.leothaud@gmail.com"
 EMAIL_STOCK_COPIE = "o.leothaud2@saintcharles71.fr"
@@ -517,7 +517,6 @@ def get_nb_pannes_salles():
     except Exception:
         return 0
 
-
 pwd_input = st.sidebar.text_input("🔑 Code d'accès (Prof / Admin / Compta)", type="password")
 is_admin = (pwd_input == PASSWORD_ADMIN)
 is_compta = (pwd_input == PASSWORD_COMPTA)
@@ -768,7 +767,6 @@ elif is_admin and menu == "🪪 Dossier 360°":
                 elif st.session_state[tab_key] == "Materiel":
                     st.markdown("#### 📱 Informations Appareil")
                     c_mod, c_ser = st.columns(2)
-                    # DEVERROUILLAGE DES CASES MODELE ET SERIE
                     nv_modele = c_mod.text_input("Modèle iPad", value=el.get('modele_ipad', ''), key=f"mod_{el['id']}")
                     nv_serie = c_ser.text_input("N° de Série", value=el.get('serie_ipad', ''), key=f"ser_{el['id']}")
                     st.markdown("---")
@@ -850,7 +848,6 @@ elif is_admin and menu == "🪪 Dossier 360°":
                                 nv_qty = qty_actuelle - 1
                                 supabase.table("stocks").update({"quantite": nv_qty}).eq("id", stock_id).execute()
                                 
-                                # MAIL MODIFIE POUR JEAN-DENIS
                                 if nv_qty <= 1:
                                     sujet_alerte = f"⚠️ ALERTE STOCK CRITIQUE : {detail_article}"
                                     corps_alerte = f"""<html><body style="font-family: Arial, sans-serif; color: #1e3a5f;">
@@ -965,33 +962,27 @@ elif is_admin and menu == "🚨 Pannes Salles (Tickets)":
                 st.rerun()
 
 # ==========================================
-# 👩‍🏫 PORTAIL PROFESSEURS (MODIFIÉ)
+# 👩‍🏫 PORTAIL PROFESSEURS (MODIFIÉ AVEC PILLS)
 # ==========================================
 elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail Profs":
     st.title("👩‍🏫 Portail Enseignants")
     
-    if "onglet_prof" not in st.session_state:
-        st.session_state["onglet_prof"] = "Codes"
-
-    # -- Faux onglets modifiés pour être TRÈS VISIBLES --
-    col_p1, col_p2 = st.columns(2)
+    # Navigation ultra moderne avec st.pills
+    choix_prof = st.pills(
+        "👉 Que souhaitez-vous faire ?", 
+        options=["🔑 Codes & Identifiants Élèves", "🚨 Signaler une Panne (Salles)"], 
+        default="🔑 Codes & Identifiants Élèves"
+    )
     
-    label_codes = "🔴 👉 CODES & IDENTIFIANTS (Sélectionné)" if st.session_state["onglet_prof"] == "Codes" else "⚪ 📁 Codes & Identifiants"
-    if col_p1.button(label_codes, use_container_width=True, type="primary" if st.session_state["onglet_prof"] == "Codes" else "secondary"):
-        st.session_state["onglet_prof"] = "Codes"
-        st.rerun()
-        
-    label_salles = "🔴 👉 SIGNALER UNE PANNE SALLE (Sélectionné)" if st.session_state["onglet_prof"] == "Salles" else "⚪ 🛠️ Signaler une panne salle"
-    if col_p2.button(label_salles, use_container_width=True, type="primary" if st.session_state["onglet_prof"] == "Salles" else "secondary"):
-        st.session_state["onglet_prof"] = "Salles"
-        st.rerun()
+    # Sécurité au cas où l'utilisateur décoche la pilule (pour éviter une page blanche)
+    onglet_actif = choix_prof if choix_prof else "🔑 Codes & Identifiants Élèves"
 
     st.markdown("---")
 
     # ---------------------------------------------
     # SECTION 1 : GESTION DES CODES ÉLÈVES
     # ---------------------------------------------
-    if st.session_state["onglet_prof"] == "Codes":
+    if onglet_actif == "🔑 Codes & Identifiants Élèves":
         tab_recherche, tab_masse = st.tabs(["🔍 Recherche & Réinitialisation", "🖨️ Vue Classe & Impression"])
 
         with tab_recherche:
@@ -1117,7 +1108,7 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
     # ---------------------------------------------
     # SECTION 2 : SIGNALEMENT DE PANNES
     # ---------------------------------------------
-    elif st.session_state["onglet_prof"] == "Salles":
+    elif onglet_actif == "🚨 Signaler une Panne (Salles)":
         st.markdown("### 🛠️ Signaler un dysfonctionnement matériel")
         st.info("Utilisez ce formulaire pour signaler une panne sur le matériel d'une salle de cours.")
         
@@ -1140,7 +1131,6 @@ elif menu == "👩‍🏫 Portail Professeurs" or menu == "👩‍🏫 Portail P
                 if not desc or not email_sign:
                     st.error("❌ Veuillez remplir la description et votre e-mail.")
                 else:
-                    # VERIFICATION DES DOUBLONS
                     df_verif_salle = fetch_table("signalements_salles", eq_col="salle", eq_val=salle_concernee)
                     doublon = False
                     if not df_verif_salle.empty:
@@ -1402,12 +1392,15 @@ elif is_admin and menu == "👥 Annuaire, Édition & PDF":
                     st.info("Aucune modification détectée.")
 
 # ==========================================
-# 📦 INVENTAIRE ET STOCKS (NOUVEAU DESIGN)
+# 📦 INVENTAIRE ET STOCKS
 # ==========================================
 elif is_admin and menu == "📦 Inventaire & Stocks":
     st.title("📦 Magasin & Inventaire Matériel")
     st.info("💡 Les retraits sont automatiques lors des déclarations SAV. Utilisez cette page visuelle pour rajouter du stock après une livraison.")
     
+    if "msg_stocks" in st.session_state:
+        st.success(st.session_state.pop("msg_stocks"))
+        
     df_stocks = fetch_table("stocks")
     
     if not df_stocks.empty:
@@ -1451,8 +1444,7 @@ elif is_admin and menu == "📦 Inventaire & Stocks":
                             modifs += 1
                 if modifs > 0:
                     invalidate_cache()
-                    st.success(f"✅ {modifs} articles mis à jour avec succès !")
-                    time.sleep(1)
+                    st.session_state["msg_stocks"] = f"✅ {modifs} article(s) mis à jour avec succès !"
                     st.rerun()
                 else:
                     st.info("Aucune modification détectée.")
