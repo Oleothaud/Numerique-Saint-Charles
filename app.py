@@ -41,7 +41,7 @@ SMTP_PASSWORD = st.secrets["SMTP_PASSWORD"]
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
-# Adresses Email
+# Adresses Email - CORRIGÉES
 EMAIL_ADMIN = "o.leothaud2@saintcharles71.fr"
 EMAIL_TEST_CIBLE = "o.leothaud@gmail.com"
 EMAIL_STOCK_PRINCIPAL = "o.leothaud@gmail.com"
@@ -142,29 +142,12 @@ st.markdown("""
             color: white !important;
         }
         
-        /* Cacher la barre clignotante dans les selectbox */
-        div[data-baseweb="select"] input {
-            caret-color: transparent !important;
-        }
-        
-        /* Agrandir considérablement les pilules (st.pills) */
-        div[data-testid="stPills"] button {
-            font-size: 16px !important;
-            padding: 12px 24px !important;
-            min-height: 45px !important;
-        }
-        div[data-testid="stPills"] p {
-            font-size: 16px !important;
-            margin: 0 !important;
-        }
-        
-        input:focus, textarea:focus, select:focus, div[data-baseweb="select"]:focus-within, div[role="combobox"]:focus-within {
-            outline: none !important;
-            box-shadow: none !important;
-            border-color: #1e3a5f !important;
-        }
-        div[data-baseweb="input"] > div:after, div[data-baseweb="select"] > div:after, div[role="combobox"] > div:after {
-            display: none !important;
+        /* CORRECTION : Agrandissement radical des pilules avec l'effet de zoom */
+        div[data-testid="stPills"] {
+            transform: scale(1.3);
+            transform-origin: left center;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
         }
     </style>
 """, unsafe_allow_html=True)
